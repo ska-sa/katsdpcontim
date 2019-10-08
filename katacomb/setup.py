@@ -27,7 +27,7 @@ setup(name=PKG,
     version=find_version(),
     description=DESCRIPTION,
     long_description=DESCRIPTION,
-    url='https://github.com/ska-sa/katsdppipelines/tree/master/katsdpcontim',
+    url='https://github.com/ska-sa/katsdpcontim',
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
