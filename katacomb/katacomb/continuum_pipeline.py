@@ -399,36 +399,39 @@ class KatdalPipelineImplementation(PipelineImplementation):
         blavg_desc = blavg_uvf.Desc.Dict
         blavg_nvis = blavg_desc['nvis']
 
-        nx_row['START VIS'] = [merge_firstVis]
+        # Only do something if we have something to do
+        if blavg_nvis > 0:
 
-        for blavg_firstVis in six.moves.range(1, blavg_nvis+1, self.nvispio):
-            # How many visibilities do we write in this iteration?
-            numVisBuff = min(blavg_nvis+1 - blavg_firstVis, self.nvispio)
+            nx_row['START VIS'] = [merge_firstVis]
 
-            # Update read file descriptor
-            blavg_desc = blavg_uvf.Desc.Dict
-            blavg_desc.update(numVisBuff=numVisBuff)
-            blavg_uvf.Desc.Dict = blavg_desc
+            for blavg_firstVis in six.moves.range(1, blavg_nvis+1, self.nvispio):
+                # How many visibilities do we write in this iteration?
+                numVisBuff = min(blavg_nvis+1 - blavg_firstVis, self.nvispio)
 
-            # Update write file descriptor
-            merge_desc = merge_uvf.Desc.Dict
-            merge_desc.update(numVisBuff=numVisBuff)
-            merge_uvf.Desc.Dict = merge_desc
+                # Update read file descriptor
+                blavg_desc = blavg_uvf.Desc.Dict
+                blavg_desc.update(numVisBuff=numVisBuff)
+                blavg_uvf.Desc.Dict = blavg_desc
 
-            # Read, copy, write
-            blavg_uvf.Read(firstVis=blavg_firstVis)
-            merge_uvf.np_visbuf[:] = blavg_uvf.np_visbuf
-            merge_uvf.Write(firstVis=merge_firstVis)
+                # Update write file descriptor
+                merge_desc = merge_uvf.Desc.Dict
+                merge_desc.update(numVisBuff=numVisBuff)
+                merge_uvf.Desc.Dict = merge_desc
 
-            # Update merge visibility
-            merge_firstVis += numVisBuff
+                # Read, copy, write
+                blavg_uvf.Read(firstVis=blavg_firstVis)
+                merge_uvf.np_visbuf[:] = blavg_uvf.np_visbuf
+                merge_uvf.Write(firstVis=merge_firstVis)
 
-        # Record the ending visibility
-        # for this scan in the merge file
-        nx_row['END VIS'] = [merge_firstVis-1]
+                # Update merge visibility
+                merge_firstVis += numVisBuff
 
-        # Append row to index table
-        merge_uvf.tables["AIPS NX"].rows.append(nx_row)
+            # Record the ending visibility
+            # for this scan in the merge file
+            nx_row['END VIS'] = [merge_firstVis-1]
+
+            # Append row to index table
+            merge_uvf.tables["AIPS NX"].rows.append(nx_row)
 
         return merge_firstVis
 
@@ -579,11 +582,13 @@ class KatdalPipelineImplementation(PipelineImplementation):
             log.info(blavg_history)
 
             merge_uvf.append_history(blavg_history)
-
-            log.info("Merging '%s' into '%s'", blavg_path, self.uv_merge_path)
-            merge_firstVis = self._copy_scan_to_merge(merge_firstVis,
-                                                      merge_uvf, blavg_uvf,
-                                                      nx_row)
+            if blavg_nvis > 0:
+                log.info("Merging '%s' into '%s'", blavg_path, self.uv_merge_path)
+                merge_firstVis = self._copy_scan_to_merge(merge_firstVis,
+                                                          merge_uvf, blavg_uvf,
+                                                          nx_row)
+            else:
+                log.warn("No visibilities to merge for scan %d" % (si))
 
             # Remove scan once merged
             if 'scans' in self.clobber:
