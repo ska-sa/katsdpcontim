@@ -57,10 +57,10 @@ def _integration_time(target, katds):
         https://skaafrica.atlassian.net/browse/SR-1732
     """
     n_dumps = 0
-    selection = katds._selection
+    selection = katds._selection.copy()
     katds.select(reset='T')
-    for _, _, scan_targ in katds.scans():
-        if scan_targ == target:
+    for _, state, scan_targ in katds.scans():
+        if scan_targ == target and state == 'track':
             n_dumps += len(katds.dumps)
     katds.select(**selection)
     return n_dumps * katds.dump_period / 3600.
