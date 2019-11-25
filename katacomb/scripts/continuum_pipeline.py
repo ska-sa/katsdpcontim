@@ -24,8 +24,9 @@ from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory
+from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (parse_python_assigns,
+                           recursive_merge,
                            get_and_merge_args,
                            log_exception,
                            post_process_args,
@@ -38,6 +39,9 @@ OUTDIR_SEPARATOR = '_'
 START_TIME = '%d' % (int(time.time()*1000))
 # Location of mfimage and uvblavg yaml configurations
 CONFIG = '/obitconf'
+# Minimum Walltime in sec. and extra time padding for MFImage
+MINRUNTIME = 2. * 3600.
+RUNTIME_PAD = 0.5
 
 
 def create_parser():
@@ -133,6 +137,39 @@ def create_parser():
     return parser
 
 
+def _infer_defaults_from_katdal(katds):
+    """
+    Infer some default parameters for MFImage and UVBlAvg based
+    upon what we know from the katdal object.
+    """
+
+    uvblavg_params = {}
+    mfimage_params = {}
+
+    # Try and always average down to ~1024 channels if necessary
+    num_chans = len(katds.channels)
+    factor = num_chans // 1024
+    if factor > 1:
+        uvblavg_params['avgFreq'] = 1
+        uvblavg_params['chAvg'] = factor
+
+    # Get the reference antenna used by cal
+    # and use the same one for self-cal
+    ts = katds.source.telstate
+    refant = ts.get('cal_refant')
+    if refant is not None:
+        mfimage_params['refAnt'] = aips_ant_nr(refant)
+
+    #Get the total observed time (t_obs) currently selected in the
+    #kat_adapter and set the MFImage:maxRealtime parameter to
+    #max(mintime, t_obs*(1. + extra)).
+    t_obs = katds.shape[0] * katds.dump_period
+    maxRealtime = max(MINRUNTIME, t_obs * (1. + RUNTIME_PAD))
+    mfimage_params['maxRealtime'] = float(maxRealtime)
+
+    return uvblavg_params, mfimage_params
+
+
 def main():
     setup_logging()
     parser = create_parser()
@@ -152,9 +189,15 @@ def main():
 
     post_process_args(args, katdata)
 
-    # Get defaults for uvblavg and mfimage and merge user supplied ones
-    uvblavg_args = get_and_merge_args(pjoin(CONFIG, 'uvblavg_MKAT.yaml'), args.uvblavg)
-    mfimage_args = get_and_merge_args(pjoin(CONFIG, 'mfimage_MKAT.yaml'), args.mfimage)
+    uvblavg_args, mfimage_args = _infer_defaults_from_katdal(katdata)
+
+    # Get config defaults for uvblavg and mfimage and merge user supplied ones
+    user_uvblavg_args = get_and_merge_args(pjoin(CONFIG, 'uvblavg_MKAT.yaml'), args.uvblavg)
+    user_mfimage_args = get_and_merge_args(pjoin(CONFIG, 'mfimage_MKAT.yaml'), args.mfimage)
+
+    # Merge katdal defaults with user supplied defaults
+    recursive_merge(user_uvblavg_args, uvblavg_args)
+    recursive_merge(user_mfimage_args, mfimage_args)
 
     # Get the default config.
     dc = kc.get_config()

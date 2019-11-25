@@ -32,7 +32,6 @@ minFluxASC: 0.01            # Min. peak A&P self cal (Jy)
 solAInt: 2.0                # A&P SC Solution interval (min)
 solAType: 'L1'              # A&P SC Soln. Type: '  ', 'L1'
 solAMode: 'A&P'             # A&P SC Soln. Mode:'A&P', 'P', 'P!A'
-refAnt: 0                   # SC Reference antenna
 Reuse: 20.0                 # Number of sigma to reuse CCs
 doGPU: True                 # Use GPU predict
 minFList: [0.0001]          # Minimum flux density to CLEAN per Self-cal cycle after first
