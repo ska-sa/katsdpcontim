@@ -618,6 +618,16 @@ class KatdalPipelineImplementation(PipelineImplementation):
         # Close merge file
         merge_uvf.close()
 
+    def _set_mfimage_runtime_default(self, mintime=7200., extra=0.5):
+        """
+        Get the total observed time (t_obs) currently selected in the
+        kat_adapter and set the MFImage:maxRealtime parameter to
+        max(mintime, t_obs*(1. + extra)).
+        """
+        t_obs = self.ka.shape[0] * self.ka.katdal.dump_period
+        maxRealtime = max(mintime, t_obs * (1. + extra))
+        self.mfimage_params['maxRealtime'] = maxRealtime
+
 
 @register_workmode('continuum_export')
 class KatdalExportPipeline(KatdalPipelineImplementation):
@@ -688,8 +698,10 @@ class OnlinePipeline(KatdalPipelineImplementation):
 
         super(OnlinePipeline, self).__init__(katdata)
         self.telstate = telstate
-        self.uvblavg_params = uvblavg_params
-        self.mfimage_params = mfimage_params
+        self.uvblavg_params.update(uvblavg_params)
+        # Set default maxRealtime for MFImage
+        self._set_mfimage_runtime_default()
+        self.mfimage_params.update(mfimage_params)
         self.katdal_select = katdal_select
         self.nvispio = nvispio
 
