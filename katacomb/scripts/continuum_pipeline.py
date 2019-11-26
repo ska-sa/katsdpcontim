@@ -41,7 +41,7 @@ START_TIME = '%d' % (int(time.time()*1000))
 CONFIG = '/obitconf'
 # Minimum Walltime in sec. and extra time padding for MFImage
 MINRUNTIME = 2. * 3600.
-RUNTIME_PAD = 0.5
+RUNTIME_PAD = 1.0
 
 
 def create_parser():
