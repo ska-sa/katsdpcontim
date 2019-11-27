@@ -7,6 +7,9 @@ import numpy as np
 
 import TableList
 import UV
+import AIPSDir
+import FITSDir
+import OSystem
 
 from katacomb import (AIPSTable,
                       AIPSHistory,
@@ -315,6 +318,20 @@ class UVFacade(object):
 
         handle_obit_err("Error closing uv file '%s'" % self.name, self._err)
         self._clear_uv()
+
+    @property
+    def exists(self):
+        # Do I exist?
+        exists = False
+        if self.uv.FileType == "FITS":
+            exists = FITSDir.PExist(self.uv.FileName, self.uv.Disk, self._err)
+        elif self.uv.FileType == "AIPS":
+            user = OSystem.PGetAIPSuser()
+            test = AIPSDir.PTestCNO(self.uv.Disk, user, self.uv.Aname,
+                                    self.uv.Aclass, "UV", self.uv.Aseq,
+                                    self._err)
+            exists = test > 0
+        return exists
 
     @property
     def uv(self):

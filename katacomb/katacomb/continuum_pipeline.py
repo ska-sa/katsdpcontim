@@ -241,17 +241,17 @@ class PipelineImplementation(Pipeline):
         """
         for img in image_files:
             with img_factory(aips_path=img, mode="rw") as imf:
-                tmp_img = img.copy(seq=next_seq_nr(img))
-                imf.Copy(tmp_img)
-                tmp_imf = img_factory(aips_path=tmp_img, mode="rw")
-                # nOrder=0 does weighted average of planes
-                tmp_imf.FitMF(nOrder=0)
-                # Get the first (weighted average plane)
-                img_plane = tmp_imf.GetPlane()
-                # Stick it into the first plane of img.
-                imf.PutPlane(img_plane)
-                tmp_imf.Zap()
-
+                if imf.exists:
+                    tmp_img = img.copy(seq=next_seq_nr(img))
+                    imf.Copy(tmp_img)
+                    tmp_imf = img_factory(aips_path=tmp_img, mode="rw")
+                    # nOrder=0 does weighted average of planes
+                    tmp_imf.FitMF(nOrder=0)
+                    # Get the first (weighted average plane)
+                    img_plane = tmp_imf.GetPlane()
+                    # Stick it into the first plane of img.
+                    imf.PutPlane(img_plane)
+                    tmp_imf.Zap()
 
     def _cleanup(self):
         """

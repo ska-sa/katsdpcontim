@@ -10,6 +10,10 @@ import ImageMF
 import Table
 import TableList
 import TableUtil
+import AIPSDir
+import FITSDir
+import OSystem
+
 
 from katacomb import (AIPSTable,
                       AIPSHistory,
@@ -261,6 +265,20 @@ class ImageFacade(object):
                         if name not in ignored_tables}
 
         self._tables["AIPS HI"] = AIPSHistory(img, err)
+
+    @property
+    def exists(self):
+        # Do I exist?
+        exists = False
+        if self.img.FileType == "FITS":
+            exists = FITSDir.PExist(self.img.FileName, self.img.Disk, self._err)
+        elif self.img.FileType == "AIPS":
+            user = OSystem.PGetAIPSuser()
+            test = AIPSDir.PTestCNO(self.img.Disk, user, self.img.Aname,
+                                    self.img.Aclass, "MA", self.img.Aseq,
+                                    self._err)
+            exists = test > 0
+        return exists
 
     @property
     def tables(self):
