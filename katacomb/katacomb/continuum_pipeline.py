@@ -227,6 +227,32 @@ class PipelineImplementation(Pipeline):
         with log_obit_err(log):
             mfimage.go()
 
+    def _get_wavg_img(self, image_files):
+        """
+        For each MF image in the list of files, perform a weighted
+        average over the the coarse frequency planes and store it
+        in the first plane of the image, preserving any previous
+        higher order fitting in the subsequent planes.
+
+        Parameters
+        ----------
+        image_files : list
+            The images to process (output from MFImage task) 
+        """
+        for img in image_files:
+            with img_factory(aips_path=img, mode="rw") as imf:
+                tmp_img = img.copy(seq=next_seq_nr(img))
+                imf.Copy(tmp_img)
+                tmp_imf = img_factory(aips_path=tmp_img, mode="rw")
+                # nOrder=0 does weighted average of planes
+                tmp_imf.FitMF(nOrder=0)
+                # Get the first (weighted average plane)
+                img_plane = tmp_imf.GetPlane()
+                # Stick it into the first plane of img.
+                imf.PutPlane(img_plane)
+                tmp_imf.Zap()
+
+
     def _cleanup(self):
         """
         Remove any remaining UV, Clean, and Merged UVF files,
@@ -717,6 +743,8 @@ class OnlinePipeline(KatdalPipelineImplementation):
         self.cleanup_uv_files += uv_files
         self.cleanup_img_files += clean_files
 
+        self._get_wavg_img(clean_files)
+
         export_calibration_solutions(uv_files, self.ka,
                                      self.mfimage_params, self.telstate)
         export_clean_components(clean_files, target_indices,
@@ -838,5 +866,6 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         if "merge" in self.clobber:
             self.cleanup_uv_files.append(self.uv_merge_path)
         self._run_mfimage(self.uv_merge_path, uv_sources)
+        self._get_wavg_img(clean_files)
         export_images(clean_files, target_indices,
                       self.odisk, self.ka)
