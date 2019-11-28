@@ -284,6 +284,13 @@ class ImageFacade(object):
     def tables(self):
         return self._tables
 
+    @property
+    def tablelist(self):
+        tables = TableList.PGetList(self.img.TableList, self._err)
+        handle_obit_err("Error getting '%s' table list" % self.name)
+        return tables
+
+
     def attach_table(self, name, version, **kwargs):
         self._tables[name] = AIPSTable(self.img, name, version, 'r',
                                        self._err, **kwargs)
@@ -318,15 +325,17 @@ class ImageFacade(object):
         handle_obit_err(err_msg, self._err)
         self._clear_img()
 
-    def writefits(self, disk, output):
+    def writefits(self, disk, output, tables_to_copy=['AIPS CC', 'AIPS SN']):
         """ Write the image to a FITS file """
 
         err_msg = "Unable to write image to %s" % output
 
         outImage = Image.newPFImage("FITS Image DATA", output, disk, False, self._err)
         Image.PCopy(self._img, outImage, self._err)
-
+        Image.PCopyTables(self._img, outImage, ['AIPS HI'], tables_to_copy, self._err)
         handle_obit_err(err_msg, self._err)
+
+
 
     @property
     def img(self):
@@ -469,12 +478,12 @@ class ImageFacade(object):
 
         # Check we have the right type of image
         if self.isObitImageMF():
-            #try:
+            try:
                 # Need an ImageMF pointer for PFitSpec
                 ImageMF.PFitSpec(self.imgMF, self._err, **kwargs)
-            #except Exception:
-            #    raise (Exception(err_msg), None, sys.exc_info()[2])
-            #handle_obit_err(err_msg)
+            except Exception:
+                raise (Exception(err_msg), None, sys.exc_info()[2])
+            handle_obit_err(err_msg)
 
     @property
     def Desc(self):

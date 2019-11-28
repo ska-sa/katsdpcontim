@@ -381,6 +381,12 @@ class UVFacade(object):
     def tables(self):
         return self._tables
 
+    @property
+    def tablelist(self):
+        tables = TableList.PGetList(self.uv.TableList, self._err)
+        handle_obit_err("Error getting '%s' table list" % self.name)
+        return tables
+
     def attach_table(self, name, version, **kwargs):
         self._tables[name] = AIPSTable(self.uv, name, version, 'r',
                                        self._err, **kwargs)

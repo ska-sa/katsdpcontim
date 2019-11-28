@@ -253,6 +253,41 @@ class PipelineImplementation(Pipeline):
                     imf.PutPlane(img_plane)
                     tmp_imf.Zap()
 
+    def _attach_SN_tables_to_image(self, uv_file, image_file):
+        """
+        Loop through each of the SN tables in uv_file that
+        were produced by MFImage and copy and attach these to the
+        image_file.
+
+        Parameters
+        ----------
+        uv_file    : :class:`AIPSPath`
+            UV file output from MFImage with SN tables attached.
+        image_file : :class:`AIPSPath`
+            Image (MA) file output from MFImage
+        """
+
+        uvf = uv_factory(aips_path=uv_file, mode='r')
+        if uvf.exists:
+            # Get all SN tables in UV file
+            tables = uvf.tablelist
+            taco_kwargs = {}
+            taco_kwargs.update(uv_file.task_input_kwargs())
+            taco_kwargs.update(image_file.task_output_kwargs())
+            taco_kwargs['inTab'] = 'AIPS SN'
+            taco_kwargs['nCopy'] = 1
+            # Copy all SN tables
+            SN_ver = [table[0] for table in tables if table[1] == 'AIPS SN']
+            for ver in SN_ver:
+                taco_kwargs.update({
+                    'inVer' : ver,
+                    'outVer' : ver
+                    })
+                taco = task_factory("TabCopy", **taco_kwargs)
+                with log_obit_err(log):
+                    taco.go()
+
+
     def _cleanup(self):
         """
         Remove any remaining UV, Clean, and Merged UVF files,
@@ -745,12 +780,15 @@ class OnlinePipeline(KatdalPipelineImplementation):
 
         self._get_wavg_img(clean_files)
 
+        for uv, clean in zip(uv_files, clean_files):
+            self._attach_SN_tables_to_image(uv, clean)
+
+        export_images(clean_files, target_indices,
+                      self.odisk, self.ka)
         export_calibration_solutions(uv_files, self.ka,
                                      self.mfimage_params, self.telstate)
         export_clean_components(clean_files, target_indices,
                                 self.ka, self.telstate)
-        export_images(clean_files, target_indices,
-                      self.odisk, self.ka)
 
 
 @register_workmode('offline')
