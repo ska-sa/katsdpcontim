@@ -904,6 +904,10 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         if "merge" in self.clobber:
             self.cleanup_uv_files.append(self.uv_merge_path)
         self._run_mfimage(self.uv_merge_path, uv_sources)
+
         self._get_wavg_img(clean_files)
+	for uv, clean in zip(uv_files, clean_files):
+            self._attach_SN_tables_to_image(uv, clean)
+
         export_images(clean_files, target_indices,
                       self.odisk, self.ka)
