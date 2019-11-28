@@ -1,9 +1,9 @@
-attrs == 17.4.0
+attrs
 astropy == 2.0.3
 backports-abc
 backports.ssl-match-hostname
 beautifulsoup4 == 4.6.0
-botocore == 1.10.16
+botocore
 bs4 == 0.0.1
 cerberus == 1.1
 certifi
@@ -22,7 +22,7 @@ h5py
 html5lib == 1.0.1
 idna
 ipaddress
-jmespath == 0.9.3
+jmespath
 katversion
 llvmlite
 matplotlib
