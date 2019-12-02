@@ -6,9 +6,14 @@ from pretty import pretty
 
 import FArray
 import Image
+import ImageMF
 import Table
 import TableList
 import TableUtil
+import AIPSDir
+import FITSDir
+import OSystem
+
 
 from katacomb import (AIPSTable,
                       AIPSHistory,
@@ -35,7 +40,7 @@ def img_file_mode(mode):
         return Image.READONLY
 
 
-def open_img(aips_path, mode=None):
+def open_img(aips_path, mode=None, MF=False):
     """
     Opens an AIPS/FITS Image file and returns a wrapped :class:`ImageFacade` object.
 
@@ -46,6 +51,8 @@ def open_img(aips_path, mode=None):
     mode(optional): str
         "r" to read, "w" to write, "rw" to read and write.
         Defaults to "r"
+    MF(optional): boolean
+        Open as an ImageMF?
 
     Returns
     -------
@@ -62,10 +69,14 @@ def open_img(aips_path, mode=None):
     exists = False  # Test if the file exists
 
     if aips_path.dtype == "AIPS":
+        if MF:
+            img_open = ImageMF.newPAImage
+        else:
+            img_open = Image.newPAImage
         try:
-            img = Image.newPAImage(aips_path.label, aips_path.name,
-                                   aips_path.aclass, aips_path.disk,
-                                   aips_path.seq, exists, err)
+            img = img_open(aips_path.label, aips_path.name,
+                           aips_path.aclass, aips_path.disk,
+                           aips_path.seq, exists, err)
         except Exception:
             raise (ValueError("Error calling newPAImage on '%s'" % aips_path),
                    None, sys.exc_info()[2])
@@ -212,12 +223,11 @@ class ImageFacade(object):
         * Setting up the AIPS Path if given a Image file.
         * Open any Tables attached to the Image file.
         """
-
+        self.mode = kwargs.pop('mode', 'r')
         # Given an AIPSPath. open it.
         if isinstance(img, AIPSPath):
             self._aips_path = img
-            mode = kwargs.pop('mode', 'r')
-            self._img = img = open_img(img, mode=mode)
+            self._img = img = open_img(img, mode=self.mode)
         # Given an Obit Image file.
         # Construct an AIPSPath
         elif isinstance(img, Image.Image):
@@ -257,8 +267,29 @@ class ImageFacade(object):
         self._tables["AIPS HI"] = AIPSHistory(img, err)
 
     @property
+    def exists(self):
+        # Do I exist?
+        exists = False
+        if self.img.FileType == "FITS":
+            exists = FITSDir.PExist(self.img.FileName, self.img.Disk, self._err)
+        elif self.img.FileType == "AIPS":
+            user = OSystem.PGetAIPSuser()
+            test = AIPSDir.PTestCNO(self.img.Disk, user, self.img.Aname,
+                                    self.img.Aclass, "MA", self.img.Aseq,
+                                    self._err)
+            exists = test > 0
+        return exists
+
+    @property
     def tables(self):
         return self._tables
+
+    @property
+    def tablelist(self):
+        tables = TableList.PGetList(self.img.TableList, self._err)
+        handle_obit_err("Error getting '%s' table list" % self.name)
+        return tables
+
 
     def attach_table(self, name, version, **kwargs):
         self._tables[name] = AIPSTable(self.img, name, version, 'r',
@@ -294,24 +325,37 @@ class ImageFacade(object):
         handle_obit_err(err_msg, self._err)
         self._clear_img()
 
-    def writefits(self, disk, output):
+    def writefits(self, disk, output, tables_to_copy=['AIPS CC', 'AIPS SN']):
         """ Write the image to a FITS file """
 
         err_msg = "Unable to write image to %s" % output
 
         outImage = Image.newPFImage("FITS Image DATA", output, disk, False, self._err)
         Image.PCopy(self._img, outImage, self._err)
-
+        Image.PCopyTables(self._img, outImage, ['AIPS HI'], tables_to_copy, self._err)
         handle_obit_err(err_msg, self._err)
+
+
 
     @property
     def img(self):
         try:
             return self._img
         except AttributeError:
-            self._open_logic(self._aips_path, self._err)
+            self._open_logic(self._aips_path, self._err, mode=self.mode)
 
         return self._img
+
+    @property
+    def imgMF(self):
+        try:
+            self._requireObitImageMF()
+        except ValueError:
+            log.warn("%s is not an ImageMF." % self.name)
+            imgMF = None
+        else:
+            imgMF = open_img(self._aips_path, mode=self.mode, MF=True)
+        return imgMF
 
     def _clear_img(self):
         """
@@ -366,16 +410,80 @@ class ImageFacade(object):
 
         handle_obit_err(err_msg, self._err)
 
-    def GetPlane(self, array, plane):
+    def Copy(self, to_path):
+        """ Copy this image to a new file in to_path.
+        """
+        err_msg = "Error copying Image file '%s' to '%s'" % (self.name, to_path)
+        to_img = img_factory(aips_path=to_path, mode='rw')
+        try:
+            self.img.Copy(to_img.img, self._err)
+        except Exception:
+            raise (Exception(err_msg), None, sys.exc_info()[2])
+
+        handle_obit_err(err_msg, self._err)
+
+    def GetPlane(self, array=None, plane=[1, 1, 1, 1, 1]):
+        """
+        Get an image plane and store it in array.
+        Use self.FArray if array is None.
+        Default to first image plane.
+        Return the opened plane.
+        """
         err_msg = ("Error getting plane '%s' "
                    "from image '%s'" % (plane, self.name))
 
         try:
+            if array is None:
+                array = Image.PGetFArray(self.img)
             self.img.GetPlane(array, plane, self._err)
         except Exception:
             raise (Exception(err_msg), None, sys.exc_info()[2])
 
         handle_obit_err(err_msg, self._err)
+        return array
+
+    def PutPlane(self, array, plane=[1, 1, 1, 1, 1]):
+        """
+        Put the FArray in array in specified image plane.
+        """
+        err_msg = ("Error putting plane '%s' "
+                   "into image '%s'" % (plane, self.name))
+        try:
+            self.img.PutPlane(array, plane, self._err)
+        except Exception:
+            raise (Exception(err_msg), None, sys.exc_info()[2])
+
+        handle_obit_err(err_msg, self._err)
+
+    def FitMF(self, **kwargs):
+        """
+        Fit spectrum to each pixel of an ImageMF.
+
+        Uses ImageMF.PFitSpec and takes kwargs (from ImageMF.PFitSpec docstring).
+
+        Parameters
+        ----------
+        antSize  : float
+            If > 0 make primary beam corrections assuming antenna
+            diameter (m) antSize (default: 0.0)
+        nOrder   : int
+            Order of fit, 0=intensity, 1=spectral index,
+            2=also curvature (default: 1)
+        corAlpha : float
+            Spectral index correction to apply before fitting
+            (default: 0.0)
+        """
+
+        err_msg = "Unable to fit pixel spectra to image '%s'." % self.name
+
+        # Check we have the right type of image
+        if self.isObitImageMF():
+            try:
+                # Need an ImageMF pointer for PFitSpec
+                ImageMF.PFitSpec(self.imgMF, self._err, **kwargs)
+            except Exception:
+                raise (Exception(err_msg), None, sys.exc_info()[2])
+            handle_obit_err(err_msg)
 
     @property
     def Desc(self):

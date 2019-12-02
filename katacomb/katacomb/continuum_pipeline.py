@@ -227,6 +227,67 @@ class PipelineImplementation(Pipeline):
         with log_obit_err(log):
             mfimage.go()
 
+    def _get_wavg_img(self, image_files):
+        """
+        For each MF image in the list of files, perform a weighted
+        average over the the coarse frequency planes and store it
+        in the first plane of the image, preserving any previous
+        higher order fitting in the subsequent planes.
+
+        Parameters
+        ----------
+        image_files : list
+            The images to process (output from MFImage task) 
+        """
+        for img in image_files:
+            with img_factory(aips_path=img, mode="rw") as imf:
+                if imf.exists:
+                    tmp_img = img.copy(seq=next_seq_nr(img))
+                    imf.Copy(tmp_img)
+                    tmp_imf = img_factory(aips_path=tmp_img, mode="rw")
+                    # nOrder=0 does weighted average of planes
+                    tmp_imf.FitMF(nOrder=0)
+                    # Get the first (weighted average plane)
+                    img_plane = tmp_imf.GetPlane()
+                    # Stick it into the first plane of img.
+                    imf.PutPlane(img_plane)
+                    tmp_imf.Zap()
+
+    def _attach_SN_tables_to_image(self, uv_file, image_file):
+        """
+        Loop through each of the SN tables in uv_file that
+        were produced by MFImage and copy and attach these to the
+        image_file.
+
+        Parameters
+        ----------
+        uv_file    : :class:`AIPSPath`
+            UV file output from MFImage with SN tables attached.
+        image_file : :class:`AIPSPath`
+            Image (MA) file output from MFImage
+        """
+
+        uvf = uv_factory(aips_path=uv_file, mode='r')
+        if uvf.exists:
+            # Get all SN tables in UV file
+            tables = uvf.tablelist
+            taco_kwargs = {}
+            taco_kwargs.update(uv_file.task_input_kwargs())
+            taco_kwargs.update(image_file.task_output_kwargs())
+            taco_kwargs['inTab'] = 'AIPS SN'
+            taco_kwargs['nCopy'] = 1
+            # Copy all SN tables
+            SN_ver = [table[0] for table in tables if table[1] == 'AIPS SN']
+            for ver in SN_ver:
+                taco_kwargs.update({
+                    'inVer' : ver,
+                    'outVer' : ver
+                    })
+                taco = task_factory("TabCopy", **taco_kwargs)
+                with log_obit_err(log):
+                    taco.go()
+
+
     def _cleanup(self):
         """
         Remove any remaining UV, Clean, and Merged UVF files,
@@ -717,12 +778,17 @@ class OnlinePipeline(KatdalPipelineImplementation):
         self.cleanup_uv_files += uv_files
         self.cleanup_img_files += clean_files
 
+        self._get_wavg_img(clean_files)
+
+        for uv, clean in zip(uv_files, clean_files):
+            self._attach_SN_tables_to_image(uv, clean)
+
+        export_images(clean_files, target_indices,
+                      self.odisk, self.ka)
         export_calibration_solutions(uv_files, self.ka,
                                      self.mfimage_params, self.telstate)
         export_clean_components(clean_files, target_indices,
                                 self.ka, self.telstate)
-        export_images(clean_files, target_indices,
-                      self.odisk, self.ka)
 
 
 @register_workmode('offline')
@@ -838,5 +904,10 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         if "merge" in self.clobber:
             self.cleanup_uv_files.append(self.uv_merge_path)
         self._run_mfimage(self.uv_merge_path, uv_sources)
+
+        self._get_wavg_img(clean_files)
+	for uv, clean in zip(uv_files, clean_files):
+            self._attach_SN_tables_to_image(uv, clean)
+
         export_images(clean_files, target_indices,
                       self.odisk, self.ka)
