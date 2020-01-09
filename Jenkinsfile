@@ -4,7 +4,7 @@
 katsdp.killOldJobs()
 
 katsdp.setDependencies([
-    'ska-sa/katsdpdockerbase/master',
+    'ska-sa/katsdpdockerbase/python2',
     'ska-sa/katpoint/master',
     'ska-sa/katdal/master',
     'ska-sa/katsdpservices/master',
