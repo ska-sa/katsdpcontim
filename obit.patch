@@ -171,6 +171,19 @@ Index: trunk/ObitSystem/Obit/python/makesetup.py
 +outfile.write('                              runtime_library_dirs='+str(runtimeLibDirs)+','+os.linesep)
 +outfile.write('       include_dirs='+str(incDirs)+')]'+os.linesep)
  outfile.write(')')
+Index: Obit/python/Obit_wrap.c
+===================================================================
+--- trunk/ObitSystem/Obit/python/Obit_wrap.c	(revision 598)
++++ trunk/ObitSystem/Obit/python/Obit_wrap.c	(working copy)
+@@ -4549,7 +4549,7 @@
+ static PyObject* Info2List(ObitInfoType type, gint32 dim[5], void *data)
+ {
+   PyObject *outList=NULL, *outList2=NULL, *outList3=NULL, *o=NULL;
+-  gint32 i, j, k, ii, count[2], ndim;
++  gint32 i, j, k, ii, count[3], ndim;
+   float  *fdata;
+   long   *ldata;
+   int    *idata;
 Index: trunk/ObitSystem/Obit/src/Makefile.in
 ===================================================================
 --- trunk/ObitSystem/Obit/src/Makefile.in	(revision 570)
