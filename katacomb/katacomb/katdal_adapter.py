@@ -165,7 +165,7 @@ def katdal_uvw(uvw, refwave):
 
 def aips_source_name(name, used=[]):
     """
-    Truncates to length 16, padding with spaces adding
+    Truncates to MAX_AIPS_PATH_LEN, padding with spaces and appending
     repeat number to repeat names.
     """
     return normalise_target_name(name, used, max_length=MAX_AIPS_PATH_LEN)
