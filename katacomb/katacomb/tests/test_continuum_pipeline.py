@@ -511,7 +511,8 @@ class TestOnlinePipeline(unittest.TestCase):
 
         # Simulate a '10Jy' source at the phase center
         cat = katpoint.Catalogue()
-        cat.add(katpoint.Target("Alberich, radec, 20.0, -30.0, (856. 1712. 1. 0. 0.)"))
+        cat.add(katpoint.Target(
+            "Alberich lord of the Nibelungs, radec, 20.0, -30.0, (856. 1712. 1. 0. 0.)"))
 
         telstate = TelescopeState()
 

@@ -19,8 +19,8 @@ from katdal.lazy_indexer import DaskLazyIndexer, dask_getitem
 log = logging.getLogger('katacomb')
 
 ONE_DAY_IN_SECONDS = 24*60*60.0
-MAX_AIPS_PATH_LEN = 10
-MAX_AIPS_STRING_LEN = 16
+MAX_AIPS_PATH_LEN = 12
+
 """ Map correlation characters to correlation id """
 CORR_ID_MAP = {('h', 'h'): 0,
                ('v', 'v'): 1,
@@ -165,10 +165,10 @@ def katdal_uvw(uvw, refwave):
 
 def aips_source_name(name, used=[]):
     """
-    Truncates to length 16, padding with spaces adding
+    Truncates to MAX_AIPS_PATH_LEN, padding with spaces and appending
     repeat number to repeat names.
     """
-    return normalise_target_name(name, used, max_length=MAX_AIPS_STRING_LEN)
+    return normalise_target_name(name, used, max_length=MAX_AIPS_PATH_LEN)
 
 
 def aips_catalogue(katdata, nif):
@@ -234,10 +234,13 @@ def aips_catalogue(katdata, nif):
         # Apparent position
         raa, deca = np.rad2deg(aradec)
 
+        source_name = aips_source_name(t.name, used)
+
         aips_source_data = {
             # Fill in data derived from katpoint target
             'ID. NO.': [aips_i],
-            'SOURCE': [aips_source_name(t.name, used)],
+            # SOURCE keyword requires 16 characters.
+            'SOURCE': [source_name.ljust(16, ' ')],
             'RAEPO': [ra],
             'DECEPO': [dec],
             'RAOBS': [raa],
@@ -319,7 +322,7 @@ def aips_catalogue(katdata, nif):
             'QUAL': [0.0],      # Source Qualifier Number
         }
 
-        used.extend(aips_source_data['SOURCE'])
+        used.append(source_name)
 
         catalogue.append(aips_source_data)
 
