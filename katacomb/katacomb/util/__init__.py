@@ -26,7 +26,7 @@ import builtins
 
 # builtin function whitelist
 _BUILTIN_WHITELIST = frozenset(['slice'])
-_missing = _BUILTIN_WHITELIST.difference(dir(__builtin__))
+_missing = _BUILTIN_WHITELIST.difference(dir(builtins))
 if len(_missing) > 0:
     raise ValueError("'%s' are not valid builtin functions.'" % list(_missing))
 
@@ -222,7 +222,7 @@ def parse_python_assigns(assign_str):
             else:
                 kwargs = {}
 
-            return getattr(__builtin__, func_name)(*args, **kwargs)
+            return getattr(builtins, func_name)(*args, **kwargs)
         # Try a literal eval
         else:
             return ast.literal_eval(stmt_value)
@@ -354,7 +354,7 @@ def task_factory(name, aips_cfg_file=None, **kwargs):
             setattr(task, k, v)
         except AttributeError as e:
             attr_err = "ObitTask instance has no attribute '{}'".format(k)
-            if attr_err in e.message:
+            if attr_err in str(e):
                 # Assume this is a "hidden" parameter and add it to
                 # the task parameters via addParam
                 addParam(task, k, paramVal=v)

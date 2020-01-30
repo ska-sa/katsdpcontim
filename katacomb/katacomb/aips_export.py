@@ -93,7 +93,7 @@ def _metadata(katds, cb_id, target_metadata):
     metadata['ProductType'] = product_type
     metadata['Run'] = str(katds.target_indices[0])
     # Format time as required
-    start_time = datetime.datetime.utcfromtimestamp(katds.start_time)
+    start_time = datetime.datetime.utcfromtimestamp(katds.start_time.secs)
     metadata['StartTime'] = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
     metadata['CaptureBlockId'] = cb_id
     metadata['ScheduleBlockIdCode'] = obs_params.get('sb_id_code', 'UNKNOWN')

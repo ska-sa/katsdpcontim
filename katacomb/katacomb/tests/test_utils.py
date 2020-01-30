@@ -28,8 +28,8 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(ValueError) as cm:
             parse_python_assigns("a=eval('import sys; sys.exit=DR EVIL')")
 
-        self.assertTrue("Function 'eval'" in cm.exception.message)
-        self.assertTrue("is not builtin" in cm.exception.message)
+        self.assertTrue("Function 'eval'" in str(cm.exception))
+        self.assertTrue("is not builtin" in str(cm.exception))
 
     def test_basic_syntax_error(self):
         """ Test failure on basic incorrect syntax """
@@ -60,7 +60,7 @@ class TestUtils(unittest.TestCase):
         ex_fragment = ("The number of tuple elements did not "
                        "match the number of values")
 
-        self.assertTrue(ex_fragment in cm.exception.message)
+        self.assertTrue(ex_fragment in str(cm.exception))
 
 
 if __name__ == "__main__":

@@ -330,7 +330,7 @@ class MockDataSet(DataSet):
                 ants = subarray_def['antenna']
             except KeyError as e:
                 raise KeyError("Subarray definition '%s' "
-                               "missing '%s'" % (subarray_def, e.message))
+                               "missing '%s'" % (subarray_def, str(e)))
 
             ants = [a if isinstance(a, katpoint.Antenna)
                     else katpoint.Antenna(a) for a in ants]
@@ -346,7 +346,7 @@ class MockDataSet(DataSet):
                     for a2 in ants[i:]
                     for c1 in ('h', 'v')
                     for c2 in ('h', 'v')],
-                    dtype='|S5')
+                    dtype='|U5')
 
             subarrays.append(Subarray(ants, corr_products))
 

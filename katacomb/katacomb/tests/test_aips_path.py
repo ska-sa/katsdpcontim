@@ -78,4 +78,4 @@ class TestAipsPath(unittest.TestCase):
             parse_aips_path("([1,2],4)")
 
         ex_fragment = "AIPS path should be a tuple"
-        self.assertTrue(ex_fragment in cm.exception.message)
+        self.assertTrue(ex_fragment in str(cm.exception))

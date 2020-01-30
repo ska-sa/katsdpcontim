@@ -575,7 +575,7 @@ class KatdalAdapter(object):
     @property
     def name(self):
         """ Proxies :attr:`katdal.DataSet.name` """
-        return self._katds.name.encode()
+        return self._katds.name
 
     @property
     def experiment_id(self):
@@ -970,7 +970,7 @@ class KatdalAdapter(object):
         return {
             'naxis': 6,
             'ctype': ['COMPLEX', 'STOKES', 'FREQ', 'IF', 'RA', 'DEC'],
-            'inaxes': [3, self.nstokes, self.nchan / self.nif, self.nif, 1, 1],
+            'inaxes': [3, self.nstokes, self.nchan // self.nif, self.nif, 1, 1],
             'cdelt': [1.0, stokes_cdelt, self.chinc, 1.0, 0.0, 0.0],
             'crval': [1.0, stokes_crval, self.reffreq, 1.0, 0.0, 0.0],
             'crpix': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
