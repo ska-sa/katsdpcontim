@@ -264,7 +264,7 @@ def parse_aips_path(aips_path_str):
         else:
             raise ValueError(_AIPS_PATH_HELP)
 
-    return AIPSPath(**dict(zip(_AIPS_PATH_TUPLE_ARGS, xformed)))
+    return AIPSPath(**dict(list(zip(_AIPS_PATH_TUPLE_ARGS, xformed))))
 
 
 try:

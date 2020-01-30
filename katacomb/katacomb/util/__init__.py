@@ -22,7 +22,7 @@ import ObitTask
 from OTObit import addParam
 import OSystem
 
-import __builtin__
+import builtins
 
 # builtin function whitelist
 _BUILTIN_WHITELIST = frozenset(['slice'])
@@ -130,7 +130,7 @@ def recursive_merge(source, destination):
     Stolen from:
     https://stackoverflow.com/questions/20656135/python-deep-merge-dictionary-data
     """
-    for key, value in source.items():
+    for key, value in list(source.items()):
         if isinstance(value, dict):
             # get node or create one
             node = destination.setdefault(key, {})
@@ -465,7 +465,7 @@ def normalise_target_name(name, used=[], max_length=None):
         if len(i_name) >= ml:
             log.warn('Too many repetitions of name %s.' % name)
             t_name = name
-        o_name = ''.join(filter(None, [t_name, i_name]))
+        o_name = ''.join([_f for _f in [t_name, i_name] if _f])
         return '{:{ml}.{ml}}'.format(o_name, ml=ml)
 
     name = re.sub(r'[^-A-Za-z0-9_]', '_', name)

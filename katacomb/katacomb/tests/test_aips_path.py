@@ -42,13 +42,13 @@ class TestAipsPath(unittest.TestCase):
             # Create the first file and test highest sequence number
             with uv_factory(aips_path=p1, mode="w"):
                 pass
-            self.assertEquals(next_seq_nr(p1), p1.seq+1)
+            self.assertEqual(next_seq_nr(p1), p1.seq+1)
 
             # Create the second file and test highest sequence number
             with uv_factory(aips_path=p2, mode="w"):
                 pass
-            self.assertEquals(next_seq_nr(p1), p1.seq+2)
-            self.assertEquals(next_seq_nr(p2), p2.seq+1)
+            self.assertEqual(next_seq_nr(p1), p1.seq+2)
+            self.assertEqual(next_seq_nr(p2), p2.seq+1)
 
     def test_parse_aips_path(self):
         """ Test AIPS path parsing """
@@ -66,7 +66,7 @@ class TestAipsPath(unittest.TestCase):
             path = parse_aips_path(path_str)
             expected = elements + defaults[len(elements):]
 
-            self.assertEquals([getattr(path, a) for a in attrs], expected)
+            self.assertEqual([getattr(path, a) for a in attrs], expected)
 
         # Iterate through available tuple permutations
         for i in range(1, len(test_values)):

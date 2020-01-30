@@ -26,12 +26,12 @@ OBIT_TYPE_ENUM = [
 ]
 
 # Classify the Obit types
-OBIT_INTS = range(10)
-OBIT_FLOATS = range(10, 12)
-OBIT_COMPLEXES = range(12, 14)
-OBIT_STRINGS = range(14, 15)
-OBIT_BOOLS = range(15, 16)
-OBIT_BITS = range(16, 17)
+OBIT_INTS = list(range(10))
+OBIT_FLOATS = list(range(10, 12))
+OBIT_COMPLEXES = list(range(12, 14))
+OBIT_STRINGS = list(range(14, 15))
+OBIT_BOOLS = list(range(15, 16))
+OBIT_BITS = list(range(16, 17))
 
 OBIT_TYPE = (attr.make_class("ObitTypes",
                              [t.name for t in OBIT_TYPE_ENUM])

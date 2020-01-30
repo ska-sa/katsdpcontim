@@ -131,7 +131,7 @@ class TestOfflinePipeline(unittest.TestCase):
         fits_area = cfg['fitsdirs'][-1][1]
 
         out_strings = [cb_id, out_id, target_name, IMG_CLASS]
-        filename = '_'.join(filter(None, out_strings)) + '.fits'
+        filename = '_'.join([_f for _f in out_strings if _f]) + '.fits'
         filepath = os.path.join(fits_area, filename)
         assert os.path.isfile(filepath)
 
@@ -217,7 +217,7 @@ class TestOnlinePipeline(unittest.TestCase):
             'corrprods': 'cross',
             'pol': 'HH,VV',
             'channels': slice(0, nchan), }
-        assign_str = '; '.join('%s=%s' % (k, repr(v)) for k, v in select.items())
+        assign_str = '; '.join('%s=%s' % (k, repr(v)) for k, v in list(select.items()))
         select = parse_python_assigns(assign_str)
 
         # Do some baseline averaging for funsies
@@ -257,7 +257,7 @@ class TestOnlinePipeline(unittest.TestCase):
 
         for otarg in sanitised_target_names:
             out_strings = [cb_id, out_id, otarg, IMG_CLASS]
-            filename = '_'.join(filter(None, out_strings)) + '.fits'
+            filename = '_'.join([_f for _f in out_strings if _f]) + '.fits'
             filepath = os.path.join(fits_area, filename)
             assert os.path.isfile(filepath)
 
@@ -557,8 +557,8 @@ class TestOnlinePipeline(unittest.TestCase):
         start_freq = centre_freq - (bandwidth / 2.)
         self.assertEqual(ts['center_freq'], start_freq + if_width * (center_if + 0.5))
 
-        self.assertIn(ts.join('selfcal', P_telstate), ts.keys())
-        self.assertIn(ts.join('selfcal', AP_telstate), ts.keys())
+        self.assertIn(ts.join('selfcal', P_telstate), list(ts.keys()))
+        self.assertIn(ts.join('selfcal', AP_telstate), list(ts.keys()))
 
         def check_gains_timestamps(gains, expect_timestamps):
             timestamps = []
@@ -582,8 +582,8 @@ class TestOnlinePipeline(unittest.TestCase):
                                      uvblavg_params=uvblavg_params,
                                      mfimage_params=mfimage_params)
         pipeline.execute()
-        self.assertIn(telstate.join('selfcal', P_telstate), ts.keys())
-        self.assertNotIn(telstate.join('selfcal', AP_telstate), ts.keys())
+        self.assertIn(telstate.join('selfcal', P_telstate), list(ts.keys()))
+        self.assertNotIn(telstate.join('selfcal', AP_telstate), list(ts.keys()))
 
         # Check with no self-cal
         mfimage_params['maxPSCLoop'] = 0
@@ -592,8 +592,8 @@ class TestOnlinePipeline(unittest.TestCase):
                                      uvblavg_params=uvblavg_params,
                                      mfimage_params=mfimage_params)
         pipeline.execute()
-        self.assertNotIn(telstate.join('selfcal', P_telstate), ts.keys())
-        self.assertNotIn(telstate.join('selfcal', AP_telstate), ts.keys())
+        self.assertNotIn(telstate.join('selfcal', P_telstate), list(ts.keys()))
+        self.assertNotIn(telstate.join('selfcal', AP_telstate), list(ts.keys()))
 
         # Cleanup workspace
         shutil.rmtree(fd[-1][1])

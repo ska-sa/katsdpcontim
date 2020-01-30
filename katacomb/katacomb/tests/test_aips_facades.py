@@ -46,7 +46,7 @@ class TestAipsFacades(unittest.TestCase):
 
         # Pick 5 random stars as targets
         targets = [katpoint.Target("%s, star" % t) for t in
-                   random.sample(stars.keys(), 5)]
+                   random.sample(list(stars.keys()), 5)]
 
         # track for 5 on each target
         slew_track_dumps = (('track', 5),)

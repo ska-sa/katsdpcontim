@@ -722,7 +722,7 @@ class KatdalAdapter(object):
         # Count the number of times we see a correlation product
         counts = Counter((cp.ant1_ix, cp.ant2_ix) for cp
                          in self.correlator_products())
-        return max(counts.itervalues())
+        return max(counts.values())
 
     @property
     def nchan(self):
@@ -1127,7 +1127,7 @@ def time_chunked_scans(kat_adapter, time_step=4):
     # Lexicographically sort correlation products on (a1, a2, cid)
     def sort_fn(x): return (cp[x].ant1_ix, cp[x].ant2_ix, cp[x].cid)
 
-    cp_argsort = np.asarray(sorted(range(len(cp)), key=sort_fn))
+    cp_argsort = np.asarray(sorted(list(range(len(cp))), key=sort_fn))
     corr_products = np.asarray([cp[i] for i in cp_argsort])
 
     # Use first stokes parameter index of each baseline

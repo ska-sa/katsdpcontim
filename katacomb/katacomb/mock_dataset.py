@@ -67,7 +67,7 @@ DEFAULT_SPWS = [{
 # Pick 10 random ephem stars as katpoint targets
 _NR_OF_DEFAULT_TARGETS = 10
 DEFAULT_TARGETS = [katpoint.Target("%s, star" % t) for t in
-                   random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)]
+                   random.sample(list(stars.keys()), _NR_OF_DEFAULT_TARGETS)]
 
 # Slew for 1 dumps then track for 4 on random targets
 _SLEW_TRACK_DUMPS = (('slew', 1), ('track', 4))
@@ -385,7 +385,7 @@ class MockDataSet(DataSet):
 
         for spw_def in spw_defs:
             # Sanity check bare minimum is present
-            if not required.issubset(spw_def.keys()):
+            if not required.issubset(list(spw_def.keys())):
                 raise KeyError("Spectral Window definition '%s' "
                                "missing '%s'" % (spw_def, required))
 
@@ -456,19 +456,19 @@ class MockDataSet(DataSet):
 
         # Labels seem to only involve tracks, separate them out
         label_scans = [tup for tup in ref_ant_compound_scans if tup[1] == 'track']
-        events, values, _ = zip(*label_scans)
+        events, values, _ = list(zip(*label_scans))
         label = CategoricalData(values, events + (self._ndumps,))
 
         # Generate dump indexes (events) and 'slew'/'track' (values)
         # and targets for the reference antenna
-        events, values, targets = zip(*(_generate_ref_ant_compound_scans()))
+        events, values, targets = list(zip(*(_generate_ref_ant_compound_scans())))
         refant = CategoricalData(values, events + (self._ndumps,))
         # DO THIS BCOS h5datav3.py does it
         refant.add_unmatched(label.events)
         self.sensor['Antennas/%s/activity' % self.ref_ant] = refant
 
         # Derive scan states and indices from reference antenna data
-        scan_index = CategoricalData(range(len(refant)), refant.events)
+        scan_index = CategoricalData(list(range(len(refant))), refant.events)
 
         self.sensor['Observation/scan_state'] = refant
         self.sensor['Observation/scan_index'] = scan_index
@@ -481,7 +481,7 @@ class MockDataSet(DataSet):
             label.add(0, '')
 
         # Derive compound scan index from the label
-        compscan_index = CategoricalData(range(len(label)), label.events)
+        compscan_index = CategoricalData(list(range(len(label))), label.events)
         self.sensor['Observation/label'] = label
         self.sensor['Observation/compscan_index'] = compscan_index
 

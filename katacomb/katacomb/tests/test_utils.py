@@ -16,7 +16,7 @@ class TestUtils(unittest.TestCase):
                       "targets='PHOENIX_DEEP';"
                       "channels=slice(0,4096)")
 
-        self.assertEquals(parse_python_assigns(assign_str), {
+        self.assertEqual(parse_python_assigns(assign_str), {
             "scans": "track",
             "spw": 0,
             "pol": "HH,VV",
@@ -42,7 +42,7 @@ class TestUtils(unittest.TestCase):
         """ Test multiple assignments and tuple/list unpacking """
         assign_str = "a,b=[1,2]; c=[1,2]; d=e=f=(1,2,3); g,h=(1,2)"
 
-        self.assertEquals(parse_python_assigns(assign_str), {
+        self.assertEqual(parse_python_assigns(assign_str), {
             "a": 1,
             "b": 2,
             "c": [1, 2],

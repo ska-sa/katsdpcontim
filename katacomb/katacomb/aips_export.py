@@ -1,4 +1,4 @@
-from __future__ import with_statement
+
 
 import datetime
 import json
@@ -45,7 +45,7 @@ def _condition(row):
         and convert non-singleton lists to np.ndarray
     """
     return {k: v[0] if len(v) == 1 else np.array(v)
-            for k, v in row.items() if k not in _DROP}
+            for k, v in list(row.items()) if k not in _DROP}
 
 
 def _integration_time(target, katds):
@@ -141,7 +141,7 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
 
                 # Output file name
                 out_strings = [cb_id, ap.label, tn, ap.aclass]
-                out_filebase = OFILE_SEPARATOR.join(filter(None, out_strings))
+                out_filebase = OFILE_SEPARATOR.join([_f for _f in out_strings if _f])
 
                 log.info('Write FITS image output: %s' % (out_filebase + FITS_EXT))
                 cf.writefits(disk, out_filebase + FITS_EXT)

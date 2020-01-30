@@ -53,31 +53,31 @@ class AIPSTableKeywords(object):
         self._tabname = table_name
         self._schema = {key: (type_, dims) for
                         key, (type_, dims, value) in
-                        table.Desc.List.Dict.items()}
+                        list(table.Desc.List.Dict.items())}
 
     def keys(self):
-        return self._schema.keys()
+        return list(self._schema.keys())
 
     def iterkeys(self):
-        return iter(self._schema.keys())
+        return iter(list(self._schema.keys()))
 
     def values(self):
-        return [self.__getitem__(key) for key in self.keys()]
+        return [self.__getitem__(key) for key in list(self.keys())]
 
     def itervalues(self):
-        return iter(self.values())
+        return iter(list(self.values()))
 
     def items(self):
-        return [(k, self.__getitem__(k)) for k in self.keys()]
+        return [(k, self.__getitem__(k)) for k in list(self.keys())]
 
     def iteritems(self):
-        return iter((k, self.__getitem__(k)) for k in self.keys())
+        return iter((k, self.__getitem__(k)) for k in list(self.keys()))
 
     def __len__(self):
         return len(self._schema)
 
     def __iter__(self):
-        return self.iterkeys()
+        return iter(self.keys())
 
     def __getitem__(self, key):
         """
@@ -119,7 +119,7 @@ class AIPSTableKeywords(object):
             raise ValueError("'%s' is not a valid keyword "
                              "for table '%s' ."
                              "Valid keywords '%s'." % (
-                                 key, self._tabname, self._schema.keys()))
+                                 key, self._tabname, list(self._schema.keys())))
 
         # Convert value into a list
         value = _vectorise(value)
@@ -151,10 +151,10 @@ class AIPSTableKeywords(object):
         """
         if other is not None:
             is_map = isinstance(other, collections.Mapping)
-            for k, v in other.iteritems() if is_map else other:
+            for k, v in iter(other.items()) if is_map else other:
                 self.__setitem__(k, v)
 
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             self.__setitem__(k, v)
 
     def __pretty__(self, p, cycle):
@@ -173,7 +173,7 @@ class AIPSTableKeywords(object):
     def __str__(self):
         return str({key: _scalarise(value) for
                     key, (type_, dims, value) in
-                    self._table.Desc.List.Dict.items()})
+                    list(self._table.Desc.List.Dict.items())})
 
     __repr__ = __str__
 
@@ -203,7 +203,7 @@ def _default_row_base(row_def, row):
     """
     SPECIALS = ["Table name", "NumFields", "_status"]
     base_row = {key: item if key in SPECIALS else item[-1]
-                for key, item in row_def.items()}
+                for key, item in list(row_def.items())}
     base_row.update(row)
     return base_row
 
@@ -300,7 +300,7 @@ class AIPSTableRow(object):
         except KeyError:
             raise ValueError("'%s' does not appear to be a "
                              "valid row key. Valid keys "
-                             "include '%s'" % (key, self._row_def.keys()))
+                             "include '%s'" % (key, list(self._row_def.keys())))
 
         # Pad string values appropriately
         if type_ == OBIT_TYPE.string:
@@ -348,7 +348,7 @@ class AIPSTableRows(object):
             rows = nrow * [None]
 
         self._rows = [AIPSTableRow(table, ri + 1, row_def, err, row=row)
-                      for ri, row in zip(range(nrow), rows)]
+                      for ri, row in zip(list(range(nrow)), rows)]
 
         self._table = table
         self._row_def = row_def
@@ -566,7 +566,7 @@ class AIPSTable(object):
                                   enum.enum, enum.name))
 
         defaults = {f.name: [f.type, f.dims + [1, 1], _repeat_default(f)]
-                    for f in fields.values()}
+                    for f in list(fields.values())}
 
         # This works and is pretty hacky since these aren't
         # technically fields, but they're needed
