@@ -249,7 +249,8 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
                 # Only export amp+phase solutions if we have them
                 if apSN > 0:
                     try:
-                        log.info('Extracting amp+phase self-calibration from AIPS SN: %d' % (pSN + apSN))
+                        log.info('Extracting amp+phase self-calibration from AIPS SN: %d'
+                                 % (pSN + apSN))
                         uvf.attach_table("AIPS SN", pSN + apSN)
                         sntab = uvf.tables["AIPS SN"]
                     except KeyError:

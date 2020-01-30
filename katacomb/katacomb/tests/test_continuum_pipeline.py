@@ -115,10 +115,10 @@ class TestOfflinePipeline(unittest.TestCase):
 
         # Create and run the pipeline
         pipeline = pipeline_factory('offline', ds,
-                                     katdal_select=select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params,
-                                     clobber=CLOBBER.difference({'merge'}))
+                                    katdal_select=select,
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params,
+                                    clobber=CLOBBER.difference({'merge'}))
 
         pipeline.execute()
 
@@ -178,7 +178,7 @@ class TestOnlinePipeline(unittest.TestCase):
         }]
 
         target_names = ['Gunther Lord of the Gibichungs',
-                        'Gunther\Lord/of%the Gibichungs',
+                        'Gunther\\Lord/of%the Gibichungs',
                         'Gutrune', 'Hagen']
 
         # Construct 4 targets
@@ -235,9 +235,9 @@ class TestOnlinePipeline(unittest.TestCase):
 
         # Create and run the pipeline
         pipeline = pipeline_factory('online', ds, TelescopeState(),
-                                     katdal_select=select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params)
+                                    katdal_select=select,
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params)
 
         pipeline.execute()
 
@@ -335,8 +335,8 @@ class TestOnlinePipeline(unittest.TestCase):
                               'yCells': 5., 'doGPU': False}
 
             pipeline = pipeline_factory('online', ds, ts, katdal_select=katdal_select,
-                                         uvblavg_params=uvblavg_params,
-                                         mfimage_params=mfimage_params)
+                                        uvblavg_params=uvblavg_params,
+                                        mfimage_params=mfimage_params)
             pipeline.execute()
 
             # Get the fitted CCs from telstate
@@ -378,8 +378,8 @@ class TestOnlinePipeline(unittest.TestCase):
         mfimage_params['Robust'] = -5
 
         pipeline = pipeline_factory('online', ds, ts, katdal_select=katdal_select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params)
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params)
         pipeline.execute()
         fit_cc = ts.get('target0_clean_components')
         ts.delete('target0_clean_components')
@@ -539,8 +539,8 @@ class TestOnlinePipeline(unittest.TestCase):
 
         # Run the pipeline
         pipeline = pipeline_factory('online', ds, telstate, katdal_select=ka_select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params)
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params)
         pipeline.execute()
 
         ts = telstate.view('selfcal')
@@ -578,8 +578,8 @@ class TestOnlinePipeline(unittest.TestCase):
         mfimage_params['maxASCLoop'] = 0
         telstate.clear()
         pipeline = pipeline_factory('online', ds, telstate, katdal_select=ka_select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params)
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params)
         pipeline.execute()
         self.assertIn(telstate.join('selfcal', P_telstate), ts.keys())
         self.assertNotIn(telstate.join('selfcal', AP_telstate), ts.keys())
@@ -588,8 +588,8 @@ class TestOnlinePipeline(unittest.TestCase):
         mfimage_params['maxPSCLoop'] = 0
         telstate.clear()
         pipeline = pipeline_factory('online', ds, telstate, katdal_select=ka_select,
-                                     uvblavg_params=uvblavg_params,
-                                     mfimage_params=mfimage_params)
+                                    uvblavg_params=uvblavg_params,
+                                    mfimage_params=mfimage_params)
         pipeline.execute()
         self.assertNotIn(telstate.join('selfcal', P_telstate), ts.keys())
         self.assertNotIn(telstate.join('selfcal', AP_telstate), ts.keys())

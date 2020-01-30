@@ -5,8 +5,6 @@ from ephem.stars import stars
 import katpoint
 import numpy as np
 
-from katsdptelstate import TelescopeState
-
 from katacomb.mock_dataset import (MockDataSet,
                                    DEFAULT_METADATA,
                                    DEFAULT_SUBARRAYS,

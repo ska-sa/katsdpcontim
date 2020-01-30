@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import numpy as np
 from pretty import pretty
@@ -288,7 +287,6 @@ class ImageFacade(object):
         handle_obit_err("Error getting '%s' table list" % self.name)
         return tables
 
-
     def attach_table(self, name, version, **kwargs):
         self._tables[name] = AIPSTable(self.img, name, version, 'r',
                                        self._err, **kwargs)
@@ -332,8 +330,6 @@ class ImageFacade(object):
         Image.PCopy(self._img, outImage, self._err)
         Image.PCopyTables(self._img, outImage, ['AIPS HI'], tables_to_copy, self._err)
         handle_obit_err(err_msg, self._err)
-
-
 
     @property
     def img(self):
@@ -393,7 +389,7 @@ class ImageFacade(object):
             buf = FArray.PGetBuf(self.img.FArray)
         except Exception:
             raise Exception("Exception getting float array buffer "
-                             "on image '%s'" % self.name)
+                            "on image '%s'" % self.name)
 
         return np.frombuffer(buf, count=-1, dtype=np.float32).reshape(self.FArray.Naxis)
 

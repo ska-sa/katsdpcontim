@@ -767,7 +767,8 @@ class KatdalAdapter(object):
     @nif.setter
     def nif(self, numif):
         if self.nchan % numif != 0:
-            raise ValueError('Number of requested IFs (%d) does not divide number of channels (%d)' % (numif, self.nchan))
+            raise ValueError('Number of requested IFs (%d) does not divide number of channels (%d)'
+                             % (numif, self.nchan))
         else:
             self._nif = numif
             self._catalogue = aips_catalogue(self._katds, numif)

@@ -234,7 +234,7 @@ class PipelineImplementation(Pipeline):
         Parameters
         ----------
         image_files : list
-            The images to process (output from MFImage task) 
+            The images to process (output from MFImage task)
         """
         for img in image_files:
             with img_factory(aips_path=img, mode="rw") as imf:
@@ -281,13 +281,12 @@ class PipelineImplementation(Pipeline):
             SN_ver = [table[0] for table in tables if table[1] == 'AIPS SN']
             for ver in SN_ver:
                 taco_kwargs.update({
-                    'inVer' : ver,
-                    'outVer' : ver
+                    'inVer': ver,
+                    'outVer': ver
                     })
                 taco = task_factory("TabCopy", **taco_kwargs)
                 with log_obit_err(log):
                     taco.go()
-
 
     def _cleanup(self):
         """

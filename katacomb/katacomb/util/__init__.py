@@ -450,7 +450,7 @@ def normalise_target_name(name, used=[], max_length=None):
     """
     def generate_name(name, i, ml):
         # Create suffix string
-        i_name = '' if i is 0 else '_' + str(i)
+        i_name = '' if i == 0 else '_' + str(i)
         # Return concatenated string if ml is not set
         if ml is None:
             ml = len(name) + len(i_name)

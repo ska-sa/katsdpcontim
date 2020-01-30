@@ -1,6 +1,5 @@
 import logging
 from textwrap import TextWrapper
-import sys
 
 import numpy as np
 

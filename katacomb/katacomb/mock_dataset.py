@@ -335,7 +335,7 @@ class MockDataSet(DataSet):
 
             try:
                 corr_products = subarray_def['corr_products']
-            except KeyError as e:
+            except KeyError:
                 # Generate correlation products for all antenna pairs
                 # including auto-correlations
                 corr_products = np.array([
