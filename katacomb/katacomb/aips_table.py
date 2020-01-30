@@ -53,7 +53,7 @@ class AIPSTableKeywords(object):
         self._tabname = table_name
         self._schema = {key: (type_, dims) for
                         key, (type_, dims, value) in
-                        table.IODesc.List.Dict.items()}
+                        table.Desc.List.Dict.items()}
 
     def keys(self):
         return self._schema.keys()
@@ -96,7 +96,7 @@ class AIPSTableKeywords(object):
 
         # Return value out of (code, name, type, dims, value) tuple
         # returned by PGet
-        return _scalarise(InfoList.PGet(self._table.IODesc.List, key)[4])
+        return _scalarise(InfoList.PGet(self._table.Desc.List, key)[4])
 
     def __setitem__(self, key, value):
         """
@@ -132,7 +132,7 @@ class AIPSTableKeywords(object):
         else:
             value = [enum.coerce(v) for v in value]
 
-        InfoList.PSetDict(self._table.IODesc.List,
+        InfoList.PSetDict(self._table.Desc.List,
                           {key: [type_, dims, value]})
 
         self._dirty = True
@@ -160,7 +160,7 @@ class AIPSTableKeywords(object):
     def __pretty__(self, p, cycle):
         """ Pretty print this keyword object """
 
-        p.pretty(self._table.IODesc.List.Dict)
+        p.pretty(self._table.Desc.List.Dict)
 
     @property
     def dirty(self):
@@ -173,7 +173,7 @@ class AIPSTableKeywords(object):
     def __str__(self):
         return str({key: _scalarise(value) for
                     key, (type_, dims, value) in
-                    self._table.IODesc.List.Dict.items()})
+                    self._table.Desc.List.Dict.items()})
 
     __repr__ = __str__
 
