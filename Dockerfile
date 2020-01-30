@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=sdp-docker-registry.kat.ac.za:5000
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:python2 as build
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:latest as build
 
 # Switch to root for package install
 USER root
@@ -65,7 +65,7 @@ ENV OBIT_REPO https://github.com/bill-cotton/Obit/trunk/ObitSystem
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
-# Retrieve Obit r598
+# Retrieve Obit r616
 RUN mkdir -p $OBIT_BASE_PATH && \
     svn co -q -r 616 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
 
@@ -116,7 +116,7 @@ USER kat
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
-ENV PATH="$PATH_PYTHON2" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON2"
+ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 RUN install-requirements.py -d ~/docker-base/base-requirements.txt -r /tmp/requirements.txt
 
 # Install katacomb
@@ -167,8 +167,8 @@ COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
 COPY --chown=kat:kat katacomb/katacomb/conf /obitconf
 
 # Install Python ve
-COPY --from=build --chown=kat:kat /home/kat/ve /home/kat/ve
-ENV PATH="$PATH_PYTHON2" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON2"
+COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
+ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 
 # Set up Obit environment
 ENV OBIT_BASE_PATH=/home/kat/Obit

@@ -15,7 +15,6 @@ docutils
 enum34
 fakeredis
 funcsigs == 0.4
-functools32
 future
 futures
 h5py
@@ -32,7 +31,7 @@ nose
 numba
 numpy
 pluggy == 0.6.0
-pretty == 0.1
+pretty-py3 == 0.2.4
 py == 1.5.2
 pyephem
 pygelf
