@@ -4,7 +4,6 @@ import logging
 import time
 
 import attr
-import six
 import numba
 import numpy as np
 import dask.array as da
@@ -1241,7 +1240,7 @@ def time_chunked_scans(kat_adapter, time_step=4):
         # Create a generator returning data
         # associated with chunks of time data.
         data_gen = (_get_data(ts, min(ts+time_step, ntime)) for ts
-                    in six.moves.range(0, ntime, time_step))
+                    in range(0, ntime, time_step))
 
         # Yield scan variables and the generator
         yield si, state, target, data_gen

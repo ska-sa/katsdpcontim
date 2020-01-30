@@ -2,7 +2,6 @@ import logging
 from textwrap import TextWrapper
 import sys
 
-import six
 import numpy as np
 
 import TableList
@@ -165,7 +164,7 @@ def uv_factory(**kwargs):
     reopen = False
 
     # Handle table creation commands
-    for table, cmds in six.iteritems(table_cmds):
+    for table, cmds in table_cmds.items():
         # Perform any attach commands first
         try:
             attach_kwargs = cmds["attach"]

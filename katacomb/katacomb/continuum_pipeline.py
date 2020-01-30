@@ -4,8 +4,6 @@ import logging
 import multiprocessing
 from pretty import pretty
 
-import six
-
 import katdal
 from katdal import DataSet
 from katdal.datasources import DataSourceNotFound
@@ -468,7 +466,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
             nx_row['START VIS'] = [merge_firstVis]
 
-            for blavg_firstVis in six.moves.range(1, blavg_nvis+1, self.nvispio):
+            for blavg_firstVis in range(1, blavg_nvis+1, self.nvispio):
                 # How many visibilities do we write in this iteration?
                 numVisBuff = min(blavg_nvis+1 - blavg_firstVis, self.nvispio)
 

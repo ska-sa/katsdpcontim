@@ -2,8 +2,6 @@ from datetime import datetime
 import random
 
 import numpy as np
-import six
-from six.moves import range
 from ephem.stars import stars
 
 from katdal.dataset import DataSet, Subarray
@@ -262,7 +260,7 @@ class MockDataSet(DataSet):
         metadata : dict
             Dictionary of attributes to add to this object
         """
-        for k, v in six.iteritems(metadata):
+        for k, v in metadata.items():
             setattr(self, k, v)
 
     def _create_targets(self, dump_defs, ref_ant):

@@ -4,7 +4,6 @@ import unittest
 from ephem.stars import stars
 import katpoint
 import numpy as np
-import six
 
 from katsdptelstate import TelescopeState
 
@@ -132,7 +131,7 @@ class TestUVExport(unittest.TestCase):
         FAKE = object()
 
         # Test that metadata agrees
-        for k, v in six.iteritems(DEFAULT_METADATA):
+        for k, v in DEFAULT_METADATA.items():
             self.assertEqual(v, getattr(KA, k, FAKE))
 
         # Setup the katdal selection, convert it to a string
@@ -206,7 +205,7 @@ class TestUVExport(unittest.TestCase):
                 def _strip_strings(aips_keywords):
                     """ AIPS string are padded, strip them """
                     return {k: v.strip()
-                            if isinstance(v, six.string_types) else v
+                            if isinstance(v, str) else v
                             for k, v in aips_keywords.items()}
 
                 fq_kw = _strip_strings(uvf.tables["AIPS FQ"].keywords)

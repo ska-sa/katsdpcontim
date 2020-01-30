@@ -5,7 +5,6 @@ from functools import partial
 
 
 import numpy as np
-import six
 from scipy import constants
 
 import katpoint
@@ -206,7 +205,7 @@ class TestOnlinePipeline(unittest.TestCase):
         FAKE = object()
 
         # Test that metadata agrees
-        for k, v in six.iteritems(DEFAULT_METADATA):
+        for k, v in DEFAULT_METADATA.items():
             self.assertEqual(v, getattr(ds, k, FAKE))
 
         # Setup the katdal selection, convert it to a string

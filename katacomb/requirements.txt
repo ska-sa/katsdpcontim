@@ -47,7 +47,6 @@ redis
 requests
 scipy
 singledispatch
-six
 subprocess32
 toolz
 tornado

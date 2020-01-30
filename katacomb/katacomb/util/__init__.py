@@ -9,7 +9,6 @@ import sys
 
 from pretty import pretty
 import yaml
-import six
 import dask.array as da
 import numpy as np
 
@@ -349,7 +348,7 @@ def task_factory(name, aips_cfg_file=None, **kwargs):
     task = ObitTask.ObitTask(name)
 
     # Apply configuration options to the task
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         try:
             setattr(task, k, v)
         except AttributeError as e:
