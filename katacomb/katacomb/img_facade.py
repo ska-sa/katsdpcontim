@@ -305,7 +305,7 @@ class ImageFacade(object):
         """ Closes the wrapped Image file """
 
         # Close all attached tables
-        for table in list(self._tables.values()):
+        for table in self._tables.values():
             table.close()
 
         self._tables = {}

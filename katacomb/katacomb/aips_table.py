@@ -53,31 +53,22 @@ class AIPSTableKeywords(object):
         self._tabname = table_name
         self._schema = {key: (type_, dims) for
                         key, (type_, dims, value) in
-                        list(table.Desc.List.Dict.items())}
+                        table.Desc.List.Dict.items()}
 
     def keys(self):
-        return list(self._schema.keys())
-
-    def iterkeys(self):
-        return iter(list(self._schema.keys()))
+        return self._schema.keys()
 
     def values(self):
-        return [self.__getitem__(key) for key in list(self.keys())]
-
-    def itervalues(self):
-        return iter(list(self.values()))
+        return iter([self.__getitem__(key) for key in self.keys()])
 
     def items(self):
-        return [(k, self.__getitem__(k)) for k in list(self.keys())]
-
-    def iteritems(self):
-        return iter((k, self.__getitem__(k)) for k in list(self.keys()))
+        return iter([(k, self.__getitem__(k)) for k in self.keys()])
 
     def __len__(self):
         return len(self._schema)
 
     def __iter__(self):
-        return iter(self.keys())
+        return self.keys()
 
     def __getitem__(self, key):
         """
@@ -151,7 +142,7 @@ class AIPSTableKeywords(object):
         """
         if other is not None:
             is_map = isinstance(other, collections.Mapping)
-            for k, v in iter(other.items()) if is_map else other:
+            for k, v in other.items() if is_map else other:
                 self.__setitem__(k, v)
 
         for k, v in kwargs.items():
@@ -173,7 +164,7 @@ class AIPSTableKeywords(object):
     def __str__(self):
         return str({key: _scalarise(value) for
                     key, (type_, dims, value) in
-                    list(self._table.Desc.List.Dict.items())})
+                    self._table.Desc.List.Dict.items()})
 
     __repr__ = __str__
 
@@ -203,7 +194,7 @@ def _default_row_base(row_def, row):
     """
     SPECIALS = ["Table name", "NumFields", "_status"]
     base_row = {key: item if key in SPECIALS else item[-1]
-                for key, item in list(row_def.items())}
+                for key, item in row_def.items()}
     base_row.update(row)
     return base_row
 
@@ -348,7 +339,7 @@ class AIPSTableRows(object):
             rows = nrow * [None]
 
         self._rows = [AIPSTableRow(table, ri + 1, row_def, err, row=row)
-                      for ri, row in zip(list(range(nrow)), rows)]
+                      for ri, row in zip(range(nrow), rows)]
 
         self._table = table
         self._row_def = row_def
@@ -566,7 +557,7 @@ class AIPSTable(object):
                                   enum.enum, enum.name))
 
         defaults = {f.name: [f.type, f.dims + [1, 1], _repeat_default(f)]
-                    for f in list(fields.values())}
+                    for f in fields.values()}
 
         # This works and is pretty hacky since these aren't
         # technically fields, but they're needed

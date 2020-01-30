@@ -378,7 +378,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                              "on the following keys:\n%s" % pretty(diff))
 
         diff = {k: (merge_fq_kw[k], blavg_fq_kw[k])
-                for k in list(blavg_fq_kw.keys())
+                for k in blavg_fq_kw.keys()
                 if not merge_fq_kw[k] == blavg_fq_kw[k]}
 
         if len(diff) > 0:
@@ -390,7 +390,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                              "number of rows differ"
                              % (len(merge_fq_rows), len(blavg_fq_rows)))
 
-        diff = [("row %d" % r, {k: (mr[k], br[k]) for k in list(br.keys())
+        diff = [("row %d" % r, {k: (mr[k], br[k]) for k in br.keys()
                 if not mr[k] == br[k]})
                 for r, (mr, br)
                 in enumerate(zip(merge_fq_rows, blavg_fq_rows))]
@@ -634,7 +634,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
             # Record something about the baseline averaging process
             param_str = ', '.join("%s=%s" % (k, v)
                                   for k, v
-                                  in list(self.uvblavg_params.items()))
+                                  in self.uvblavg_params.items())
 
             blavg_history = ("Scan %d '%s' averaged "
                              "%s to %s visiblities. UVBlAvg(%s)" %

@@ -93,7 +93,7 @@ def uv_history_selection(selection, uvf):
     uvf.append_history("KATDAL SELECTION PARAMETERS")
     uvf.append_history("="*70)
 
-    for k, v in list(selection.items()):
+    for k, v in selection.items():
         uvf.append_history("%s=%s" % (k, v))
 
 

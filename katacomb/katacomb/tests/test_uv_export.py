@@ -107,7 +107,7 @@ class TestUVExport(unittest.TestCase):
             'band': 'L',
         }]
 
-        target_names = random.sample(list(stars.keys()), 5)
+        target_names = random.sample(stars.keys(), 5)
 
         # Pick 5 random stars as targets
         targets = [katpoint.Target("%s, star" % t) for t in target_names]
@@ -143,7 +143,7 @@ class TestUVExport(unittest.TestCase):
             'targets': target_names,
             'pol': 'HH,VV',
             'channels': slice(0, nchan), }
-        assign_str = '; '.join('%s=%s' % (k, repr(v)) for k, v in list(select.items()))
+        assign_str = '; '.join('%s=%s' % (k, repr(v)) for k, v in select.items())
         select = parse_python_assigns(assign_str)
 
         # Add nif to selection
@@ -160,7 +160,7 @@ class TestUVExport(unittest.TestCase):
 
         # Lexicographically sort correlation products on (a1, a2, cid)
         def sort_fn(x): return (cp[x].ant1_ix, cp[x].ant2_ix, cp[x].cid)
-        cp_argsort = np.asarray(sorted(list(range(len(cp))), key=sort_fn))
+        cp_argsort = np.asarray(sorted(range(len(cp)), key=sort_fn))
 
         # Use first stokes parameter index of each baseline
         bl_argsort = cp_argsort[::nstokes]
@@ -224,7 +224,7 @@ class TestUVExport(unittest.TestCase):
                     fields from each row entry
                     """
                     STRIP = {'NumFields', '_status', 'Table name'}
-                    return [{k: v for k, v in list(d.items())
+                    return [{k: v for k, v in d.items()
                              if k not in STRIP}
                             for d in aips_table_rows]
 
