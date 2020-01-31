@@ -203,7 +203,7 @@ class TestUVExport(unittest.TestCase):
                 def _strip_strings(aips_keywords):
                     """ AIPS string are padded, strip them """
                     return {k: v.strip()
-                            if isinstance(v, str) else v
+                            if isinstance(v, (str, bytes)) else v
                             for k, v in aips_keywords.items()}
 
                 fq_kw = _strip_strings(uvf.tables["AIPS FQ"].keywords)

@@ -12,15 +12,12 @@ cycler
 dask
 defusedxml
 docutils
-enum34
 fakeredis
 funcsigs == 0.4
 future
-futures
 h5py
 html5lib == 1.0.1
 idna
-ipaddress
 jmespath
 katversion
 llvmlite
@@ -46,8 +43,6 @@ rdbtools
 redis
 requests
 scipy
-singledispatch
-subprocess32
 toolz
 tornado
 trollius

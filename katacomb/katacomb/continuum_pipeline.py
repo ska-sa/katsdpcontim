@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from copy import deepcopy
 import logging
 import multiprocessing
@@ -86,7 +86,7 @@ def register_workmode(name):
     return decorator
 
 
-class Pipeline(object, metaclass=ABCMeta):
+class Pipeline(ABC):
     """
     Defines an abstract Pipeline interface with single execute method
     that a user calls.

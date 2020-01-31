@@ -59,16 +59,16 @@ class AIPSTableKeywords(object):
         return self._schema.keys()
 
     def values(self):
-        return iter([self.__getitem__(key) for key in self.keys()])
+        return iter(self.__getitem__(key) for key in self.keys())
 
     def items(self):
-        return iter([(k, self.__getitem__(k)) for k in self.keys()])
+        return iter((k, self.__getitem__(k)) for k in self.keys())
 
     def __len__(self):
         return len(self._schema)
 
     def __iter__(self):
-        return self.keys()
+        return iter(self.keys())
 
     def __getitem__(self, key):
         """

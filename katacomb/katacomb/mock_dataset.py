@@ -450,16 +450,16 @@ class MockDataSet(DataSet):
                 dump_index += dumps
 
         # Generate compound scans for the reference antenna
-        ref_ant_compound_scans = list(_generate_ref_ant_compound_scans())
+        ref_ant_compound_scans = _generate_ref_ant_compound_scans()
 
         # Labels seem to only involve tracks, separate them out
         label_scans = [tup for tup in ref_ant_compound_scans if tup[1] == 'track']
-        events, values, _ = list(zip(*label_scans))
+        events, values, _ = zip(*label_scans)
         label = CategoricalData(values, events + (self._ndumps,))
 
         # Generate dump indexes (events) and 'slew'/'track' (values)
         # and targets for the reference antenna
-        events, values, targets = list(zip(*(_generate_ref_ant_compound_scans())))
+        events, values, targets = zip(*(_generate_ref_ant_compound_scans()))
         refant = CategoricalData(values, events + (self._ndumps,))
         # DO THIS BCOS h5datav3.py does it
         refant.add_unmatched(label.events)
@@ -479,7 +479,7 @@ class MockDataSet(DataSet):
             label.add(0, '')
 
         # Derive compound scan index from the label
-        compscan_index = CategoricalData(list(range(len(label))), label.events)
+        compscan_index = CategoricalData(range(len(label)), label.events)
         self.sensor['Observation/label'] = label
         self.sensor['Observation/compscan_index'] = compscan_index
 
