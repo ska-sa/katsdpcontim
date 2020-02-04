@@ -402,15 +402,16 @@ class UVFacade(object):
         return self.uv.List
 
     def nvis_from_NX(self):
-        """Derive the number of vis from the attached NX table
+        """Derive the number of visibilities from the attached NX table
 
         NOTE: Sometimes in certain corner cases the 'nvis'
         item in self.Desc.Dict incorrectly reports the number
-        of vis in the object (e.g. when the output from UVBlAvg
-        is empty, that happens when all the input data is flagged.).
-        Using the NX table to get the number of visibilities
-        is a workaround for this problem, it is derived
-        by counting the number of rows in the associated UV table.
+        of visibilities in the object (e.g. when all the input
+        data is flagged and the UV data output from UVBlAvg is
+        empty). Using the NX table to get the number of
+        visibilities is a workaround for this problem; it is
+        derived by counting the number of rows in the associated
+        UV table.
         """
         nx_table = self.tables.get("AIPS NX")
         if nx_table is None:
