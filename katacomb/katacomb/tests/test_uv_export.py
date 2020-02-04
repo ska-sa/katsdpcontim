@@ -77,8 +77,7 @@ class TestUVExport(unittest.TestCase):
         self._test_export_implementation("continuum_export", nif=4)
 
     def test_empty_dataset(self):
-        """Test that a completey flagged dataset is exported without error
-        """
+        """Test that a completey flagged dataset is exported without error"""
         nchan = 16
 
         spws = [{

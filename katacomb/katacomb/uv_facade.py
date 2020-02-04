@@ -401,21 +401,21 @@ class UVFacade(object):
     def List(self):
         return self.uv.List
 
-    @property
     def nvis_from_NX(self):
-        """ Derive the number of vis from the attached NX table
+        """Derive the number of vis from the attached NX table
 
-            NOTE: Sometimes in certain corner cases the 'nvis'
-            item in self.Desc.Dict incorrectly reports the number
-            of vis in the object (e.g. when the output from UVBlAvg
-            is empty, that happens when all the input data is flagged.).
-            Using the NX table to get the number of visibilities
-            is a workaround for this problem- it is derived
-            by counting the number of rows in the associated UV table.
+        NOTE: Sometimes in certain corner cases the 'nvis'
+        item in self.Desc.Dict incorrectly reports the number
+        of vis in the object (e.g. when the output from UVBlAvg
+        is empty, that happens when all the input data is flagged.).
+        Using the NX table to get the number of visibilities
+        is a workaround for this problem, it is derived
+        by counting the number of rows in the associated UV table.
         """
         nx_table = self.tables.get("AIPS NX")
         if nx_table is None:
-            raise AttributeError("%s has no iNdeX table. Cannot count visibilities.")
+            raise AttributeError("%s has no iNdeX table. Cannot count visibilities."
+                                 % (self.aips_path))
         vis_count = 0
         for row in nx_table.rows:
             vis_count += (row['END VIS'][0] + 1) - row['START VIS'][0]
