@@ -76,6 +76,40 @@ class TestUVExport(unittest.TestCase):
         self._test_export_implementation("uv_export", nif=4)
         self._test_export_implementation("continuum_export", nif=4)
 
+    def test_empty_dataset(self):
+        """Test that a completey flagged dataset is exported without error
+        """
+        nchan = 16
+
+        spws = [{
+            'centre_freq': .856e9 + .856e9 / 2.,
+            'num_chans': nchan,
+            'channel_width': .856e9 / nchan,
+            'sideband': 1,
+            'band': 'L',
+        }]
+
+        targets = [katpoint.Target("Flosshilde, radec, 0.0, -30.0")]
+
+        # Set up a scan
+        scans = [('track', 10, targets[0])]
+
+        # Flag the data
+        def mock_flags(dataset):
+            return np.ones(dataset.shape, dtype=np.bool)
+
+        # Create Mock dataset and wrap it in a KatdalAdapter
+        ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
+                         subarrays=DEFAULT_SUBARRAYS,
+                         spws=spws,
+                         dumps=scans,
+                         flags=mock_flags)
+
+        with obit_context():
+            pipeline = pipeline_factory('offline', ds)
+            pipeline._select_and_infer_files()
+            pipeline._export_and_merge_scans()
+
     def _test_export_implementation(self, export_type="uv_export", nif=1):
         """
         Implementation of export test. Tests export via

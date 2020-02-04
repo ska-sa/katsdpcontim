@@ -457,8 +457,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
         # Record the starting visibility
         # for this scan in the merge file
 
-        blavg_desc = blavg_uvf.Desc.Dict
-        blavg_nvis = blavg_desc['nvis']
+        blavg_nvis = blavg_uvf.nvis_from_NX
 
         # Only do something if we have something to do
         if blavg_nvis > 0:
@@ -606,8 +605,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
             assert len(scan_uvf.tables["AIPS NX"].rows) == 1
             nx_row = scan_uvf.tables["AIPS NX"].rows[0].copy()
-            scan_desc = scan_uvf.Desc.Dict
-            scan_nvis = scan_desc['nvis']
+            scan_nvis = scan_uvf.nvis_from_NX
 
             # If we should be merging scans
             # just use the existing scan path and file
@@ -627,8 +625,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
             merge_uvf = self._maybe_create_merge_uvf(merge_uvf, blavg_uvf,
                                                      global_table_cmds)
 
-            blavg_desc = blavg_uvf.Desc.Dict
-            blavg_nvis = blavg_desc['nvis']
+            blavg_nvis = blavg_uvf.nvis_from_NX
 
             # Record something about the baseline averaging process
             param_str = ', '.join("%s=%s" % (k, v)
