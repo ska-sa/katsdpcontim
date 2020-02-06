@@ -1,8 +1,6 @@
 import logging
 from textwrap import TextWrapper
-import sys
 
-import six
 import numpy as np
 
 import TableList
@@ -77,8 +75,7 @@ def open_uv(aips_path, nvispio=1024, mode=None):
                             aips_path.aclass, aips_path.disk,
                             aips_path.seq, exists, err, nvis=nvispio)
         except Exception:
-            raise (ValueError("Error calling newPAUV on '%s'" % aips_path),
-                   None, sys.exc_info()[2])
+            raise ValueError("Error calling newPAUV on '%s'" % aips_path)
     elif aips_path.dtype == "FITS":
         raise NotImplementedError("newPFUV calls do not currently work")
 
@@ -86,8 +83,7 @@ def open_uv(aips_path, nvispio=1024, mode=None):
             uv = UV.newPFUV(aips_path.label, aips_path.name, aips_path.disk,
                             exists, err, nvis=nvispio)
         except Exception:
-            raise (ValueError("Error calling newPFUV on '%s'" % aips_path),
-                   None, sys.exc_info()[2])
+            raise ValueError("Error calling newPFUV on '%s'" % aips_path)
     else:
         raise ValueError("Invalid dtype '{}'".format(aips_path.dtype))
 
@@ -96,8 +92,7 @@ def open_uv(aips_path, nvispio=1024, mode=None):
     try:
         uv.Open(uv_mode, err)
     except Exception:
-        raise (ValueError("Error opening '%s'" % aips_path),
-               None, sys.exc_info()[2])
+        raise ValueError("Error opening '%s'" % aips_path)
 
     handle_obit_err("Error opening '%s'" % aips_path, err)
 
@@ -168,7 +163,7 @@ def uv_factory(**kwargs):
     reopen = False
 
     # Handle table creation commands
-    for table, cmds in six.iteritems(table_cmds):
+    for table, cmds in table_cmds.items():
         # Perform any attach commands first
         try:
             attach_kwargs = cmds["attach"]
@@ -313,8 +308,7 @@ class UVFacade(object):
             # Closed
             return
         except Exception:
-            raise (Exception("Exception closing uv file '%s'" % self.name),
-                   None, sys.exc_info()[2])
+            raise Exception("Exception closing uv file '%s'" % self.name)
 
         handle_obit_err("Error closing uv file '%s'" % self.name, self._err)
         self._clear_uv()
@@ -407,6 +401,27 @@ class UVFacade(object):
     def List(self):
         return self.uv.List
 
+    def nvis_from_NX(self):
+        """Derive the number of visibilities from the attached NX table
+
+        NOTE: Sometimes in certain corner cases the 'nvis'
+        item in self.Desc.Dict incorrectly reports the number
+        of visibilities in the object (e.g. when all the input
+        data is flagged and the UV data output from UVBlAvg is
+        empty). Using the NX table to get the number of
+        visibilities is a workaround for this problem; it is
+        derived by counting the number of rows in the associated
+        UV table.
+        """
+        nx_table = self.tables.get("AIPS NX")
+        if nx_table is None:
+            raise AttributeError("%s has no iNdeX table. Cannot count visibilities."
+                                 % (self.aips_path))
+        vis_count = 0
+        for row in nx_table.rows:
+            vis_count += (row['END VIS'][0] + 1) - row['START VIS'][0]
+        return vis_count
+
     @property
     def VisBuf(self):
         return self.uv.VisBuf
@@ -421,7 +436,7 @@ class UVFacade(object):
         try:
             self.uv.Open(mode, self._err)
         except Exception:
-            raise (Exception(err_msg, None, sys.exc_info()[2]))
+            raise Exception
 
         handle_obit_err(err_msg, self._err)
 
@@ -452,7 +467,7 @@ class UVFacade(object):
         try:
             self.uv.Read(self._err, firstVis=firstVis)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -462,7 +477,7 @@ class UVFacade(object):
         try:
             self.uv.Write(self._err, firstVis=firstVis)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -472,7 +487,7 @@ class UVFacade(object):
         try:
             self.uv.Zap(self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
         self._clear_uv()
@@ -498,7 +513,7 @@ class UVFacade(object):
         try:
             uv.UpdateDesc(self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -518,6 +533,6 @@ class UVFacade(object):
         try:
             UV.PTableCLfromNX(self.uv, max_ant_nr, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)

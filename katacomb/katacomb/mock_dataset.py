@@ -2,8 +2,6 @@ from datetime import datetime
 import random
 
 import numpy as np
-import six
-from six.moves import range
 from ephem.stars import stars
 
 from katdal.dataset import DataSet, Subarray
@@ -262,7 +260,7 @@ class MockDataSet(DataSet):
         metadata : dict
             Dictionary of attributes to add to this object
         """
-        for k, v in six.iteritems(metadata):
+        for k, v in metadata.items():
             setattr(self, k, v)
 
     def _create_targets(self, dump_defs, ref_ant):
@@ -330,14 +328,14 @@ class MockDataSet(DataSet):
                 ants = subarray_def['antenna']
             except KeyError as e:
                 raise KeyError("Subarray definition '%s' "
-                               "missing '%s'" % (subarray_def, e.message))
+                               "missing '%s'" % (subarray_def, str(e)))
 
             ants = [a if isinstance(a, katpoint.Antenna)
                     else katpoint.Antenna(a) for a in ants]
 
             try:
                 corr_products = subarray_def['corr_products']
-            except KeyError as e:
+            except KeyError:
                 # Generate correlation products for all antenna pairs
                 # including auto-correlations
                 corr_products = np.array([
@@ -346,7 +344,7 @@ class MockDataSet(DataSet):
                     for a2 in ants[i:]
                     for c1 in ('h', 'v')
                     for c2 in ('h', 'v')],
-                    dtype='|S5')
+                    dtype='|U5')
 
             subarrays.append(Subarray(ants, corr_products))
 
@@ -452,7 +450,7 @@ class MockDataSet(DataSet):
                 dump_index += dumps
 
         # Generate compound scans for the reference antenna
-        ref_ant_compound_scans = list(_generate_ref_ant_compound_scans())
+        ref_ant_compound_scans = _generate_ref_ant_compound_scans()
 
         # Labels seem to only involve tracks, separate them out
         label_scans = [tup for tup in ref_ant_compound_scans if tup[1] == 'track']
@@ -468,7 +466,7 @@ class MockDataSet(DataSet):
         self.sensor['Antennas/%s/activity' % self.ref_ant] = refant
 
         # Derive scan states and indices from reference antenna data
-        scan_index = CategoricalData(range(len(refant)), refant.events)
+        scan_index = CategoricalData(list(range(len(refant))), refant.events)
 
         self.sensor['Observation/scan_state'] = refant
         self.sensor['Observation/scan_index'] = scan_index

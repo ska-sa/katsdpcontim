@@ -4,9 +4,6 @@ import unittest
 from ephem.stars import stars
 import katpoint
 import numpy as np
-import six
-
-from katsdptelstate import TelescopeState
 
 from katacomb.mock_dataset import (MockDataSet,
                                    DEFAULT_METADATA,
@@ -79,6 +76,39 @@ class TestUVExport(unittest.TestCase):
         self._test_export_implementation("uv_export", nif=4)
         self._test_export_implementation("continuum_export", nif=4)
 
+    def test_empty_dataset(self):
+        """Test that a completely flagged dataset is exported without error"""
+        nchan = 16
+
+        spws = [{
+            'centre_freq': .856e9 + .856e9 / 2.,
+            'num_chans': nchan,
+            'channel_width': .856e9 / nchan,
+            'sideband': 1,
+            'band': 'L',
+        }]
+
+        targets = [katpoint.Target("Flosshilde, radec, 0.0, -30.0")]
+
+        # Set up a scan
+        scans = [('track', 10, targets[0])]
+
+        # Flag the data
+        def mock_flags(dataset):
+            return np.ones(dataset.shape, dtype=np.bool)
+
+        # Create Mock dataset and wrap it in a KatdalAdapter
+        ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
+                         subarrays=DEFAULT_SUBARRAYS,
+                         spws=spws,
+                         dumps=scans,
+                         flags=mock_flags)
+
+        with obit_context():
+            pipeline = pipeline_factory('offline', ds)
+            pipeline._select_and_infer_files()
+            pipeline._export_and_merge_scans()
+
     def _test_export_implementation(self, export_type="uv_export", nif=1):
         """
         Implementation of export test. Tests export via
@@ -132,7 +162,7 @@ class TestUVExport(unittest.TestCase):
         FAKE = object()
 
         # Test that metadata agrees
-        for k, v in six.iteritems(DEFAULT_METADATA):
+        for k, v in DEFAULT_METADATA.items():
             self.assertEqual(v, getattr(KA, k, FAKE))
 
         # Setup the katdal selection, convert it to a string
@@ -206,8 +236,8 @@ class TestUVExport(unittest.TestCase):
                 def _strip_strings(aips_keywords):
                     """ AIPS string are padded, strip them """
                     return {k: v.strip()
-                            if isinstance(v, six.string_types) else v
-                            for k, v in aips_keywords.iteritems()}
+                            if isinstance(v, (str, bytes)) else v
+                            for k, v in aips_keywords.items()}
 
                 fq_kw = _strip_strings(uvf.tables["AIPS FQ"].keywords)
                 src_kw = _strip_strings(uvf.tables["AIPS SU"].keywords)

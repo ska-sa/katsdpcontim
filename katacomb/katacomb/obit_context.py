@@ -124,7 +124,7 @@ def obit_err():
     try:
         return __obit_context.err
     except AttributeError as e:
-        if 'NoneType' in e.message:
+        if 'NoneType' in str(e):
             raise ValueError("Create a valid Obit context with obit_context()")
 
 
@@ -133,5 +133,5 @@ def obit_sys():
     try:
         return __obit_context.obitsys
     except AttributeError as e:
-        if 'NoneType' in e.message:
+        if 'NoneType' in str(e):
             raise ValueError("Create a valid Obit context with obit_context()")

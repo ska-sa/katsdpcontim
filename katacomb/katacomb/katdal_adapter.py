@@ -4,7 +4,6 @@ import logging
 import time
 
 import attr
-import six
 import numba
 import numpy as np
 import dask.array as da
@@ -575,7 +574,7 @@ class KatdalAdapter(object):
     @property
     def name(self):
         """ Proxies :attr:`katdal.DataSet.name` """
-        return self._katds.name.encode()
+        return self._katds.name
 
     @property
     def experiment_id(self):
@@ -722,7 +721,7 @@ class KatdalAdapter(object):
         # Count the number of times we see a correlation product
         counts = Counter((cp.ant1_ix, cp.ant2_ix) for cp
                          in self.correlator_products())
-        return max(counts.itervalues())
+        return max(counts.values())
 
     @property
     def nchan(self):
@@ -768,7 +767,8 @@ class KatdalAdapter(object):
     @nif.setter
     def nif(self, numif):
         if self.nchan % numif != 0:
-            raise ValueError('Number of requested IFs (%d) does not divide number of channels (%d)' % (numif, self.nchan))
+            raise ValueError('Number of requested IFs (%d) does not divide number of channels (%d)'
+                             % (numif, self.nchan))
         else:
             self._nif = numif
             self._catalogue = aips_catalogue(self._katds, numif)
@@ -970,7 +970,7 @@ class KatdalAdapter(object):
         return {
             'naxis': 6,
             'ctype': ['COMPLEX', 'STOKES', 'FREQ', 'IF', 'RA', 'DEC'],
-            'inaxes': [3, self.nstokes, self.nchan / self.nif, self.nif, 1, 1],
+            'inaxes': [3, self.nstokes, self.nchan // self.nif, self.nif, 1, 1],
             'cdelt': [1.0, stokes_cdelt, self.chinc, 1.0, 0.0, 0.0],
             'crval': [1.0, stokes_crval, self.reffreq, 1.0, 0.0, 0.0],
             'crpix': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -1241,7 +1241,7 @@ def time_chunked_scans(kat_adapter, time_step=4):
         # Create a generator returning data
         # associated with chunks of time data.
         data_gen = (_get_data(ts, min(ts+time_step, ntime)) for ts
-                    in six.moves.range(0, ntime, time_step))
+                    in range(0, ntime, time_step))
 
         # Yield scan variables and the generator
         yield si, state, target, data_gen

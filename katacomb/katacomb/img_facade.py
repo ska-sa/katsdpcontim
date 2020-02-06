@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import numpy as np
 from pretty import pretty
@@ -78,8 +77,7 @@ def open_img(aips_path, mode=None, MF=False):
                            aips_path.aclass, aips_path.disk,
                            aips_path.seq, exists, err)
         except Exception:
-            raise (ValueError("Error calling newPAImage on '%s'" % aips_path),
-                   None, sys.exc_info()[2])
+            raise ValueError("Error calling newPAImage on '%s'" % aips_path)
     elif aips_path.dtype == "FITS":
         raise NotImplementedError("newPFImage calls do not currently work")
 
@@ -87,8 +85,7 @@ def open_img(aips_path, mode=None, MF=False):
             img = Image.newPFImage(aips_path.label, aips_path.name, aips_path.disk,
                                    exists, err)
         except Exception:
-            raise (ValueError("Error calling newPFImage on '%s'" % aips_path),
-                   None, sys.exc_info()[2])
+            raise ValueError("Error calling newPFImage on '%s'" % aips_path)
     else:
         raise ValueError("Invalid dtype '{}'".format(aips_path.dtype))
 
@@ -99,7 +96,7 @@ def open_img(aips_path, mode=None, MF=False):
     try:
         img.Open(img_mode, err)
     except Exception:
-        raise (ValueError(err_msg), None, sys.exc_info()[2])
+        raise ValueError(err_msg)
 
     handle_obit_err(err_msg, err)
 
@@ -290,7 +287,6 @@ class ImageFacade(object):
         handle_obit_err("Error getting '%s' table list" % self.name)
         return tables
 
-
     def attach_table(self, name, version, **kwargs):
         self._tables[name] = AIPSTable(self.img, name, version, 'r',
                                        self._err, **kwargs)
@@ -320,7 +316,7 @@ class ImageFacade(object):
             # Already closed
             return
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
         self._clear_img()
@@ -334,8 +330,6 @@ class ImageFacade(object):
         Image.PCopy(self._img, outImage, self._err)
         Image.PCopyTables(self._img, outImage, ['AIPS HI'], tables_to_copy, self._err)
         handle_obit_err(err_msg, self._err)
-
-
 
     @property
     def img(self):
@@ -394,9 +388,8 @@ class ImageFacade(object):
         try:
             buf = FArray.PGetBuf(self.img.FArray)
         except Exception:
-            raise (Exception("Exception getting float array buffer "
-                             "on image '%s'" % self.name),
-                   None, sys.exc_info()[2])
+            raise Exception("Exception getting float array buffer "
+                            "on image '%s'" % self.name)
 
         return np.frombuffer(buf, count=-1, dtype=np.float32).reshape(self.FArray.Naxis)
 
@@ -406,7 +399,7 @@ class ImageFacade(object):
         try:
             self.img.Open(mode, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -418,7 +411,7 @@ class ImageFacade(object):
         try:
             self.img.Copy(to_img.img, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -437,7 +430,7 @@ class ImageFacade(object):
                 array = Image.PGetFArray(self.img)
             self.img.GetPlane(array, plane, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
         return array
@@ -451,7 +444,7 @@ class ImageFacade(object):
         try:
             self.img.PutPlane(array, plane, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
 
@@ -482,7 +475,7 @@ class ImageFacade(object):
                 # Need an ImageMF pointer for PFitSpec
                 ImageMF.PFitSpec(self.imgMF, self._err, **kwargs)
             except Exception:
-                raise (Exception(err_msg), None, sys.exc_info()[2])
+                raise Exception(err_msg)
             handle_obit_err(err_msg)
 
     @property
@@ -502,7 +495,7 @@ class ImageFacade(object):
         try:
             self.img.Zap(self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
 
         handle_obit_err("Error deleting Image file '%s'" % self.name, self._err)
         self._clear_img()
@@ -524,7 +517,7 @@ class ImageFacade(object):
         try:
             TableUtil.PCCMerge(cctab._table, merged_cctab, self._err)
         except Exception:
-            raise (Exception(err_msg), None, sys.exc_info()[2])
+            raise Exception(err_msg)
         handle_obit_err(err_msg, self._err)
 
         # Attach merged version of CC Table

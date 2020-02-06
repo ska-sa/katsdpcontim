@@ -1,10 +1,8 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from copy import deepcopy
 import logging
 import multiprocessing
 from pretty import pretty
-
-import six
 
 import katdal
 from katdal import DataSet
@@ -88,12 +86,11 @@ def register_workmode(name):
     return decorator
 
 
-class Pipeline(object):
+class Pipeline(ABC):
     """
     Defines an abstract Pipeline interface with single execute method
     that a user calls.
     """
-    __metaclass__ = ABCMeta
 
     @abstractmethod
     def execute(self):
@@ -237,7 +234,7 @@ class PipelineImplementation(Pipeline):
         Parameters
         ----------
         image_files : list
-            The images to process (output from MFImage task) 
+            The images to process (output from MFImage task)
         """
         for img in image_files:
             with img_factory(aips_path=img, mode="rw") as imf:
@@ -284,13 +281,12 @@ class PipelineImplementation(Pipeline):
             SN_ver = [table[0] for table in tables if table[1] == 'AIPS SN']
             for ver in SN_ver:
                 taco_kwargs.update({
-                    'inVer' : ver,
-                    'outVer' : ver
+                    'inVer': ver,
+                    'outVer': ver
                     })
                 taco = task_factory("TabCopy", **taco_kwargs)
                 with log_obit_err(log):
                     taco.go()
-
 
     def _cleanup(self):
         """
@@ -461,15 +457,14 @@ class KatdalPipelineImplementation(PipelineImplementation):
         # Record the starting visibility
         # for this scan in the merge file
 
-        blavg_desc = blavg_uvf.Desc.Dict
-        blavg_nvis = blavg_desc['nvis']
+        blavg_nvis = blavg_uvf.nvis_from_NX()
 
         # Only do something if we have something to do
         if blavg_nvis > 0:
 
             nx_row['START VIS'] = [merge_firstVis]
 
-            for blavg_firstVis in six.moves.range(1, blavg_nvis+1, self.nvispio):
+            for blavg_firstVis in range(1, blavg_nvis+1, self.nvispio):
                 # How many visibilities do we write in this iteration?
                 numVisBuff = min(blavg_nvis+1 - blavg_firstVis, self.nvispio)
 
@@ -610,8 +605,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
             assert len(scan_uvf.tables["AIPS NX"].rows) == 1
             nx_row = scan_uvf.tables["AIPS NX"].rows[0].copy()
-            scan_desc = scan_uvf.Desc.Dict
-            scan_nvis = scan_desc['nvis']
+            scan_nvis = scan_uvf.nvis_from_NX()
 
             # If we should be merging scans
             # just use the existing scan path and file
@@ -631,8 +625,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
             merge_uvf = self._maybe_create_merge_uvf(merge_uvf, blavg_uvf,
                                                      global_table_cmds)
 
-            blavg_desc = blavg_uvf.Desc.Dict
-            blavg_nvis = blavg_desc['nvis']
+            blavg_nvis = blavg_uvf.nvis_from_NX()
 
             # Record something about the baseline averaging process
             param_str = ', '.join("%s=%s" % (k, v)
@@ -910,7 +903,7 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         self._run_mfimage(self.uv_merge_path, uv_sources)
 
         self._get_wavg_img(clean_files)
-	for uv, clean in zip(uv_files, clean_files):
+        for uv, clean in zip(uv_files, clean_files):
             self._attach_SN_tables_to_image(uv, clean)
 
         export_images(clean_files, target_indices,

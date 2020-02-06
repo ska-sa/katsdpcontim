@@ -53,31 +53,22 @@ class AIPSTableKeywords(object):
         self._tabname = table_name
         self._schema = {key: (type_, dims) for
                         key, (type_, dims, value) in
-                        table.IODesc.List.Dict.items()}
+                        table.Desc.List.Dict.items()}
 
     def keys(self):
         return self._schema.keys()
 
-    def iterkeys(self):
-        return iter(self._schema.keys())
-
     def values(self):
-        return [self.__getitem__(key) for key in self.keys()]
-
-    def itervalues(self):
-        return iter(self.values())
+        return iter(self.__getitem__(key) for key in self.keys())
 
     def items(self):
-        return [(k, self.__getitem__(k)) for k in self.keys()]
-
-    def iteritems(self):
         return iter((k, self.__getitem__(k)) for k in self.keys())
 
     def __len__(self):
         return len(self._schema)
 
     def __iter__(self):
-        return self.iterkeys()
+        return iter(self.keys())
 
     def __getitem__(self, key):
         """
@@ -96,7 +87,7 @@ class AIPSTableKeywords(object):
 
         # Return value out of (code, name, type, dims, value) tuple
         # returned by PGet
-        return _scalarise(InfoList.PGet(self._table.IODesc.List, key)[4])
+        return _scalarise(InfoList.PGet(self._table.Desc.List, key)[4])
 
     def __setitem__(self, key, value):
         """
@@ -119,7 +110,7 @@ class AIPSTableKeywords(object):
             raise ValueError("'%s' is not a valid keyword "
                              "for table '%s' ."
                              "Valid keywords '%s'." % (
-                                 key, self._tabname, self._schema.keys()))
+                                 key, self._tabname, list(self._schema.keys())))
 
         # Convert value into a list
         value = _vectorise(value)
@@ -132,7 +123,7 @@ class AIPSTableKeywords(object):
         else:
             value = [enum.coerce(v) for v in value]
 
-        InfoList.PSetDict(self._table.IODesc.List,
+        InfoList.PSetDict(self._table.Desc.List,
                           {key: [type_, dims, value]})
 
         self._dirty = True
@@ -151,16 +142,16 @@ class AIPSTableKeywords(object):
         """
         if other is not None:
             is_map = isinstance(other, collections.Mapping)
-            for k, v in other.iteritems() if is_map else other:
+            for k, v in other.items() if is_map else other:
                 self.__setitem__(k, v)
 
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             self.__setitem__(k, v)
 
     def __pretty__(self, p, cycle):
         """ Pretty print this keyword object """
 
-        p.pretty(self._table.IODesc.List.Dict)
+        p.pretty(self._table.Desc.List.Dict)
 
     @property
     def dirty(self):
@@ -173,7 +164,7 @@ class AIPSTableKeywords(object):
     def __str__(self):
         return str({key: _scalarise(value) for
                     key, (type_, dims, value) in
-                    self._table.IODesc.List.Dict.items()})
+                    self._table.Desc.List.Dict.items()})
 
     __repr__ = __str__
 
@@ -300,7 +291,7 @@ class AIPSTableRow(object):
         except KeyError:
             raise ValueError("'%s' does not appear to be a "
                              "valid row key. Valid keys "
-                             "include '%s'" % (key, self._row_def.keys()))
+                             "include '%s'" % (key, list(self._row_def.keys())))
 
         # Pad string values appropriately
         if type_ == OBIT_TYPE.string:

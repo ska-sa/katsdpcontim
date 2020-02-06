@@ -101,4 +101,4 @@ def obit_config_from_aips(aips_cfg_file):
         return value
 
     return {k: _massage(o) for k, o
-            in parse_aips_config(aips_cfg_file).iteritems()}
+            in parse_aips_config(aips_cfg_file).items()}

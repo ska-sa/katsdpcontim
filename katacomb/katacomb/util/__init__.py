@@ -9,7 +9,6 @@ import sys
 
 from pretty import pretty
 import yaml
-import six
 import dask.array as da
 import numpy as np
 
@@ -22,11 +21,11 @@ import ObitTask
 from OTObit import addParam
 import OSystem
 
-import __builtin__
+import builtins
 
 # builtin function whitelist
 _BUILTIN_WHITELIST = frozenset(['slice'])
-_missing = _BUILTIN_WHITELIST.difference(dir(__builtin__))
+_missing = _BUILTIN_WHITELIST.difference(dir(builtins))
 if len(_missing) > 0:
     raise ValueError("'%s' are not valid builtin functions.'" % list(_missing))
 
@@ -222,7 +221,7 @@ def parse_python_assigns(assign_str):
             else:
                 kwargs = {}
 
-            return getattr(__builtin__, func_name)(*args, **kwargs)
+            return getattr(builtins, func_name)(*args, **kwargs)
         # Try a literal eval
         else:
             return ast.literal_eval(stmt_value)
@@ -349,12 +348,12 @@ def task_factory(name, aips_cfg_file=None, **kwargs):
     task = ObitTask.ObitTask(name)
 
     # Apply configuration options to the task
-    for k, v in six.iteritems(kwargs):
+    for k, v in kwargs.items():
         try:
             setattr(task, k, v)
         except AttributeError as e:
             attr_err = "ObitTask instance has no attribute '{}'".format(k)
-            if attr_err in e.message:
+            if attr_err in str(e):
                 # Assume this is a "hidden" parameter and add it to
                 # the task parameters via addParam
                 addParam(task, k, paramVal=v)
@@ -451,7 +450,7 @@ def normalise_target_name(name, used=[], max_length=None):
     """
     def generate_name(name, i, ml):
         # Create suffix string
-        i_name = '' if i is 0 else '_' + str(i)
+        i_name = '' if i == 0 else '_' + str(i)
         # Return concatenated string if ml is not set
         if ml is None:
             ml = len(name) + len(i_name)

@@ -1,7 +1,9 @@
 import numpy as np
+
 from matplotlib import use
 use('Agg', warn=False)
-from matplotlib import pylab as plt
+
+from matplotlib import pylab as plt  # noqa: E402
 
 
 def zscale(image, maxsamples=100000, contrast=0.02, stretch=5.0,

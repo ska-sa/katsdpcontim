@@ -1,4 +1,4 @@
-from __future__ import with_statement
+
 
 import datetime
 import json
@@ -93,7 +93,7 @@ def _metadata(katds, cb_id, target_metadata):
     metadata['ProductType'] = product_type
     metadata['Run'] = str(katds.target_indices[0])
     # Format time as required
-    start_time = datetime.datetime.utcfromtimestamp(katds.start_time)
+    start_time = datetime.datetime.utcfromtimestamp(katds.start_time.secs)
     metadata['StartTime'] = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")
     metadata['CaptureBlockId'] = cb_id
     metadata['ScheduleBlockIdCode'] = obs_params.get('sb_id_code', 'UNKNOWN')
@@ -249,7 +249,8 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
                 # Only export amp+phase solutions if we have them
                 if apSN > 0:
                     try:
-                        log.info('Extracting amp+phase self-calibration from AIPS SN: %d' % (pSN + apSN))
+                        log.info('Extracting amp+phase self-calibration from AIPS SN: %d'
+                                 % (pSN + apSN))
                         uvf.attach_table("AIPS SN", pSN + apSN)
                         sntab = uvf.tables["AIPS SN"]
                     except KeyError:
