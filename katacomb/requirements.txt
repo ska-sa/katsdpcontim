@@ -1,7 +1,5 @@
 attrs
 astropy == 2.0.3
-backports-abc
-backports.ssl-match-hostname
 beautifulsoup4 == 4.6.0
 botocore
 bs4 == 0.0.1
@@ -45,7 +43,6 @@ requests
 scipy
 toolz
 tornado
-trollius
 webencodings == 0.5.1
 urllib3
 katdal @ git+https://github.com/ska-sa/katdal
