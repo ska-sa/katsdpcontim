@@ -497,7 +497,7 @@ def apply_user_mask(kat_ds, mask_file):
 
     try:
         # Open the mask pickle
-        mask = pickle.load(open(mask_file))
+        mask = pickle.load(open(mask_file, 'rb'))
         # Apply the mask to 'static' flag bit
         mask = np.array(mask, dtype=np.uint8) * STATIC
         mask = mask[np.newaxis, :, np.newaxis]
