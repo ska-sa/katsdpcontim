@@ -62,7 +62,7 @@ def create_parser():
                         help="Comma separated list of target names to image. "
                              "Default: All targets")
 
-    parser.add_argument("-c", "--channels", default=None, type=str,
+    parser.add_argument("-c", "--channels", default=None, type=lambda s: map(int, s.split(',')),
                         help="Range of channels to image, must be of the form <start>,<end>. "
                              "Default: Image all (unmasked) channels.")
 
@@ -174,8 +174,8 @@ def main():
     if args.targets:
         kat_select['targets'] = args.targets
     if args.channels:
-        start_chan, end_chan = args.channels.split(',')
-        kat_select['channel'] = slice(start_chan, end_chan)
+        start_chan, end_chan = args.channels
+        kat_select['channels'] = slice(start_chan, end_chan)
 
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
