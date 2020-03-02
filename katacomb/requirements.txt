@@ -6,6 +6,7 @@ bs4 == 0.0.1
 cerberus == 1.1
 certifi
 chardet
+cityhash
 cycler
 dask
 defusedxml
