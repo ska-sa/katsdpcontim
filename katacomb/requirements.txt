@@ -9,7 +9,6 @@ chardet
 cityhash
 cycler
 dask
-defusedxml
 docutils
 fakeredis
 funcsigs == 0.4
