@@ -10,14 +10,14 @@ cityhash
 cycler
 dask
 docutils
-fakeredis
-funcsigs == 0.4
+ephem
 future
 h5py
 html5lib == 1.0.1
 idna
 jmespath
 katversion
+kiwisolver
 llvmlite
 matplotlib
 msgpack
