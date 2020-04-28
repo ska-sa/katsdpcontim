@@ -1,38 +1,37 @@
+appdirs
+astropy == 3.1.2
 attrs
-astropy == 2.0.3
-beautifulsoup4 == 4.6.0
 botocore
-bs4 == 0.0.1
 cerberus == 1.1
 certifi
 chardet
 cityhash
 cycler
 dask
+decorator
 docutils
 ephem
 future
 h5py
-html5lib == 1.0.1
 idna
 jmespath
 katversion
 kiwisolver
 llvmlite
+mako
+markupsafe
 matplotlib
 msgpack
 netifaces
 nose
 numba
 numpy
-pluggy == 0.6.0
+pandas
 pretty-py3 == 0.2.4
-py == 1.5.2
 pyephem
 pygelf
 pyjwt
 pyparsing
-pytest == 3.3.2
 python-dateutil
 python-lzf
 pytz
@@ -43,9 +42,11 @@ requests
 scipy
 toolz
 tornado
-webencodings == 0.5.1
+typing-extensions
 urllib3
+
 katdal @ git+https://github.com/ska-sa/katdal
 katpoint @ git+https://github.com/ska-sa/katpoint
-katsdpservices @ git+https://github.com/ska-sa/katsdpservices
+katsdpsigproc @ git+https://github.com/ska-sa/katsdpsigproc
 katsdptelstate @ git+https://github.com/ska-sa/katsdptelstate
+katsdpservices @ git+https://github.com/ska-sa/katsdpservices
