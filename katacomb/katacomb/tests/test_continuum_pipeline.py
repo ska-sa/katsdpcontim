@@ -167,7 +167,7 @@ class TestOnlinePipeline(unittest.TestCase):
         Tests that a run of the online continuum pipeline executes.
         """
 
-        nchan = 16
+        nchan = 32
 
         spws = [{
             'centre_freq': .856e9 + .856e9 / 2.,
@@ -221,7 +221,7 @@ class TestOnlinePipeline(unittest.TestCase):
 
         # Do some baseline averaging for funsies
         uvblavg_params = parse_python_assigns("FOV=1.0; avgFreq=1; "
-                                              "chAvg=8; maxInt=2.0")
+                                              "chAvg=2; maxInt=2.0")
 
         # Run with imaging defaults
         mfimage_params = {'doGPU': False}
