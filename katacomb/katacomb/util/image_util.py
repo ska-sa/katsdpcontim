@@ -4,7 +4,7 @@ import astropy.io.fits as fits
 from matplotlib import use
 use('Agg', warn=False)  # noqa: E402
 import matplotlib.axes
-from matplotlib import pylab as plt
+import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import katsdpsigproc.zscale as zscale
