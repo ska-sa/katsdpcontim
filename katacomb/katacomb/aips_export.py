@@ -11,10 +11,11 @@ from katacomb import (uv_factory,
                       katdal_ant_name,
                       obit_image_mf_rms,
                       normalise_target_name,
-                      save_image,
+                      write_image,
                       task_defaults)
 import katacomb.configuration as kc
 from katacomb.katdal_adapter import CORR_ID_MAP
+from katacomb.util.image_util import DEFAULT_DPI
 
 import katpoint
 import numpy as np
@@ -33,6 +34,8 @@ _DROP = {"Table name", "NumFields", "_status"}
 OFILE_SEPARATOR = '_'
 # Default image plane to write as FITS.
 IMG_PLANE = 1
+# Image slice to plot to PNG output
+PNG_SLICE = ('x', 'y', 0, 0)
 # File extensions for FITS, PNG and thumbnails
 FITS_EXT = '.fits'
 PNG_EXT = '.png'
@@ -149,9 +152,14 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 # Export PNG and a thumbnail PNG
                 log.info('Write PNG image output: %s' % (out_filebase + PNG_EXT))
                 out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
-                save_image(cf, out_pngfile, plane=IMG_PLANE)
+                in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
+                center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
+                caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
+                write_image(in_fitsfile, out_pngfile, width=6500, height=5000,
+                            dpi=10 * DEFAULT_DPI, caption=caption, facecolor='black')
                 out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
-                save_image(cf, out_pngthumbnail, plane=IMG_PLANE, display_size=5., dpi=100)
+                write_image(in_fitsfile, out_pngthumbnail, width=650, height=500,
+                            caption=caption, facecolor='black')
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,
