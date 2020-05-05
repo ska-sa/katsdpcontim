@@ -19,8 +19,8 @@ def _prepare_axes(wcs, width, height, image_width, image_height, dpi, slices, bb
     ax = fig.add_subplot(projection=wcs, slices=slices)
     ax.set_xlabel('Right Ascension')
     ax.set_ylabel('Declination')
-    ax.set_xlim(-0.5 + bbox[0], bbox[1] - 0.5)
-    ax.set_ylim(-0.5 + bbox[2], bbox[3] - 0.5)
+    ax.set_xlim(-0.5 + bbox[0], bbox[1] + 0.5)
+    ax.set_ylim(-0.5 + bbox[2], bbox[3] + 0.5)
     return fig, ax
 
 
