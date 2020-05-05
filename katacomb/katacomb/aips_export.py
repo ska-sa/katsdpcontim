@@ -156,10 +156,10 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
                 caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
                 write_image(in_fitsfile, out_pngfile, width=6500, height=5000,
-                            dpi=10 * DEFAULT_DPI, caption=caption)
+                            dpi=10 * DEFAULT_DPI, caption=caption, facecolor='black')
                 out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
                 write_image(in_fitsfile, out_pngthumbnail, width=650, height=500,
-                            caption=caption)
+                            caption=caption, facecolor='black')
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,

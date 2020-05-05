@@ -24,7 +24,7 @@ def _prepare_axes(wcs, width, height, image_width, image_height, dpi, slices, bb
     return fig, ax
 
 
-def _plot(data, bunit, caption, ax, extent, vmin, vmax):
+def _plot(data, bunit, caption, ax, extent, vmin, vmax, facecolor):
     if bunit == 'JY/BEAM':
         # This is not FITS-standard, but is AIPS standard and is output by AIPS generated FITS images
         # as well as older versions of katsdpimager
@@ -60,9 +60,12 @@ def _plot(data, bunit, caption, ax, extent, vmin, vmax):
     if caption:
         ax.set_title(f'{caption}')
 
+    if facecolor:
+        ax.set_facecolor(facecolor)
+
 
 def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI,
-                slices=('x', 'y', 0, 0), caption=None):
+                slices=('x', 'y', 0, 0), caption=None, facecolor=None):
     """Write an image plane to a file from a single FITS file.
 
     Parameters
@@ -79,6 +82,9 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         Choice of image dimensions. Passed to :class:`WCSAxes`
     caption : Optional[str]
         Optional caption to include in the image
+    facecolor : Optional[str]
+        Optional background color to use in the image plot window.
+        Blanked pixels in the input FITS image will appear in this color.
     """
 
     with fits.open(input_file) as hdus:
@@ -89,7 +95,7 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         # Work out bounding box surrounding finite data
         # Plot the lot if any axis is completely blanked
         finite_data = np.where(np.isfinite(data))
-        bbox = (0, image_width, 0, image_height)
+        bbox = (0, image_width - 1, 0, image_height - 1)
         if finite_data[0].size > 0:
             ymin = np.min(finite_data[0])
             ymax = np.max(finite_data[0])
@@ -98,5 +104,5 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
             bbox = (xmin, xmax, ymin, ymax)
         fig, ax = _prepare_axes(wcs.WCS(hdus[0]), width, height, image_width, image_height, dpi, slices, bbox)
         bunit = hdus[0].header['BUNIT']
-        _plot(data, bunit, caption, ax, None, vmin, vmax)
+        _plot(data, bunit, caption, ax, None, vmin, vmax, facecolor)
         fig.savefig(output_file)
