@@ -90,7 +90,7 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         # Plot the lot if any axis is completely blanked
         finite_data = np.where(np.isfinite(data))
         bbox = (0, image_width, 0, image_height)
-        if data[finite_data].size > 0:
+        if finite_data[0].size > 0:
             ymin = np.min(finite_data[0])
             ymax = np.max(finite_data[0])
             xmin = np.min(finite_data[1])
