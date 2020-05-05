@@ -160,9 +160,9 @@ def _infer_defaults_from_katdal(katds):
     if refant is not None:
         mfimage_params['refAnt'] = aips_ant_nr(refant)
 
-    #Get the total observed time (t_obs) currently selected in the
-    #kat_adapter and set the MFImage:maxRealtime parameter to
-    #max(mintime, t_obs*(1. + extra)).
+    # Get the total observed time (t_obs) currently selected in the
+    # kat_adapter and set the MFImage:maxRealtime parameter to
+    # max(mintime, t_obs*(1. + extra)).
     t_obs = katds.shape[0] * katds.dump_period
     maxRealtime = max(MINRUNTIME, t_obs * (1. + RUNTIME_PAD))
     mfimage_params['maxRealtime'] = float(maxRealtime)

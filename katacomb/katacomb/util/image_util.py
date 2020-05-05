@@ -4,8 +4,9 @@ import astropy.io.fits as fits
 from matplotlib import use
 use('Agg', warn=False)  # noqa: E402
 import matplotlib.axes
-from matplotlib import pylab as plt
+import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
 
 import katsdpsigproc.zscale as zscale
 
@@ -13,14 +14,13 @@ import katsdpsigproc.zscale as zscale
 DEFAULT_DPI = 96
 
 
-def _prepare_axes(wcs, width, height, image_width, image_height, dpi, slices, trim):
+def _prepare_axes(wcs, width, height, image_width, image_height, dpi, slices, bbox):
     fig = plt.Figure(figsize=(width / dpi, height / dpi), dpi=dpi)
     ax = fig.add_subplot(projection=wcs, slices=slices)
     ax.set_xlabel('Right Ascension')
     ax.set_ylabel('Declination')
-    x_trim, y_trim = image_width * trim, image_height * trim
-    ax.set_xlim(-0.5 + x_trim, image_width - x_trim - 0.5)
-    ax.set_ylim(-0.5 + y_trim, image_height - y_trim - 0.5)
+    ax.set_xlim(-0.5 + bbox[0], bbox[1] - 0.5)
+    ax.set_ylim(-0.5 + bbox[2], bbox[3] - 0.5)
     return fig, ax
 
 
@@ -62,7 +62,7 @@ def _plot(data, bunit, caption, ax, extent, vmin, vmax):
 
 
 def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI,
-                slices=('x', 'y', 0, 0), trim=0.125, caption=None):
+                slices=('x', 'y', 0, 0), caption=None):
     """Write an image plane to a file from a single FITS file.
 
     Parameters
@@ -77,8 +77,6 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         DPI of output image
     slices : list
         Choice of image dimensions. Passed to :class:`WCSAxes`
-    trim : float
-        Fraction of pixels on each edge of the image to clip
     caption : Optional[str]
         Optional caption to include in the image
     """
@@ -88,7 +86,15 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         data = hdus[0].data[ax_select]
         vmin, vmax = zscale.zscale(zscale.sample_image(data))
         image_height, image_width = data.shape
-        fig, ax = _prepare_axes(wcs.WCS(hdus[0]), width, height, image_width, image_height, dpi, slices, trim)
+        # Work out bounding box surrounding finite data
+        # Plot the lot if any axis is completely blanked
+        finite_data = np.where(np.isfinite(data))
+        bbox = (0, image_width, 0, image_height)
+        if data[finite_data].size > 0:
+            ymax, xmax = np.max(finite_data, axis=1)
+            ymin, xmin = np.min(finite_data, axis=1)
+            bbox = (xmin, xmax, ymin, ymax)
+        fig, ax = _prepare_axes(wcs.WCS(hdus[0]), width, height, image_width, image_height, dpi, slices, bbox)
         bunit = hdus[0].header['BUNIT']
         _plot(data, bunit, caption, ax, None, vmin, vmax)
         fig.savefig(output_file)
