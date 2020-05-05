@@ -91,8 +91,10 @@ def write_image(input_file, output_file, width=1024, height=768, dpi=DEFAULT_DPI
         finite_data = np.where(np.isfinite(data))
         bbox = (0, image_width, 0, image_height)
         if data[finite_data].size > 0:
-            ymax, xmax = np.max(finite_data, axis=1)
-            ymin, xmin = np.min(finite_data, axis=1)
+            ymin = np.min(finite_data[0])
+            ymax = np.max(finite_data[0])
+            xmin = np.min(finite_data[1])
+            xmax = np.max(finite_data[1])
             bbox = (xmin, xmax, ymin, ymax)
         fig, ax = _prepare_axes(wcs.WCS(hdus[0]), width, height, image_width, image_height, dpi, slices, bbox)
         bunit = hdus[0].header['BUNIT']
