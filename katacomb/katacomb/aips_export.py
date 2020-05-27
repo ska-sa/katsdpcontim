@@ -1,9 +1,13 @@
-
-
 import datetime
 import json
 import logging
 from os.path import join as pjoin
+
+import katpoint
+import katsdpimageutils.render
+import numpy as np
+from scipy.optimize import curve_fit
+from scipy.special import binom
 
 from katacomb import (uv_factory,
                       img_factory,
@@ -11,16 +15,10 @@ from katacomb import (uv_factory,
                       katdal_ant_name,
                       obit_image_mf_rms,
                       normalise_target_name,
-                      write_image,
                       task_defaults)
 import katacomb.configuration as kc
 from katacomb.katdal_adapter import CORR_ID_MAP
-from katacomb.util.image_util import DEFAULT_DPI
 
-import katpoint
-import numpy as np
-from scipy.optimize import curve_fit
-from scipy.special import binom
 
 log = logging.getLogger('katacomb')
 
@@ -155,11 +153,18 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
                 center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
                 caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
-                write_image(in_fitsfile, out_pngfile, width=6500, height=5000,
-                            dpi=10 * DEFAULT_DPI, caption=caption, facecolor='black')
+                katsdpimageutils.render.write_image(
+                    in_fitsfile, out_pngfile,
+                    width=6500, height=5000,
+                    dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
+                    caption=caption, facecolor='black'
+                )
                 out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
-                write_image(in_fitsfile, out_pngthumbnail, width=650, height=500,
-                            caption=caption, facecolor='black')
+                katsdpimageutils.render.write_image(
+                    in_fitsfile, out_pngthumbnail,
+                    width=650, height=500,
+                    caption=caption, facecolor='black'
+                )
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,

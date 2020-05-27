@@ -12,8 +12,6 @@ from .util import (task_factory,
                    normalise_target_name,
                    task_defaults)
 
-from .util.image_util import write_image
-
 from .katdal_adapter import (KatdalAdapter,
                              time_chunked_scans,
                              aips_ant_nr,
