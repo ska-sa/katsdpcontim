@@ -106,9 +106,26 @@ def _metadata(katds, cb_id, target_metadata):
     return metadata
 
 
+def _make_pngs(out_dir, out_filebase, caption):
+    """Export FITS file in filebase to png and thumbnail in same location."""
+    out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
+    in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
+    katsdpimageutils.render.write_image(
+        in_fitsfile, out_pngfile,
+        width=6500, height=5000,
+        dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
+        caption=caption, facecolor='black'
+    )
+    out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
+    katsdpimageutils.render.write_image(
+        in_fitsfile, out_pngthumbnail,
+        width=650, height=500,
+        caption=caption, facecolor='black'
+    )
+
+
 def export_images(clean_files, target_indices, disk, kat_adapter):
-    """
-    Write out FITS, PNG and metadata.json files for each image in clean_files.
+    """Write out FITS, PNG and metadata.json files for each image in clean_files.
 
     Parameters
     ----------
@@ -149,22 +166,9 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
 
                 # Export PNG and a thumbnail PNG
                 log.info('Write PNG image output: %s' % (out_filebase + PNG_EXT))
-                out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
-                in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
                 center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
                 caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
-                katsdpimageutils.render.write_image(
-                    in_fitsfile, out_pngfile,
-                    width=6500, height=5000,
-                    dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
-                    caption=caption, facecolor='black'
-                )
-                out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
-                katsdpimageutils.render.write_image(
-                    in_fitsfile, out_pngthumbnail,
-                    width=650, height=500,
-                    caption=caption, facecolor='black'
-                )
+                _make_pngs(out_dir, out_filebase, caption)
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,
