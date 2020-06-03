@@ -4,6 +4,8 @@ import unittest
 from functools import partial
 
 
+import astropy.io.fits as fits
+from nose.tools import assert_equal, assert_in
 import numpy as np
 from scipy import constants
 
@@ -60,6 +62,18 @@ def weights(dataset):
 
 def flags(dataset):
     return np.zeros(dataset.shape, dtype=np.bool)
+
+
+def _check_fits_headers(filepath):
+    with fits.open(filepath) as ff:
+        fh = ff[0].header
+        # Ensure BUNIT is in correct format
+        assert_equal('Jy/beam', fh['BUNIT'])
+        # Its overkill to check the actual values of
+        # BMAJ, BMIN, BPA so just check they are there
+        assert_in('BMAJ', fh)
+        assert_in('BMIN', fh)
+        assert_in('BPA', fh)
 
 
 class TestOfflinePipeline(unittest.TestCase):
@@ -133,6 +147,7 @@ class TestOfflinePipeline(unittest.TestCase):
         filename = '_'.join(filter(None, out_strings)) + '.fits'
         filepath = os.path.join(fits_area, filename)
         assert os.path.isfile(filepath)
+        _check_fits_headers(filepath)
 
         # Remove the tmp/FITS dir
         shutil.rmtree(fits_area)
@@ -155,6 +170,7 @@ class TestOfflinePipeline(unittest.TestCase):
         pipeline.execute()
 
         assert os.path.isfile(filepath)
+        _check_fits_headers(filepath)
 
         # Remove FITS temporary area
         shutil.rmtree(fits_area)
@@ -259,6 +275,7 @@ class TestOnlinePipeline(unittest.TestCase):
             filename = '_'.join(filter(None, out_strings)) + '.fits'
             filepath = os.path.join(fits_area, filename)
             assert os.path.isfile(filepath)
+            _check_fits_headers(filepath)
 
         # Remove the tmp/FITS dir
         shutil.rmtree(fits_area)
