@@ -6,7 +6,7 @@ import os
 import katdal
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory
+from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (log_exception,
                            parse_python_assigns,
                            get_and_merge_args,
@@ -160,7 +160,6 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     configure_logging(args)
-
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_args)
 
     # Apply the supplied mask to the flags
@@ -183,6 +182,22 @@ def main():
     # Get defaults for uvblavg and mfimage and merge user supplied ones
     uvblavg_args = get_and_merge_args(args.uvblavg_config, args.uvblavg)
     mfimage_args = get_and_merge_args(args.mfimage_config, args.mfimage)
+
+    # Grab the cal refant from the katdal dataset and default to
+    # it if it is available and hasn't been set by the user.
+    ts = katdata.source.telstate
+    refant = ts.get('cal_refant')
+    if refant is not None and 'refAnt' not in mfimage_args:
+        mfimage_args['refAnt'] = aips_ant_nr(refant)
+
+    # Try and always average down to 1024 channels if the user
+    # hasn't specified something else
+    num_chans = len(katdata.channels)
+    factor = num_chans // 1024
+    if 'avgFreq' not in uvblavg_args:
+        if factor > 1:
+            uvblavg_args['avgFreq'] = 1
+            uvblavg_args['chAvg'] = factor
 
     # Get the default config.
     dc = kc.get_config()
