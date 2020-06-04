@@ -3,6 +3,7 @@ import json
 import logging
 from os.path import join as pjoin
 
+import astropy.io.fits as fits
 import katpoint
 import katsdpimageutils.render
 import numpy as np
@@ -106,9 +107,45 @@ def _metadata(katds, cb_id, target_metadata):
     return metadata
 
 
+def _make_pngs(out_dir, out_filebase, caption):
+    """Export FITS file in filebase to png and thumbnail in same location."""
+    out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
+    in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
+    katsdpimageutils.render.write_image(
+        in_fitsfile, out_pngfile,
+        width=6500, height=5000,
+        dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
+        caption=caption, facecolor='black'
+    )
+    out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
+    katsdpimageutils.render.write_image(
+        in_fitsfile, out_pngthumbnail,
+        width=650, height=500,
+        caption=caption, facecolor='black'
+    )
+
+
+def _update_fits_header(fitsfile, clean_file):
+    """Update FITS header keywords to their more common equivalents."""
+
+    with fits.open(fitsfile, mode='update') as ff:
+        fh = ff[0].header
+
+        # Get Obit image decription dictionary
+        dd = clean_file.Desc.Dict
+
+        # Add BMAJ, BMIN, BPA keywords (Set to -1 if unavailable)
+        fh['BMAJ'] = (dd.get('beamMaj', -1), 'Beam major axis FWHM (deg)')
+        fh['BMIN'] = (dd.get('beamMin', -1), 'Beam minor axis FWHM (deg)')
+        fh['BPA'] = (dd.get('beamPA', -1), 'Beam position angle (deg)')
+
+        # Correct BUNIT to FITS standard v4.0 (So that astropy can read it)
+        if fh['BUNIT'] == 'JY/BEAM':
+            fh['BUNIT'] = ('Jy/beam', fh.comments['BUNIT'])
+
+
 def export_images(clean_files, target_indices, disk, kat_adapter):
-    """
-    Write out FITS, PNG and metadata.json files for each image in clean_files.
+    """Write out FITS, PNG and metadata.json files for each image in clean_files.
 
     Parameters
     ----------
@@ -147,24 +184,14 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 log.info('Write FITS image output: %s' % (out_filebase + FITS_EXT))
                 cf.writefits(disk, out_filebase + FITS_EXT)
 
+                # Correct values in output FITS header
+                _update_fits_header(pjoin(out_dir, out_filebase + FITS_EXT), cf)
+
                 # Export PNG and a thumbnail PNG
                 log.info('Write PNG image output: %s' % (out_filebase + PNG_EXT))
-                out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
-                in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
                 center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
                 caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
-                katsdpimageutils.render.write_image(
-                    in_fitsfile, out_pngfile,
-                    width=6500, height=5000,
-                    dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
-                    caption=caption, facecolor='black'
-                )
-                out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
-                katsdpimageutils.render.write_image(
-                    in_fitsfile, out_pngthumbnail,
-                    width=650, height=500,
-                    caption=caption, facecolor='black'
-                )
+                _make_pngs(out_dir, out_filebase, caption)
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,
