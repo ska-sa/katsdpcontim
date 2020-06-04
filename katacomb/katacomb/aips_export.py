@@ -136,7 +136,7 @@ def _update_fits_header(fitsfile, clean_file):
 
         # Add BMAJ, BMIN, BPA keywords (Set to -1 if unavailable)
         fh['BMAJ'] = (dd.get('beamMaj', -1), 'Beam major axis FWHM (deg)')
-        fh['BMIN'] = (dd.get('beamMin', -1), 'Beam major axis FWHM (deg)')
+        fh['BMIN'] = (dd.get('beamMin', -1), 'Beam minor axis FWHM (deg)')
         fh['BPA'] = (dd.get('beamPA', -1), 'Beam position angle (deg)')
 
         # Correct BUNIT to FITS standard v4.0 (So that astropy can read it)
