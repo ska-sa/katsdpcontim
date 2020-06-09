@@ -70,10 +70,16 @@ def katdal_timestamps(timestamps, midnight):
 
 
 def katdal_ant_nr(ant_name):
-    """
-    Given a MeerKAT antenna name of the form 'mnnnp' where
-    'm' is a character constant, 'nnn' is the antenna number
-    and 'p' is the polarisation, returns 'nnn'.
+    """Get a unique integer corresponding to an antenna name.
+
+    Given an antenna name of the form either 'mnnnp' or 'snnnnp'
+    where 'm' or 's' is a character constant denoting 'MeerKAT'
+    and 'SKA' dishes respectively, 'nnn' (or 'nnnn') is the
+    antenna number and 'p' is the (optional) polarisation, returns
+    an ordered antenna number as an integer.
+
+    The ordered antenna number is defined as 'nnn' for MeerKAT
+    dishes and 'nnnn + 64' for SKA dishes.
 
     Parameters
     ----------
@@ -83,19 +89,25 @@ def katdal_ant_nr(ant_name):
     Returns
     ------
     integer
-        katdal antenna number in MeerKAT antenna name
+        antenna number in antenna name
     """
     try:
-        return int(ant_name[1:4])
+        if ant_name[0] == 'm':
+            nr = int(ant_name[1:4])
+        elif ant_name[0] == 's':
+            nr = int(ant_name[1:5]) + 64
+        else:
+            raise ValueError
     except (ValueError, IndexError):
         raise ValueError("Invalid antenna name '%s'" % ant_name)
+    return nr
 
 
 def aips_ant_nr(ant_name):
-    """
-    Given a MeerKAT antenna name of the form 'mnnnp' where
-    'm' is a character constant, 'nnn' is the antenna number
-    and 'p' is the polarisation, returns 'nnn+1'.
+    """Given antenna name get its AIPS antenna number.
+
+    This is done by adding one to the result of
+    :func:`katdal_ant_nr`.
 
     Parameters
     ----------
@@ -105,14 +117,18 @@ def aips_ant_nr(ant_name):
     Returns
     ------
     integer
-        AIPS antenna number from MeerKAT antenna name
+        AIPS antenna number from antenna name
     """
     return katdal_ant_nr(ant_name) + 1
 
 
 def katdal_ant_name(aips_ant_nr):
-    """ Return katdal antenna name, given the AIPS antenna number """
-    return "m%03d" % (aips_ant_nr - 1)
+    """Return antenna name, given the AIPS antenna number"""
+    if aips_ant_nr < 65:
+        res = f'm{(aips_ant_nr-1):03d}'
+    else:
+        res = f's{(aips_ant_nr-65):04d}'
+    return res
 
 
 def aips_uvw(uvw, refwave):
