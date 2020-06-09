@@ -700,13 +700,14 @@ class KatdalAdapter(object):
         products = []
 
         for a1_corr, a2_corr in self._katds.corr_products:
-            # These look like 'm008v', 'm016h' etc.
-            # Separate into name 'm008' and type 'v'
-            a1_name = a1_corr[:4]
-            a1_type = a1_corr[4:].lower()
+            # These can look like 'm008v', 'm016h' etc. for MeerKAT
+            # or 's0008v', 's0018h' etc. for SKA.
+            # Separate into name 'm008' and polarisation 'v'.
+            a1_name = a1_corr[:-1]
+            a1_type = a1_corr[-1:].lower()
 
-            a2_name = a2_corr[:4]
-            a2_type = a2_corr[4:].lower()
+            a2_name = a2_corr[:-1]
+            a2_type = a2_corr[-1:].lower()
 
             # Derive the correlation id
             try:

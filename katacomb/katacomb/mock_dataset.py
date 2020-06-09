@@ -150,12 +150,12 @@ def corr_product_index(a1, a2, na):
     """
 
     try:
-        corr_id = _CORR_PRODUCT_LOOKUP[(a1[4:], a2[4:])]
+        corr_id = _CORR_PRODUCT_LOOKUP[(a1[-1:], a2[-1:])]
     except KeyError:
         raise ValueError("Invalid correlation product "
                          "(%s, %s)" % (a1, a2))
 
-    return (int(a1[1:4])*na + int(a2[1:4]))*_CP_LOOKUP_LEN + corr_id
+    return (int(a1[1:-1])*na + int(a2[1:-1]))*_CP_LOOKUP_LEN + corr_id
 
 
 class MockDataSet(DataSet):
@@ -343,8 +343,7 @@ class MockDataSet(DataSet):
                     for i, a1 in enumerate(ants)
                     for a2 in ants[i:]
                     for c1 in ('h', 'v')
-                    for c2 in ('h', 'v')],
-                    dtype='|U5')
+                    for c2 in ('h', 'v')])
 
             subarrays.append(Subarray(ants, corr_products))
 
