@@ -70,10 +70,16 @@ def katdal_timestamps(timestamps, midnight):
 
 
 def katdal_ant_nr(ant_name):
-    """
-    Given a MeerKAT antenna name of the form 'mnnnp' where
-    'm' is a character constant, 'nnn' is the antenna number
-    and 'p' is the polarisation, returns 'nnn'.
+    """Get a unique integer corresponding to an antenna name.
+
+    Given an antenna name of the form either 'mnnnp' or 'snnnnp'
+    where 'm' or 's' is a character constant denoting 'MeerKAT'
+    and 'SKA' dishes respectively, 'nnn' (or 'nnnn') is the
+    antenna number and 'p' is the (optional) polarisation, returns
+    an ordered antenna number as an integer.
+
+    The ordered antenna number is defined as 'nnn' for MeerKAT
+    dishes and 'nnnn + 64' for SKA dishes.
 
     Parameters
     ----------
@@ -83,19 +89,25 @@ def katdal_ant_nr(ant_name):
     Returns
     ------
     integer
-        katdal antenna number in MeerKAT antenna name
+        antenna number in antenna name
     """
     try:
-        return int(ant_name[1:4])
+        if ant_name[0] == 'm':
+            nr = int(ant_name[1:4])
+        elif ant_name[0] == 's':
+            nr = int(ant_name[1:5]) + 64
+        else:
+            raise ValueError
     except (ValueError, IndexError):
         raise ValueError("Invalid antenna name '%s'" % ant_name)
+    return nr
 
 
 def aips_ant_nr(ant_name):
-    """
-    Given a MeerKAT antenna name of the form 'mnnnp' where
-    'm' is a character constant, 'nnn' is the antenna number
-    and 'p' is the polarisation, returns 'nnn+1'.
+    """Given antenna name get its AIPS antenna number.
+
+    This is done by adding one to the result of
+    :func:`katdal_ant_nr`.
 
     Parameters
     ----------
@@ -105,14 +117,18 @@ def aips_ant_nr(ant_name):
     Returns
     ------
     integer
-        AIPS antenna number from MeerKAT antenna name
+        AIPS antenna number from antenna name
     """
     return katdal_ant_nr(ant_name) + 1
 
 
 def katdal_ant_name(aips_ant_nr):
-    """ Return katdal antenna name, given the AIPS antenna number """
-    return "m%03d" % (aips_ant_nr - 1)
+    """Return antenna name, given the AIPS antenna number"""
+    if aips_ant_nr < 65:
+        res = f'm{(aips_ant_nr-1):03d}'
+    else:
+        res = f's{(aips_ant_nr-65):04d}'
+    return res
 
 
 def aips_uvw(uvw, refwave):
@@ -684,13 +700,14 @@ class KatdalAdapter(object):
         products = []
 
         for a1_corr, a2_corr in self._katds.corr_products:
-            # These look like 'm008v', 'm016h' etc.
-            # Separate into name 'm008' and type 'v'
-            a1_name = a1_corr[:4]
-            a1_type = a1_corr[4:].lower()
+            # These can look like 'm008v', 'm016h' etc. for MeerKAT
+            # or 's0008v', 's0018h' etc. for SKA.
+            # Separate into name 'm008' and polarisation 'v'.
+            a1_name = a1_corr[:-1]
+            a1_type = a1_corr[-1:].lower()
 
-            a2_name = a2_corr[:4]
-            a2_type = a2_corr[4:].lower()
+            a2_name = a2_corr[:-1]
+            a2_type = a2_corr[-1:].lower()
 
             # Derive the correlation id
             try:
@@ -1153,12 +1170,12 @@ def time_chunked_scans(kat_adapter, time_step=4):
     out_vis_shape = (time_step, nbl, nchan, nstokes, 3)
     vis_size_estimate = np.product(out_vis_shape, dtype=np.int64)*out_vis_size
 
-    FOUR_GB = 4*1024**3
+    EIGHT_GB = 8*1024**3
 
-    if vis_size_estimate > FOUR_GB:
+    if vis_size_estimate > EIGHT_GB:
         log.warn("Visibility chunk '%s' is greater than '%s'. "
                  "Check that sufficient memory is available"
-                 % (fmt_bytes(vis_size_estimate), fmt_bytes(FOUR_GB)))
+                 % (fmt_bytes(vis_size_estimate), fmt_bytes(EIGHT_GB)))
 
     # Get some memory to hold reorganised visibilities
     out_vis = np.empty(out_vis_shape, dtype=kat_adapter.uv_vis.dtype)

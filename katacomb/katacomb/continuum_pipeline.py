@@ -339,12 +339,15 @@ class KatdalPipelineImplementation(PipelineImplementation):
                 data for individual scans.
             2. `'avgscans'`, UV data files containing time-dependent
                 baseline data for individual scans.
+        time_step : int
+            Size of time chunks to read vis, weights & flags from katdata
         """
         super(KatdalPipelineImplementation, self).__init__()
         self.ka = KatdalAdapter(katdata)
         self.katdal_select = {}
         self.clobber = ['scans', 'avgscans']
         self.merge_scans = False
+        self.time_step = 20
 
     def _sanity_check_merge_blavg_descriptors(self, merge_uvf, blavg_uvf):
         """
@@ -595,7 +598,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                             table_cmds=global_table_cmds,
                             desc=global_desc) as uvf:
 
-                uv_export(self.ka, uvf)
+                uv_export(self.ka, uvf, time_step=self.time_step)
 
             # Retrieve the single scan index.
             # The time centroids and interval should be correct
@@ -821,7 +824,7 @@ def build_offline_pipeline(data, **kwargs):
 class KatdalOfflinePipeline(KatdalPipelineImplementation):
     def __init__(self, katdata, uvblavg_params={}, mfimage_params={},
                  katdal_select={}, nvispio=10240, prtlv=2,
-                 clobber=set(['scans', 'avgscans']), reuse=False):
+                 clobber=set(['scans', 'avgscans']), time_step=20, reuse=False):
         """
         Initialise the Continuum Pipeline for offline imaging
         using a katdal dataset.
@@ -850,6 +853,8 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
             3. `'merge'`, UV data file containing merged averaged scans.
             4. `'clean'`, Output images from MFImage.
             5. `'mfimage'`, Output UV data file from MFImage."
+        time_step : int
+            Size of time chunks to read vis, weights & flags from katdata.
         reuse : bool
             Are we reusing a previous katdal export in the aipsdisk?
         """
@@ -862,7 +867,7 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         self.prtlv = prtlv
         self.clobber = clobber
         self.reuse = reuse
-
+        self.time_step = time_step
         self.odisk = len(kc.get_config()['fitsdirs'])
 
     def __enter__(self):
