@@ -119,14 +119,14 @@ def DEFAULT_VIS(dataset):
     return vis
 
 
-_CORR_PRODUCT_LOOKUP = {
+_POL_PRODUCT_LOOKUP = {
     ('h', 'h'): 0,
     ('h', 'v'): 1,
     ('v', 'h'): 2,
     ('v', 'v'): 3
 }
 
-_CP_LOOKUP_LEN = len(_CORR_PRODUCT_LOOKUP)
+_PP_LOOKUP_LEN = len(_POL_PRODUCT_LOOKUP)
 
 
 def corr_product_index(a1, a2, na):
@@ -150,12 +150,12 @@ def corr_product_index(a1, a2, na):
     """
 
     try:
-        corr_id = _CORR_PRODUCT_LOOKUP[(a1[-1:], a2[-1:])]
+        corr_id = _POL_PRODUCT_LOOKUP[(a1[-1:], a2[-1:])]
     except KeyError:
         raise ValueError("Invalid correlation product "
                          "(%s, %s)" % (a1, a2))
 
-    return (int(a1[1:-1])*na + int(a2[1:-1]))*_CP_LOOKUP_LEN + corr_id
+    return (int(a1[1:-1])*na + int(a2[1:-1]))*_PP_LOOKUP_LEN + corr_id
 
 
 class MockDataSet(DataSet):
@@ -431,7 +431,6 @@ class MockDataSet(DataSet):
         az['timestamp'] = self._timestamps
         el['timestamp'] = self._timestamps
         for ant in self.ants:
-            self.select()
             for _, _, target in self.scans():
                 scan_az, scan_el = target.azel(self.timestamps, ant)
                 az['value'][self.dumps] = np.rad2deg(scan_az)
