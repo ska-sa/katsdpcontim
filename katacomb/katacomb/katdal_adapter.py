@@ -1170,12 +1170,12 @@ def time_chunked_scans(kat_adapter, time_step=4):
     out_vis_shape = (time_step, nbl, nchan, nstokes, 3)
     vis_size_estimate = np.product(out_vis_shape, dtype=np.int64)*out_vis_size
 
-    FOUR_GB = 4*1024**3
+    EIGHT_GB = 8*1024**3
 
-    if vis_size_estimate > FOUR_GB:
+    if vis_size_estimate > EIGHT_GB:
         log.warn("Visibility chunk '%s' is greater than '%s'. "
                  "Check that sufficient memory is available"
-                 % (fmt_bytes(vis_size_estimate), fmt_bytes(FOUR_GB)))
+                 % (fmt_bytes(vis_size_estimate), fmt_bytes(EIGHT_GB)))
 
     # Get some memory to hold reorganised visibilities
     out_vis = np.empty(out_vis_shape, dtype=kat_adapter.uv_vis.dtype)

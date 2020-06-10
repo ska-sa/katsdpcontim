@@ -97,7 +97,7 @@ def uv_history_selection(selection, uvf):
         uvf.append_history("%s=%s" % (k, v))
 
 
-def uv_export(kat_adapter, uvf):
+def uv_export(kat_adapter, uvf, time_step=4):
     """
     Exports data in a katdal selection to an AIPS/FITS file.
 
@@ -107,6 +107,8 @@ def uv_export(kat_adapter, uvf):
         Katdal Adapter
     uvf : :class:`katacomb.UVFacade`
         UV file
+    time_step : int
+        Size of time chunks (Default 4).
     """
     firstVis = 1            # FORTRAN indexing
     numVisBuff = 0          # Number of visibilities in the buffer
@@ -133,7 +135,7 @@ def uv_export(kat_adapter, uvf):
     nx_rows = []
 
     # Iterate through kat adapter UV scans, writing their data to disk
-    for si, state, aips_source, data_gen in time_chunked_scans(kat_adapter):
+    for si, state, aips_source, data_gen in time_chunked_scans(kat_adapter, time_step):
         source_name = aips_source["SOURCE"][0].strip()
         source_id = aips_source["ID. NO."][0]
 
