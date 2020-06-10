@@ -8,7 +8,7 @@ from katdal.dataset import DataSet, Subarray
 from katdal import SpectralWindow
 from katdal.h5datav3 import VIRTUAL_SENSORS, SENSOR_PROPS
 
-from katdal.sensordata import SensorCache
+from katdal.sensordata import SensorCache, RecordSensorGetter
 from katdal.categorical import CategoricalData
 
 import katpoint
@@ -249,7 +249,9 @@ class MockDataSet(DataSet):
         self._time_keep = np.ones(self._ndumps, dtype=np.bool)
         self._corrprod_keep = np.ones(ncorrproducts, dtype=np.bool)
         self._freq_keep = np.ones(nchan, dtype=np.bool)
-        self.select(spw=0, subarray=0)
+        self._create_azel_sensors()
+        ants = [ant.name for ant in self.ants]
+        self.select(ants=ants, spw=0, subarray=0)
 
     def _create_metadata(self, metadata):
         """
@@ -422,6 +424,25 @@ class MockDataSet(DataSet):
         array_ant = katpoint.Antenna(','.join(array_ant_fields))
         self.sensor['Antennas/array/antenna'] = CategoricalData([array_ant], [0, self._ndumps])
 
+    def _create_azel_sensors(self):
+        """Generate azimuth and elevation sensors."""
+        az = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
+        el = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
+        az['timestamp'] = self._timestamps
+        el['timestamp'] = self._timestamps
+        for ant in self.ants:
+            self.select()
+            for _, _, target in self.scans():
+                scan_az, scan_el = target.azel(self.timestamps, ant)
+                az['value'][self.dumps] = np.rad2deg(scan_az)
+                el['value'][self.dumps] = np.rad2deg(scan_el)
+            az_name = f'Antennas/{ant.name}/pos_actual_scan_azim'
+            el_name = f'Antennas/{ant.name}/pos_actual_scan_elev'
+            ant_az = RecordSensorGetter(az, name=az_name)
+            ant_el = RecordSensorGetter(el, name=el_name)
+            self.sensor[az_name] = ant_az
+            self.sensor[el_name] = ant_el
+
     def _create_scans(self, ref_ant, dumps_def):
         """
         Setup reference antenna, as well as scans
@@ -462,7 +483,7 @@ class MockDataSet(DataSet):
         refant = CategoricalData(values, events + (self._ndumps,))
         # DO THIS BCOS h5datav3.py does it
         refant.add_unmatched(label.events)
-        self.sensor['Antennas/%s/activity' % self.ref_ant] = refant
+        self.sensor['Antennas/%s/activity' % self.ref_ant.name] = refant
 
         # Derive scan states and indices from reference antenna data
         scan_index = CategoricalData(list(range(len(refant))), refant.events)
