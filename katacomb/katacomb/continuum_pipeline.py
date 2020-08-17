@@ -756,7 +756,7 @@ class OnlinePipeline(KatdalPipelineImplementation):
 
         # Use highest numbered FITS disk for FITS output.
         self.odisk = len(kc.get_config()['fitsdirs'])
-        self.prtlv = 1
+        self.prtlv = 2
         self.disk = 1
 
     def __enter__(self):
