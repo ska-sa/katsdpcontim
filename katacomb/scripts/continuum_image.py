@@ -33,7 +33,7 @@ def create_parser():
                         help="Katdal observation reference.")
 
     parser.add_argument("-a", "--applycal",
-                        default="default", type=str,
+                        default="l1", type=str,
                         help="Apply calibration solutions to visibilities "
                              "before imaging. The list of desired solutions "
                              "is comma separated and each takes the form "
@@ -42,7 +42,7 @@ def create_parser():
                              "one of 'K','G','B' for l1 and 'GPHASE', 'GAMP_PHASE' "
                              "for l2. You can also select 'default' (Apply l1.K, l1.G, l1.B "
                              "and l2.GPHASE) or 'all' (Apply all available solutions). "
-                             "Default: %(default)s (You probably want this.)")
+                             "Default: %(default)s")
 
     parser.add_argument("-w", "--workdir",
                         default=os.path.join(os.sep, 'scratch'), type=str,
@@ -160,6 +160,7 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     configure_logging(args)
+    log.info(f"Reading data with applycal={args.applycal}")
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_args)
 
     # Apply the supplied mask to the flags
