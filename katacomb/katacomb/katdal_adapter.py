@@ -19,6 +19,7 @@ log = logging.getLogger('katacomb')
 
 ONE_DAY_IN_SECONDS = 24*60*60.0
 MAX_AIPS_PATH_LEN = 12
+LIGHTSPEED = 299792458.0
 
 """ Map correlation characters to correlation id """
 CORR_ID_MAP = {('h', 'h'): 0,
@@ -829,7 +830,7 @@ class KatdalAdapter(object):
         float
             Reference wavelength in metres
         """
-        return 2.997924562e8 / self.reffreq
+        return LIGHTSPEED / self.reffreq
 
     @property
     def uv_antenna_keywords(self):
