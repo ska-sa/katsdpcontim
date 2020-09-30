@@ -3,6 +3,7 @@ import logging
 from contextlib import contextmanager
 
 import AIPS
+import AIPSDir
 import ObitTalkUtil
 
 import OErr
@@ -55,6 +56,14 @@ class ObitContext(object):
         """
         Shutdown the Obit System, logging any errors on the error stack
         """
+
+        # Remove defined AIPS & FITS dirs from environment to prevent
+        # overloading the list of defined disks when multiple Obit
+        # environments are constructed in a single python session
+        # (eg. during the unit tests).
+        AIPS.AIPS.disks = [None]
+        AIPSDir.AIPSdisks = []
+
         if self.err.isErr:
             OErr.printErr(self.err)
 
