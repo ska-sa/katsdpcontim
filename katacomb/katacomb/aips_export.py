@@ -271,34 +271,37 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
     for si, uv_file in enumerate(uv_files):
         try:
             with uv_factory(aips_path=uv_file, mode='r') as uvf:
-                try:
-                    log.info('Extracting phase only self-calibration from AIPS SN: %d' % (pSN))
-                    uvf.attach_table("AIPS SN", pSN)
-                    sntab = uvf.tables["AIPS SN"]
-                except KeyError:
-                    log.warn("Requested phase-only calibration solution not in '%s'", uv_file)
-                else:
-                    # Only export dual-pol solutions
-                    if sntab.keywords["NO_POL"] < 2:
-                        raise ValueError("Only dual-pol self-calibration "
-                                         "solutions are supported")
-                    for timestamp, gain in zip(*_massage_gains(sntab, ant_ordering)):
-                        ts.add('product_GPHASE', gain,
-                               ts=katdal_timestamps(timestamp, kat_adapter.midnight))
+                log.info('Extracting self-calibration solutions from %s' % uv_file)
+                sn_versions = [table[0] for table in uvf.tablelist if table[1] == 'AIPS SN']
+                max_sn = max(sn_versions)
+                # Make sure we have a sequential integer sequence of SN table versions
+                assert sorted(sn_versions) == list(range(1, max_sn + 1))
+                pSN_get = min(max_sn, pSN)
+                if pSN_get == 0:
+                    raise ValueError('No self-calibration solutions available')
+                log.info('Extracting phase only self-calibration from AIPS SN: %d' % (pSN_get))
+                uvf.attach_table("AIPS SN", pSN_get)
+                sntab = uvf.tables["AIPS SN"]
+                # Only export dual-pol solutions
+                if sntab.keywords["NO_POL"] < 2:
+                    raise ValueError("Only dual-pol self-calibration solutions are supported")
+                for timestamp, gain in zip(*_massage_gains(sntab, ant_ordering)):
+                    ts.add('product_GPHASE', gain,
+                           ts=katdal_timestamps(timestamp, kat_adapter.midnight))
 
-                # Only export amp+phase solutions if we have them
+                # Only try and export amp+phase solutions if we expect them
                 if apSN > 0:
-                    try:
-                        log.info('Extracting amp+phase self-calibration from AIPS SN: %d'
-                                 % (pSN + apSN))
-                        uvf.attach_table("AIPS SN", pSN + apSN)
-                        sntab = uvf.tables["AIPS SN"]
-                    except KeyError:
-                        log.warn("Requested amp+phase calibration solution not in '%s'", uv_file)
-                    else:
-                        for timestamp, gain in zip(*_massage_gains(sntab, ant_ordering)):
-                            ts.add('product_GAMP_PHASE', gain,
-                                   ts=katdal_timestamps(timestamp, kat_adapter.midnight))
+                    apSN_get = min(max_sn, pSN + apSN)
+                    # There should be more AIPS SN tables than the requested phase-only
+                    # self-cal cycles (in pSN) for there to be amp+phase solutions to export
+                    if apSN_get <= pSN:
+                        raise ValueError('No amp+phase self-calibration solutions available')
+                    log.info('Extracting amp+phase self-calibration from AIPS SN: %d' % apSN_get)
+                    uvf.attach_table("AIPS SN", apSN_get)
+                    sntab = uvf.tables["AIPS SN"]
+                    for timestamp, gain in zip(*_massage_gains(sntab, ant_ordering)):
+                        ts.add('product_GAMP_PHASE', gain,
+                               ts=katdal_timestamps(timestamp, kat_adapter.midnight))
         except Exception as e:
             log.warn("Export of calibration solutions from '%s' failed.\n%s",
                      uv_file, str(e))
