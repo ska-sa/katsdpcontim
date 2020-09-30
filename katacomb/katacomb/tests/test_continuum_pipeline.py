@@ -12,7 +12,10 @@ from scipy import constants
 import katpoint
 from katsdptelstate import TelescopeState
 
-from katacomb import pipeline_factory, obit_context
+from katacomb import (pipeline_factory,
+                      obit_context,
+                      export_calibration_solutions,
+                      KatdalAdapter)
 from katacomb.aips_export import (fit_flux_model,
                                   obit_flux_model,
                                   _massage_gains,
@@ -74,6 +77,34 @@ def _check_fits_headers(filepath):
         assert_in('BMAJ', fh)
         assert_in('BMIN', fh)
         assert_in('BPA', fh)
+
+
+def construct_SN_desc(nif, rows, version=1):
+    dummy_SN = {}
+    dummy_SN["AIPS SN"] = {"attach": {'version': version, 'numIF': nif, 'numPol': 2},
+                           "rows": rows,
+                           "write": True}
+    return dummy_SN
+
+
+def construct_SN_default_rows(timestamps, ants, nif, gain=1.0):
+    """ Construct list of ants dicts for each
+        timestamp with REAL, IMAG, WEIGHT = gains
+    """
+    default_nif = [gain] * nif
+    rows = []
+    for ts in timestamps:
+        rows += [{'TIME': [ts],
+                  'TIME INTERVAL': [0.1],
+                  'ANTENNA NO.': [antn],
+                  'REAL1': default_nif,
+                  'REAL2': default_nif,
+                  'IMAG1': default_nif,
+                  'IMAG2': default_nif,
+                  'WEIGHT 1': default_nif,
+                  'WEIGHT 2': default_nif}
+                 for antn in ants]
+    return rows
 
 
 class TestOfflinePipeline(unittest.TestCase):
@@ -418,34 +449,6 @@ class TestOnlinePipeline(unittest.TestCase):
 
     def test_SN_to_telstate(self):
         """Check conversion of SN table"""
-
-        def construct_SN_desc(nif, rows):
-            dummy_SN = {}
-            dummy_SN["AIPS SN"] = {"attach": {'version': 1, 'numIF': nif, 'numPol': 2},
-                                   "rows": rows,
-                                   "write": True}
-            return dummy_SN
-
-        def construct_SN_default_rows(timestamps, ants, nif):
-            """
-            Construct list of ants dicts for each
-            timestamp with REAL, IMAG, WEIGHT = 1.0
-            """
-            default_nif = [1.0] * nif
-            rows = []
-            for ts in timestamps:
-                rows += [{'TIME': [ts],
-                          'TIME INTERVAL': [0.1],
-                          'ANTENNA NO.': [antn],
-                          'REAL1': default_nif,
-                          'REAL2': default_nif,
-                          'IMAG1': default_nif,
-                          'IMAG2': default_nif,
-                          'WEIGHT 1': default_nif,
-                          'WEIGHT 2': default_nif}
-                         for antn in ants]
-            return rows
-
         ant_ordering = ['m000', 'm001', 'm002', 'm003', 'm004', 'm005']
         # Make a dummy AIPS UV and attach an SN Table
         with obit_context():
@@ -496,6 +499,95 @@ class TestOnlinePipeline(unittest.TestCase):
             ts, result = _massage_gains(sntab, ant_ordering)
             self.assertEqual(ts, [])
             self.assertEqual(result, [])
+
+    def test_table_versions(self):
+        """Check correct SN table versions are exported to telstate"""
+        # Make a dummy AIPS UV and attach some SN Tables
+        with obit_context():
+            nif = 1
+            ap = AIPSPath("Woglinde")
+            # Make a list of 4 SN tables with gains equal to version number
+            row = partial(construct_SN_default_rows, [0.5], [1], nif)
+            sn_tables = [construct_SN_desc(nif, row(gain=float(ver)), version=ver)
+                         for ver in range(1, 5)]
+            # Create empty UV object and attach the tables
+            for sn in sn_tables:
+                uvf = uv_factory(aips_path=ap, mode="w", table_cmds=sn)
+                # Flush the added table to disk
+                uvf.Close()
+
+            # Dummy telstate
+            ts = TelescopeState()
+            AP_telstate = ts.join('selfcal', 'product_GAMP_PHASE')
+            P_telstate = ts.join('selfcal', 'product_GPHASE')
+            # A basic MockDataSet
+            spw = [{'centre_freq': 1200.e6,
+                    'num_chans': 1,
+                    'channel_width': 1.e6}]
+            targ = katpoint.construct_radec_target(0., 0.)
+            scan = [('track', 1, targ)]
+            suba = {}
+            # Only need 1 antenna
+            suba['antenna'] = DEFAULT_SUBARRAYS[0]['antenna'][0:1]
+            ka = KatdalAdapter(MockDataSet(spws=spw, dumps=scan, subarrays=[suba]))
+
+            # Fake input parameters with 2 phase and 2 amp+phase self-cal
+            mfimage_parms = {'maxPSCLoop': 2,
+                             'maxASCLoop': 2}
+            export_calibration_solutions([ap], ka, mfimage_parms, ts)
+            # Should have solns from SN:2 in 'product_GPHASE'
+            # and from SN:4 in 'product_GAMP_PHASE'
+            self.assertEqual(ts[P_telstate][0, 0, 0], 2.+2.j)
+            self.assertEqual(ts[AP_telstate][0, 0, 0], 4.+4.j)
+            ts.clear()
+
+            # Fake input parameters with 2 phase and 3 amp+phase self-cal
+            mfimage_parms = {'maxPSCLoop': 2,
+                             'maxASCLoop': 3}
+            export_calibration_solutions([ap], ka, mfimage_parms, ts)
+            # Should have solns from SN:2 in 'product_GPHASE'
+            # and from SN:4 in 'product_GAMP_PHASE'
+            self.assertEqual(ts[P_telstate][0, 0, 0], 2.+2.j)
+            self.assertEqual(ts[AP_telstate][0, 0, 0], 4.+4.j)
+            ts.clear()
+
+            # Fake input parameters with 5 phase and 1 amp+phase self-cal
+            mfimage_parms = {'maxPSCLoop': 5,
+                             'maxASCLoop': 1}
+            export_calibration_solutions([ap], ka, mfimage_parms, ts)
+            # Should have solns from SN:4 in 'product_GPHASE'
+            # and no solutions in 'product_GAMP_PHASE'
+            self.assertEqual(ts[P_telstate][0, 0, 0], 4.+4.j)
+            self.assertNotIn(AP_telstate, ts.keys())
+            ts.clear()
+
+            # Fake input parameters with 4 phase and 0 amp+phase self-cal
+            mfimage_parms = {'maxPSCLoop': 4,
+                             'maxASCLoop': 0}
+            export_calibration_solutions([ap], ka, mfimage_parms, ts)
+            # Should have solns from SN:4 in 'product_GPHASE'
+            # and no solutions in 'product_GAMP_PHASE'
+            self.assertEqual(ts[P_telstate][0, 0, 0], 4.+4.j)
+            self.assertNotIn(AP_telstate, ts.keys())
+            ts.clear()
+            uvf.Zap()
+
+            # Check that nothing is exported when the AIPS SN table versions
+            # are not sequential starting from 1
+            for sn in sn_tables[1:4:2]:
+                uvf = uv_factory(aips_path=ap, mode="w", table_cmds=sn)
+                # Flush the added table to disk
+                uvf.Close()
+
+            mfimage_parms = {'maxPSCLoop': 2,
+                             'maxASCLoop': 2}
+            export_calibration_solutions([ap], ka, mfimage_parms, ts)
+            # Should have solns from SN:4 in 'product_GPHASE'
+            # and no solutions in 'product_GAMP_PHASE'
+            self.assertNotIn(P_telstate, ts.keys())
+            self.assertNotIn(AP_telstate, ts.keys())
+            ts.clear()
+            uvf.Zap()
 
     def test_gains_export(self):
         """Check l2 export to telstate"""
