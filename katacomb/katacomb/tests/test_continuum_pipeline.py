@@ -582,7 +582,7 @@ class TestOnlinePipeline(unittest.TestCase):
             mfimage_parms = {'maxPSCLoop': 2,
                              'maxASCLoop': 2}
             export_calibration_solutions([ap], ka, mfimage_parms, ts)
-            # Should have solns from SN:4 in 'product_GPHASE'
+            # Should have no solutions in 'product_GPHASE'
             # and no solutions in 'product_GAMP_PHASE'
             self.assertNotIn(P_telstate, ts.keys())
             self.assertNotIn(AP_telstate, ts.keys())

@@ -290,7 +290,7 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
                            ts=katdal_timestamps(timestamp, kat_adapter.midnight))
 
                 # Only try and export amp+phase solutions if we expect them
-                if apSN ==0:
+                if apSN == 0:
                     continue
                 apSN_get = min(max_sn, pSN + apSN)
                 # There should be more AIPS SN tables than the requested phase-only
