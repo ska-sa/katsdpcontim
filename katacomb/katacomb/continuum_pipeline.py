@@ -217,7 +217,7 @@ class PipelineImplementation(Pipeline):
         # Finally, override with default parameters
         mfimage_kwargs.update(self.mfimage_params)
 
-        log.info("MFImage arguments %s" % pretty(mfimage_kwargs))
+        log.info("MFImage arguments %s", pretty(mfimage_kwargs))
 
         mfimage = task_factory("MFImage", **mfimage_kwargs)
         # Send stdout from the task to the log
@@ -649,7 +649,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                                                           merge_uvf, blavg_uvf,
                                                           nx_row)
             else:
-                log.warn("No visibilities to merge for scan %d" % (si))
+                log.warn("No visibilities to merge for scan %d", si)
 
             # Remove scan once merged
             if 'scans' in self.clobber:
@@ -899,8 +899,8 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
             else:
                 # Get the AIPS entry of the UV data to reuse
                 self.uv_merge_path = uv_mp.copy(seq=hiseq)
-                log.info("Re-using UV data in '%s' from AIPS disk: '%s'" %
-                         (self.uv_merge_path, kc.get_config()['aipsdirs'][self.disk - 1][-1]))
+                log.info("Re-using UV data in '%s' from AIPS disk: '%s'",
+                         self.uv_merge_path, kc.get_config()['aipsdirs'][self.disk - 1][-1])
         else:
             self._export_and_merge_scans()
         if "merge" in self.clobber:

@@ -160,7 +160,7 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
     configure_logging(args)
-    log.info(f"Reading data with applycal={args.applycal}")
+    log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_args)
 
     # Apply the supplied mask to the flags
@@ -210,7 +210,7 @@ def main():
         # Set up AIPS disk from specified directory
         if os.path.exists(args.reuse):
             aipsdirs = [(None, args.reuse)]
-            log.info('Re-using AIPS data area: %s' % (aipsdirs[0][1]))
+            log.info('Re-using AIPS data area: %s', aipsdirs[0][1])
             reuse = True
         else:
             msg = "AIPS disk at '%s' does not exist." % (args.reuse)
@@ -219,7 +219,7 @@ def main():
     else:
         # Set up aipsdisk configuration from args.workdir
         aipsdirs = [(None, os.path.join(args.workdir, capture_block_id + '_aipsdisk'))]
-        log.info('Using AIPS data area: %s' % (aipsdirs[0][1]))
+        log.info('Using AIPS data area: %s', aipsdirs[0][1])
         reuse = False
 
     # Set up output configuration from args.outputdir
@@ -227,7 +227,7 @@ def main():
 
     # Append outputdir to fitsdirs
     fitsdirs += [(None, args.outputdir)]
-    log.info('Using output data area: %s' % (args.outputdir))
+    log.info('Using output data area: %s', args.outputdir)
 
     kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
                   output_id='', cb_id=capture_block_id)

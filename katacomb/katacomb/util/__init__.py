@@ -462,7 +462,7 @@ def normalise_target_name(name, used=[], max_length=None):
         # If the length of i_name is greater than ml
         # just warn and revert to straight append
         if len(i_name) >= ml:
-            log.warn('Too many repetitions of name %s.' % name)
+            log.warn('Too many repetitions of name %s.', name)
             t_name = name
         o_name = ''.join(filter(None, [t_name, i_name]))
         return '{:{ml}.{ml}}'.format(o_name, ml=ml)
@@ -504,7 +504,7 @@ def apply_user_mask(kat_ds, mask_file):
         kat_ds._corrected.flags = da.bitwise_or(kat_ds._corrected.flags, mask)
         # Ensure mask is applied by resetting selection
         kat_ds.select()
-        log.info("Applying channel mask from: '%s'" % (mask_file))
+        log.info("Applying channel mask from: '%s'", mask_file)
     except Exception:
-        log.exception('Unable to apply supplied mask file from: %s' % (mask_file))
+        log.exception('Unable to apply supplied mask file from: %s', mask_file)
         raise

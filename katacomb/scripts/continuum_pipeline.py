@@ -206,7 +206,7 @@ def main():
         aipsdirs = [(None, pjoin(args.workdir, args.capture_block_id + '_aipsdisk'))]
     else:
         aipsdirs = dc['aipsdirs']
-    log.info('Using AIPS data area: %s' % (aipsdirs[0][1]))
+    log.info('Using AIPS data area: %s', aipsdirs[0][1])
 
     # Set up output configuration from args.outputdir
     fitsdirs = dc['fitsdirs']
@@ -221,7 +221,7 @@ def main():
     # highest numbered fits disk so we ensure that is the case
     # here.
     fitsdirs += [(None, work_outputdir)]
-    log.info('Using output data area: %s' % (outputdir))
+    log.info('Using output data area: %s', outputdir)
 
     kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs)
 
