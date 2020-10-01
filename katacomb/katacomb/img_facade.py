@@ -345,7 +345,7 @@ class ImageFacade(object):
         try:
             self._requireObitImageMF()
         except ValueError:
-            log.warn("%s is not an ImageMF." % self.name)
+            log.warn("%s is not an ImageMF.", self.name)
             imgMF = None
         else:
             imgMF = open_img(self._aips_path, mode=self.mode, MF=True)
