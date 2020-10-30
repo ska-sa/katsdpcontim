@@ -152,7 +152,7 @@ class PipelineImplementation(Pipeline):
 
     def execute(self):
         with obit_context(), self as ctx:
-            ctx.execute_implementation()
+            return ctx.execute_implementation()
 
     def _blavg_scan(self, scan_path):
         """
@@ -783,12 +783,13 @@ class OnlinePipeline(KatdalPipelineImplementation):
         for uv, clean in zip(uv_files, clean_files):
             self._attach_SN_tables_to_image(uv, clean)
 
-        export_images(clean_files, target_indices,
-                      self.odisk, self.ka)
+        metadata = export_images(clean_files, target_indices,
+                                 self.odisk, self.ka)
         export_calibration_solutions(uv_files, self.ka,
                                      self.mfimage_params, self.telstate)
         export_clean_components(clean_files, target_indices,
                                 self.ka, self.telstate)
+        return metadata
 
 
 @register_workmode('offline')
@@ -911,5 +912,4 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         for uv, clean in zip(uv_files, clean_files):
             self._attach_SN_tables_to_image(uv, clean)
 
-        export_images(clean_files, target_indices,
-                      self.odisk, self.ka)
+        return export_images(clean_files, target_indices, self.odisk, self.ka)
