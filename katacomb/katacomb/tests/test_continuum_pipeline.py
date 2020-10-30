@@ -198,8 +198,8 @@ class TestOfflinePipeline(unittest.TestCase):
                                     reuse=True,
                                     clobber=CLOBBER)
 
-        pipeline.execute()
-
+        metadata = pipeline.execute()
+        assert_in(filename, metadata['FITSImageFilename'])
         assert os.path.isfile(filepath)
         _check_fits_headers(filepath)
 
@@ -286,7 +286,7 @@ class TestOnlinePipeline(unittest.TestCase):
                                     uvblavg_params=uvblavg_params,
                                     mfimage_params=mfimage_params)
 
-        pipeline.execute()
+        metadata = pipeline.execute()
 
         # Check that output FITS files exist and have the right names
         # Expected target name in file output for the list of targets
@@ -304,6 +304,7 @@ class TestOnlinePipeline(unittest.TestCase):
         for otarg in sanitised_target_names:
             out_strings = [cb_id, out_id, otarg, IMG_CLASS]
             filename = '_'.join(filter(None, out_strings)) + '.fits'
+            assert_in(filename, metadata['FITSImageFilename'])
             filepath = os.path.join(fits_area, filename)
             assert os.path.isfile(filepath)
             _check_fits_headers(filepath)
