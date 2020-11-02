@@ -157,6 +157,11 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
         FITS disk number to write to
     kat_adapter : :class:`KatdalAdapter`
         Katdal Adapter
+
+    Returns
+    -------
+    dict
+        Metadata dictionary for imaged products
     """
 
     target_metadata = {}
@@ -183,7 +188,6 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
 
                 log.info('Write FITS image output: %s', out_filebase + FITS_EXT)
                 cf.writefits(disk, out_filebase + FITS_EXT)
-
                 # Correct values in output FITS header
                 _update_fits_header(pjoin(out_dir, out_filebase + FITS_EXT), cf)
 
@@ -210,6 +214,8 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
             json.dump(metadata, meta)
     except Exception as e:
         log.warn("Creation of %s failed.\n%s", METADATA_JSON, str(e))
+
+    return metadata
 
 
 def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate):
