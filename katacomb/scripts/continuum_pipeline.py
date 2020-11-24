@@ -40,7 +40,7 @@ START_TIME = '%d' % (int(time.time()*1000))
 # Location of mfimage and uvblavg yaml configurations
 CONFIG = '/obitconf'
 # Minimum Walltime in sec. and extra time padding for MFImage
-MINRUNTIME = 2. * 3600.
+MINRUNTIME = 3. * 3600.
 RUNTIME_PAD = 1.0
 
 
