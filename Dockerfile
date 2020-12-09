@@ -6,31 +6,32 @@ FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:ubuntu20.04 as build
 USER root
 
 ENV PACKAGES \
-    curl \
-    wget \
-    build-essential \
-    gfortran \
-    libglib2.0-dev \
-    libncurses5-dev \
-    libreadline-dev \
-    flex \
     bison \
+    build-essential \
+    curl \
+    flex \
+    gfortran \
     libblas-dev \
-    liblapacke-dev \
+    libboost-all-dev \
     libcfitsio-dev \
+    # Without libcurl Obit pretends it can't find an external xmlrpc
+    libcurl4-openssl-dev \
+    libfftw3-dev \
+    libglib2.0-dev \
     # Needs GSL 1.x but focal has 2.x
     # Manually download and install below
     # libgsl0-dev \
-    libfftw3-dev \
+    liblapacke-dev \
     libmotif-dev \
-    # Without libcurl Obit pretends it can't find an external xmlrpc
-    libcurl4-openssl-dev \
-    libxmlrpc-core-c3-dev \
+    libncurses5-dev \
+    libreadline-dev \
     libxmlrpc-c++8-dev \
-    libboost-all-dev \
+    libxmlrpc-core-c3-dev \
+    python-is-python3 \
     subversion \
     # Required by bnmin1
     swig \
+    wget \
     zlib1g-dev
 
 # Update, upgrade and install packages
@@ -132,15 +133,15 @@ LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 USER root
 
 ENV PACKAGES \
+    libcfitsio8 \
+    libcurl4 \
+    libfftw3-3 \
     libglib2.0-0 \
     libncurses5 \
     libreadline8 \
-    libcurl4 \
-    libcfitsio5 \
-    libfftw3-3 \
+    libxm4 \
     libxmlrpc-core-c3 \
-    libxmlrpc-c++8v5 \
-    libxm4
+    libxmlrpc-c++8v5
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $PACKAGES && \
