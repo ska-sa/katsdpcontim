@@ -83,35 +83,6 @@ RUN cd ObitSystem/Obit && \
     make clean && \
     make -j 8
 
-# Compile ObitTalk
-# Useful, but not critical tool for interacting with the AIPS filesystem
-# This could be removed from the Dockerfile but is useful for debugging
-RUN cd ObitSystem/ObitTalk && \
-    # --with-obit doesn't pick up the PYTHONPATH and libObit.so correctly
-    export PYTHONPATH=$OBIT/python:${PYTHONPATH} && \
-    export LD_LIBRARY_PATH=$OBIT/lib:${LD_LIBRARY_PATH} && \
-    ./configure --bindir=/bin --with-obit=$OBIT && \
-    # Run the main makefile. This gets some of the way but falls over
-    # due to lack of latex
-    { make || true; }
-
-# Go back to root priviledges to install
-# ObitTalk in the /installs filesystem
-USER root
-
-# Install ObitTalk
-RUN cd ObitSystem/ObitTalk && \
-    # Run the main makefile. This gets some of the way but falls over
-    # due to lack of latex
-    { make DESTDIR=/installs install || true; } && \
-    # Just install ObitTalk and ObitTalkServer
-    cd bin && \
-    make clean && \
-    make && \
-    make DESTDIR=/installs install
-
-USER kat
-
 # Add python package requirements
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
@@ -178,7 +149,7 @@ ENV OBIT="$OBIT_BASE_PATH"/ObitSystem/Obit \
     OBITSD="$OBIT_BASE_PATH"/ObitSystem/ObitSD
 ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
 ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
-ENV PYTHONPATH=/usr/local/share/obittalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
+ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
 
 # Set the work directory to /obitconf
 WORKDIR /obitconf
