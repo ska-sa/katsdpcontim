@@ -1,12 +1,11 @@
 ARG KATSDPDOCKERBASE_REGISTRY=sdp-docker-registry.kat.ac.za:5000
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:ubuntu20.04 as build
 
 # Switch to root for package install
 USER root
 
 ENV PACKAGES \
-    python-pip \
     curl \
     wget \
     build-essential \
@@ -19,7 +18,7 @@ ENV PACKAGES \
     libblas-dev \
     liblapacke-dev \
     libcfitsio-dev \
-    # Needs GSL 1.x but bionic has 2.x
+    # Needs GSL 1.x but focal has 2.x
     # Manually download and install below
     # libgsl0-dev \
     libfftw3-dev \
@@ -126,7 +125,7 @@ RUN pip install --no-deps $KATHOME/src/katacomb && pip check
 
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:ubuntu20.04
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
@@ -135,7 +134,7 @@ USER root
 ENV PACKAGES \
     libglib2.0-0 \
     libncurses5 \
-    libreadline7 \
+    libreadline8 \
     libcurl4 \
     libcfitsio5 \
     libfftw3-3 \
