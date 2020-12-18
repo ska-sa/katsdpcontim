@@ -32,11 +32,18 @@ ENV PACKAGES \
     # Required by bnmin1
     swig \
     wget \
-    zlib1g-dev
+    zlib1g-dev \
+    # Obit seems not to optimize well with the default gcc-9 in focal
+    # so use gcc-8 instead.
+    gcc-8 \
+    g++-8
 
 # Update, upgrade and install packages
 RUN apt-get update && \
     apt-get install -y $PACKAGES
+
+# Make gcc-8 the default gcc.
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 
 ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
 
