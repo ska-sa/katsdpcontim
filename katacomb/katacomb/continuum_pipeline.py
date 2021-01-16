@@ -912,4 +912,5 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         for uv, clean in zip(uv_files, clean_files):
             self._attach_SN_tables_to_image(uv, clean)
 
-        return export_images(clean_files, target_indices, self.odisk, self.ka)
+        metadata = export_images(clean_files, target_indices, self.odisk, self.ka)
+        return metadata

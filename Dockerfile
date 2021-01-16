@@ -119,6 +119,17 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 RUN install-requirements.py -d ~/docker-base/base-requirements.txt -r /tmp/requirements.txt
 
+# Install validation package
+ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
+ENV VALIDATION_BASE_PATH=/home/kat/valid
+
+# Retrieve validation package
+RUN mkdir -p $VALIDATION_BASE_PATH && \
+    git clone $VALIDATION_REPO ${VALIDATION_BASE_PATH}
+
+# Install validation package dependencies
+RUN pip install -r $VALIDATION_BASE_PATH/requirements.txt
+
 # Install katacomb
 COPY --chown=kat:kat katacomb $KATHOME/src/katacomb
 
@@ -169,6 +180,10 @@ COPY --chown=kat:kat katacomb/katacomb/conf /obitconf
 # Install Python ve
 COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+
+# Install validation package
+COPY --from=build --chown=kat:kat /home/kat/valid /home/kat/valid
+ENV PYTHONPATH=/home/kat/valid:$PYTHONPATH
 
 # Set up Obit environment
 ENV OBIT_BASE_PATH=/home/kat/Obit
