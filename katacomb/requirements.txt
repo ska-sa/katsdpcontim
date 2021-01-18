@@ -43,4 +43,3 @@ katpoint @ git+https://github.com/ska-sa/katpoint
 katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils
 katsdpservices @ git+https://github.com/ska-sa/katsdpservices
 katsdptelstate @ git+https://github.com/ska-sa/katsdptelstate
-MeerKAT-continuum-validation @ git+https://github.com/ska-sa/MeerKAT-continuum-validation
