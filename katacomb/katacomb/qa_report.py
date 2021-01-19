@@ -89,7 +89,7 @@ def make_qa_report(metadata, qa_dir):
 
         pb_fits = os.path.join(qa_dir, pb_filebase + FITS_EXT)
         command = '/home/kat/valid/Radio_cont_main -I {} --telescope MeerKAT -F'\
-                  ' /home/kat/valid/filter_config_example.txt -r'.format(pb_fits)
+                  ' /home/kat/valid/filter_config_MeerKAT.txt -r'.format(pb_fits)
         sysarg = shlex.split(command)
         with redirect_argv(sysarg):
             with log_qa(log):
