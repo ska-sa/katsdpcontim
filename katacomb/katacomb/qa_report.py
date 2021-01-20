@@ -13,15 +13,6 @@ log = logging.getLogger('katacomb')
 
 
 @contextlib.contextmanager
-def redirect_argv(num):
-    """Overwrite sys.argv parameters."""
-    sys._argv = sys.argv[:]
-    sys.argv = num
-    yield
-    sys.argv = sys._argv
-
-
-@contextlib.contextmanager
 def log_qa(logger):
     """Trap QA stdout and stderr messages and send them to logger."""
     original = sys.stdout
@@ -88,12 +79,11 @@ def make_qa_report(metadata, qa_dir):
         log.info('Write QA report output')
 
         pb_fits = os.path.join(qa_dir, pb_filebase + FITS_EXT)
-        command = '/home/kat/valid/Radio_cont_main -I {} --telescope MeerKAT -F'\
+        command = '/home/kat/valid/Radio_continuum_validation -I {} --telescope MeerKAT -F'\
                   ' /home/kat/valid/filter_config_MeerKAT.txt -r'.format(pb_fits)
         sysarg = shlex.split(command)
-        with redirect_argv(sysarg):
-            with log_qa(log):
-                rcv.main()
+        with log_qa(log):
+            rcv.main(sysarg[0], sysarg[1:])
     os.chdir(work_dir)
 
 
