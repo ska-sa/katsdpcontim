@@ -4,6 +4,8 @@ import shlex
 import sys
 
 import contextlib
+import katpoint
+from astropy.io import fits
 
 import Radio_continuum_validation as rcv
 import katsdpimageutils.primary_beam_correction as pbc
@@ -31,7 +33,7 @@ def log_qa(logger):
 def make_pbeam_images(metadata, in_dir, out_dir):
     """Write primary beam corrected images.
 
-    Make a single plane fits image, a png and a thumbnail
+    Make a single plane FITS image, a PNG and a thumbnail
     Parameters
     ----------
     metadata : dict
@@ -42,21 +44,26 @@ def make_pbeam_images(metadata, in_dir, out_dir):
         path to write primary beam corrected images to
     """
     filenames = metadata['FITSImageFilename']
-    targets = metadata['Targets']
+    targets = metadata['KatpointTargets']
     for target, out_file in zip(targets, filenames):
+        target = katpoint.Target(target)
         out_filebase = os.path.splitext(out_file)[0]
+        out_filebase_pb = out_filebase + '_PB'
         log.info('Write primary beam corrected FITS output: %s',
-                 out_filebase + '_PB' + FITS_EXT)
+                 out_filebase_pb + FITS_EXT)
 
         in_path = os.path.join(in_dir, out_file)
-        pbc_path = os.path.join(out_dir, out_filebase + '_PB' + FITS_EXT)
+        pbc_path = os.path.join(out_dir, out_filebase_pb + FITS_EXT)
         bp, raw_image = pbc.beam_pattern(in_path)
         pbc_image = pbc.primary_beam_correction(bp, raw_image, px_cut=0.1)
         pbc.write_new_fits(pbc_image, in_path, outputFilename=pbc_path)
+
         log.info('Write primary beam corrected PNG output: %s',
-                 out_filebase + '_PB' + PNG_EXT)
-        caption = f'{target}'
-        _make_pngs(out_dir, out_filebase + '_PB', caption)
+                 out_filebase_pb + PNG_EXT)
+        imghdr = fits.open(os.path.join(out_dir, out_filebase_pb + FITS_EXT))[0].header
+        center_freq = imghdr['CRVAL3'] / 1e6
+        caption = f'{target.name} Continuum ({center_freq:.0f} MHz) (PB Corrected)'
+        _make_pngs(out_dir, out_filebase_pb, caption)
 
 
 def make_qa_report(metadata, qa_dir):

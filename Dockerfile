@@ -127,9 +127,6 @@ ENV VALIDATION_BASE_PATH=/home/kat/valid
 RUN mkdir -p $VALIDATION_BASE_PATH && \
     git clone $VALIDATION_REPO ${VALIDATION_BASE_PATH}
 
-# Install validation package dependencies
-RUN pip install -r $VALIDATION_BASE_PATH/requirements.txt
-
 # Install katacomb
 COPY --chown=kat:kat katacomb $KATHOME/src/katacomb
 
