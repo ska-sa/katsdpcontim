@@ -12,6 +12,7 @@ from katacomb.util import setup_aips_disks
 
 log = logging.getLogger('katacomb')
 
+
 def rewrite_dadevs():
     """
     Rewrite ``cfg.aips.aipsroot/DA00/DADEVS.LIST`` to reference
@@ -22,9 +23,9 @@ def rewrite_dadevs():
     backup = pjoin(cfg['da00'], '.DADEVS.LIST.BAK')
 
     if not os.path.exists(dadevs_list):
-        log.warn("Could not find '%s' for modification. "
-                         "Check your AIPS directory root '%s'.",
-                                dadevs_list, cfg['aipsroot'])
+        log.warning("Could not find '%s' for modification. "
+                    "Check your AIPS directory root '%s'.",
+                    dadevs_list, cfg['aipsroot'])
 
         return
 
@@ -46,6 +47,7 @@ def rewrite_dadevs():
     # Remove the copy
     os.remove(backup)
 
+
 def rewrite_netsp():
     """
     Rewrite `cfg.aips.aipsroot.da00/DA00/NETSP` to reference
@@ -56,9 +58,9 @@ def rewrite_netsp():
     backup = pjoin(cfg['da00'], '.NETSP.BAK')
 
     if not os.path.exists(netsp):
-        log.warn("Could not find '%s' for modification. "
-                 "Check your AIPS directory root '%s'.",
-                            netsp, cfg['aipsroot'])
+        log.warning("Could not find '%s' for modification. "
+                    "Check your AIPS directory root '%s'.",
+                    netsp, cfg['aipsroot'])
         return
 
     # Make a copy of the original
@@ -78,6 +80,7 @@ def rewrite_netsp():
 
     # Remove the copy
     os.remove(backup)
+
 
 def link_obit_data():
     """

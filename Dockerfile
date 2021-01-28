@@ -6,37 +6,44 @@ FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
 USER root
 
 ENV PACKAGES \
-    python-pip \
-    curl \
-    wget \
-    build-essential \
-    gfortran \
-    libglib2.0-dev \
-    libncurses5-dev \
-    libreadline-dev \
-    flex \
     bison \
+    build-essential \
+    curl \
+    flex \
+    gfortran \
     libblas-dev \
-    liblapacke-dev \
+    libboost-all-dev \
     libcfitsio-dev \
-    # Needs GSL 1.x but bionic has 2.x
-    # Manually download and install below
-    # libgsl0-dev \
-    libfftw3-dev \
-    libmotif-dev \
     # Without libcurl Obit pretends it can't find an external xmlrpc
     libcurl4-openssl-dev \
-    libxmlrpc-core-c3-dev \
+    libfftw3-dev \
+    libglib2.0-dev \
+    # Needs GSL 1.x but focal has 2.x
+    # Manually download and install below
+    # libgsl0-dev \
+    liblapacke-dev \
+    libmotif-dev \
+    libncurses5-dev \
+    libreadline-dev \
     libxmlrpc-c++8-dev \
-    libboost-all-dev \
+    libxmlrpc-core-c3-dev \
+    python-is-python3 \
     subversion \
     # Required by bnmin1
     swig \
-    zlib1g-dev
+    wget \
+    zlib1g-dev \
+    # Obit seems not to optimize well with the default gcc-9 in focal
+    # so use gcc-8 instead.
+    gcc-8 \
+    g++-8
 
 # Update, upgrade and install packages
 RUN apt-get update && \
     apt-get install -y $PACKAGES
+
+# Make gcc-8 the default gcc.
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 
 ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
 
@@ -83,35 +90,6 @@ RUN cd ObitSystem/Obit && \
     make clean && \
     make -j 8
 
-# Compile ObitTalk
-# Useful, but not critical tool for interacting with the AIPS filesystem
-# This could be removed from the Dockerfile but is useful for debugging
-RUN cd ObitSystem/ObitTalk && \
-    # --with-obit doesn't pick up the PYTHONPATH and libObit.so correctly
-    export PYTHONPATH=$OBIT/python:${PYTHONPATH} && \
-    export LD_LIBRARY_PATH=$OBIT/lib:${LD_LIBRARY_PATH} && \
-    ./configure --bindir=/bin --with-obit=$OBIT && \
-    # Run the main makefile. This gets some of the way but falls over
-    # due to lack of latex
-    { make || true; }
-
-# Go back to root priviledges to install
-# ObitTalk in the /installs filesystem
-USER root
-
-# Install ObitTalk
-RUN cd ObitSystem/ObitTalk && \
-    # Run the main makefile. This gets some of the way but falls over
-    # due to lack of latex
-    { make DESTDIR=/installs install || true; } && \
-    # Just install ObitTalk and ObitTalkServer
-    cd bin && \
-    make clean && \
-    make && \
-    make DESTDIR=/installs install
-
-USER kat
-
 # Add python package requirements
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
@@ -141,15 +119,15 @@ LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 USER root
 
 ENV PACKAGES \
+    libcfitsio8 \
+    libcurl4 \
+    libfftw3-3 \
     libglib2.0-0 \
     libncurses5 \
-    libreadline7 \
-    libcurl4 \
-    libcfitsio5 \
-    libfftw3-3 \
+    libreadline8 \
+    libxm4 \
     libxmlrpc-core-c3 \
-    libxmlrpc-c++8v5 \
-    libxm4
+    libxmlrpc-c++8v5
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends $PACKAGES && \
@@ -190,7 +168,7 @@ ENV OBIT="$OBIT_BASE_PATH"/ObitSystem/Obit \
     OBITSD="$OBIT_BASE_PATH"/ObitSystem/ObitSD
 ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
 ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
-ENV PYTHONPATH=/usr/local/share/obittalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
+ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
 
 # Set the work directory to /obitconf
 WORKDIR /obitconf

@@ -1,6 +1,6 @@
 Index: trunk/ObitSystem/Obit/Makefile.in
 ===================================================================
---- trunk/ObitSystem/Obit/Makefile.in	(revision 570)
+--- trunk/ObitSystem/Obit/Makefile.in	(revision 630)
 +++ trunk/ObitSystem/Obit/Makefile.in	(working copy)
 @@ -74,35 +74,35 @@
  	cd dummy_xmlrpc; $(MAKE)
@@ -89,7 +89,7 @@ Index: trunk/ObitSystem/Obit/Makefile.in
  	cd src;  $(MAKE) clean
 Index: trunk/ObitSystem/Obit/lib/Makefile
 ===================================================================
---- trunk/ObitSystem/Obit/lib/Makefile	(revision 570)
+--- trunk/ObitSystem/Obit/lib/Makefile	(revision 630)
 +++ trunk/ObitSystem/Obit/lib/Makefile	(working copy)
 @@ -34,7 +34,7 @@
  #
@@ -112,7 +112,7 @@ Index: trunk/ObitSystem/Obit/lib/Makefile
  	rm -f $(TARGETS) $(SHTARGETS)
 Index: trunk/ObitSystem/Obit/python/Makefile.in
 ===================================================================
---- trunk/ObitSystem/Obit/python/Makefile.in	(revision 570)
+--- trunk/ObitSystem/Obit/python/Makefile.in	(revision 630)
 +++ trunk/ObitSystem/Obit/python/Makefile.in	(working copy)
 @@ -43,7 +43,7 @@
  CC = @CC@
@@ -134,24 +134,23 @@ Index: trunk/ObitSystem/Obit/python/Makefile.in
 +
  # Use Swig to build interface, only needed to change interface
  SWIG = @SWIG@
- 
-@@ -98,10 +105,10 @@
+ SWIGLIB	   = 
+@@ -107,10 +112,10 @@
  
  # Write compile/link info to setupdata.py
  setupdata.py: Makefile
 -	echo "CFLAGS='$(ALL_CFLAGS)'">setupdata.py
 +	echo "CFLAGS='$(ALL_CFLAGS) $(CUDA_FLAGS)'">setupdata.py
  	echo "CPPFLAGS='$(CLIENT_CPPFLAGS) $(SERVER_CPPFLAGS)'">>setupdata.py
--	echo "LDFLAGS='$(CLIENT_LDFLAGS) $(SERVER_LDFLAGS)'">>setupdata.py
+ 	echo "LDFLAGS='$(CLIENT_LDFLAGS) $(SERVER_LDFLAGS)'">>setupdata.py
 -	echo "LIBS='$(CLIENT_LIBS) $(SERVER_LIBS)'">>setupdata.py
-+	echo "LDFLAGS='$(CLIENT_LDFLAGS) $(SERVER_LDFLAGS)'">>setupdata.py
 +	echo "LIBS='$(CLIENT_LIBS) $(SERVER_LIBS) $(CUDA_LIB)'">>setupdata.py
  
  clean:
  	rm -f Obit.i *.o *.so *.pyc	
 Index: trunk/ObitSystem/Obit/python/makesetup.py
 ===================================================================
---- trunk/ObitSystem/Obit/python/makesetup.py	(revision 570)
+--- trunk/ObitSystem/Obit/python/makesetup.py	(revision 630)
 +++ trunk/ObitSystem/Obit/python/makesetup.py	(working copy)
 @@ -111,6 +111,6 @@
  outfile.write('                              extra_compile_args='+str(compileArgs)+','+os.linesep)
@@ -162,11 +161,49 @@ Index: trunk/ObitSystem/Obit/python/makesetup.py
 +outfile.write('                              runtime_library_dirs='+str(runtimeLibDirs)+','+os.linesep)
 +outfile.write('       include_dirs='+str(incDirs)+')]'+os.linesep)
  outfile.write(')')
+Index: trunk/ObitSystem/Obit/share/scripts/getVersion.py
+===================================================================
+--- trunk/ObitSystem/Obit/share/scripts/getVersion.py	(revision 630)
++++ trunk/ObitSystem/Obit/share/scripts/getVersion.py	(working copy)
+@@ -41,12 +41,12 @@
+     # Save the original file
+     cmd = 'cp -pv ' + filename + ' ' + tempFile # copy and preserve timestamps
+     f = os.popen(cmd)
+-    print f.read(),
++    print(f.read())
+ 
+ # Revert original file so svnversion does not see it as modified
+ cmd = 'svn revert ' + filename 
+ f = os.popen(cmd)
+-print f.read(),
++print(f.read())
+ 
+ # Get revision number
+ cmd = 'svnversion -n ' + OBIT 
+@@ -55,10 +55,10 @@
+ print('Obit version is ' + ver)
+ 
+ if ( verOrig and verOrig == ver ):
+-    print "Obit version in ObitVersion.c is already up to date."
++    print("Obit version in ObitVersion.c is already up to date.")
+     cmd = 'cp -pv ' + tempFile + ' ' + filename
+     f = os.popen(cmd)
+-    print f.read(),
++    print(f.read())
+     #os.remove(tempFile)
+     sys.exit() # terminate script
+ 
+@@ -85,4 +85,4 @@
+ # Remove tempFile
+ if os.path.exists(tempFile):
+     os.remove(tempFile)
+-print 'Obit version written to ' + filename
++print('Obit version written to ' + filename)
 Index: trunk/ObitSystem/Obit/src/Makefile.in
 ===================================================================
---- trunk/ObitSystem/Obit/src/Makefile.in	(revision 570)
+--- trunk/ObitSystem/Obit/src/Makefile.in	(revision 630)
 +++ trunk/ObitSystem/Obit/src/Makefile.in	(working copy)
-@@ -34,38 +34,54 @@
+@@ -34,21 +34,27 @@
  # library directory for object files
  LIBDIR = $(top_srcdir)/lib/
  
@@ -199,9 +236,7 @@ Index: trunk/ObitSystem/Obit/src/Makefile.in
  	$(CC) -c $(ALL_CFLAGS) $(ALL_CPPFLAGS) $<
  	mv $@.o $(LIBDIR)
  
- # get list of all c source files (*.c) files
- AllC := $(filter-out ObitAIPSFortran.c, $(filter-out ObitAIPSObject.c, $(wildcard *.c)))
- OBJECTS := $(patsubst %.c,%.o, $(AllC))
+@@ -58,14 +64,24 @@
  
  CTARGETS := $(addprefix $(LIBDIR),$(OBJECTS))
  
@@ -212,9 +247,9 @@ Index: trunk/ObitSystem/Obit/src/Makefile.in
  
 -all:  $(CTARGETS) 
 +all:  $(CTARGETS) $(CUDA_TARGETS)
-+
-+cuda:  $(CUDA_TARGETS)
  
++cuda:  $(CUDA_TARGETS)
++
  # generic C compile
  $(CTARGETS): $(LIBDIR)%.o: %.c $(wildcard ../include/%*.h)
  	$(CC) -c $(ALL_CPPFLAGS) $(ALL_CFLAGS) $*.c
@@ -228,13 +263,12 @@ Index: trunk/ObitSystem/Obit/src/Makefile.in
 -	rm -f $(CTARGETS)
 +	rm -f $(CTARGETS) $(CUDA_TARGETS)
  	rm -f *.o
- 
 Index: trunk/ObitSystem/Obit/tasks/Makefile.in
 ===================================================================
---- trunk/ObitSystem/Obit/tasks/Makefile.in	(revision 570)
+--- trunk/ObitSystem/Obit/tasks/Makefile.in	(revision 630)
 +++ trunk/ObitSystem/Obit/tasks/Makefile.in	(working copy)
 @@ -39,19 +39,19 @@
-
+ 
  CC = @CC@
  CPPFLAGS = @CPPFLAGS@
 -CFLAGS = -Wall -fno-strict-aliasing -Wall -DFASTOBITMEM @CFLAGS@
@@ -265,14 +299,13 @@ Index: trunk/ObitSystem/Obit/tasks/Makefile.in
 -LIBS = ../lib/libObit.a @CFITSIO_LIBS@ @FFTW_LIBS@ @FFTW3_LIBS@ @GLIB_LIBS@ \
 -	@GSL_LIBS@ @PLPLOT_LIBS@ @PGPLOT_LIBS@ $(CLIENT_LIBS) $(SERVER_LIBS) \
 -	@LIBS@ @FLIBS@ @GTHREAD_LIBS@ @WVR_LIBS@
--
 +# Static library option
 +# OBIT_LIB_TARGET = ../lib/libObit.a
 +# OBIT_LIB = ../lib/libObit.a
 +# Shared library option
 +OBIT_LIB_TARGET = ../lib/libObit.so
 +OBIT_LIB = -L../lib -lObit
-+
+ 
 +LIBS = $(OBIT_LIB) @CFITSIO_LIBS@ @FFTW_LIBS@ @FFTW3_LIBS@ @GLIB_LIBS@ \
 +        @GSL_LIBS@ @PLPLOT_LIBS@ @PGPLOT_LIBS@ $(CLIENT_LIBS) $(SERVER_LIBS) \
 +        @LIBS@ @FLIBS@ @GTHREAD_LIBS@ @WVR_LIBS@
@@ -306,5 +339,4 @@ Index: trunk/ObitSystem/Obit/tasks/Makefile.in
  	rm -f $(TARGETS)
  	rm -f *.o
 +	rm -f *.so 
- 
  
