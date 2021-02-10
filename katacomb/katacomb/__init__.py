@@ -37,6 +37,7 @@ from .aips_export import (export_calibration_solutions,
                           export_images)
 
 from .qa_report import (make_pbeam_images,
-                        make_qa_report)
+                        make_qa_report,
+                        organise_qa_output)
 
 from .continuum_pipeline import pipeline_factory
