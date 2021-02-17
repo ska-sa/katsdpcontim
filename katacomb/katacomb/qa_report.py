@@ -34,124 +34,150 @@ def log_qa(logger):
     sys.stderr = original_err
 
 
-def make_pbeam_images(metadata, in_dir, out_dir):
+def make_pbeam_images(metadata, in_dir, write_tag):
     """Write primary beam corrected images.
 
     Make a single plane FITS image, a PNG and a thumbnail
-    per target. Write a new metadata file.
+    in a new directory per target. Write a new metadata file
+    per target.
+
     Parameters
     ----------
     metadata : dict
         dictionary containing pipeline metadata
     in_dir : str
         path containing pipeline output files
-    out_dir : str
-        path to write primary beam corrected images to
+    write_tag : str
+        tag appended to directory name to indicate it is still being written to
     """
     filenames = metadata['FITSImageFilename']
-    targets = metadata['KatpointTargets']
-    for target, out_file in zip(targets, filenames):
-        target = katpoint.Target(target)
-        out_filebase = os.path.splitext(out_file)[0]
+    for i, in_file in enumerate(filenames):
+        kat_target = katpoint.Target(metadata['KatpointTargets'][i])
+
+        out_filebase = os.path.splitext(in_file)[0]
         out_filebase_pb = out_filebase + '_PB'
         log.info('Write primary beam corrected FITS output: %s',
                  out_filebase_pb + FITS_EXT)
 
-        in_path = os.path.join(in_dir, out_file)
-        pbc_path = os.path.join(out_dir, out_filebase_pb + FITS_EXT)
+        in_path = os.path.join(in_dir + write_tag, in_file)
+        pb_dir = _productdir(metadata, in_dir, i, '_PB', write_tag)
+
+        os.mkdir(pb_dir)
+        pbc_path = os.path.join(pb_dir, out_filebase_pb + FITS_EXT)
         bp, raw_image = pbc.beam_pattern(in_path)
         pbc_image = pbc.primary_beam_correction(bp, raw_image, px_cut=0.1)
         pbc.write_new_fits(pbc_image, in_path, outputFilename=pbc_path)
 
         log.info('Write primary beam corrected PNG output: %s',
                  out_filebase_pb + PNG_EXT)
-        _caption_pngs(out_dir, out_filebase_pb,
-                      target, 'PB Corrected')
+        _caption_pngs(pb_dir, out_filebase_pb,
+                      kat_target, 'PB Corrected')
 
-    make_image_metadata(metadata, '_PB', out_dir,
-                        'Continuum Image PB corrected',
-                        'Continuum image PB corrected')
+        make_image_metadata(metadata, '_PB', pb_dir, i,
+                            'Continuum Image PB corrected',
+                            'Continuum image PB corrected')
 
 
-def make_qa_report(metadata, pb_dir):
+def make_qa_report(metadata, base_dir, write_tag):
     """Write the QA report.
 
     Parameters
-    ---------
+    ----------
     metadata : dict
         dictionary containing pipeline metadata
-    pb_dir : str
-        path containing primary beam corrected images
+    base_dir : str
+        append the target name and '_PB' to this to obtain the
+        directory containing the primary beam corrected image.
+    write_tag : str
+        tag appended to directory name to indicate it is still being written to
     """
     # Change directory as QA code writes output directly to the running directory
     work_dir = os.getcwd()
-    os.chdir(pb_dir)
 
     filenames = metadata['FITSImageFilename']
-    for fits_file in filenames:
+    for i, fits_file in enumerate(filenames):
+        pb_dir = _productdir(metadata, base_dir, i, '_PB', write_tag)
         pb_filebase = os.path.splitext(fits_file)[0] + '_PB'
-        log.info('Write QA report output')
 
+        log.info('Write QA report output')
+        os.chdir(pb_dir)
         pb_fits = os.path.join(pb_dir, pb_filebase + FITS_EXT)
         command = '/home/kat/valid/Radio_continuum_validation -I {} --telescope MeerKAT -F'\
                   ' /home/kat/valid/filter_config_MeerKAT.txt -r'.format(pb_fits)
         sysarg = shlex.split(command)
         with log_qa(log):
             rcv.main(sysarg[0], sysarg[1:])
-        os.chdir(pb_dir)
     os.chdir(work_dir)
 
 
-def organise_qa_output(metadata, pb_dir, qa_dir, rms_dir, bkg_dir):
+def _productdir(metadata, base_dir, i, suffix, write_tag):
+    target_name = metadata['Targets'][i]
+    run = metadata['Run']
+    return base_dir + f'_{target_name}_{run}{suffix}' + write_tag
+
+
+def organise_qa_output(metadata, base_dir, write_tag):
     """Organise QA output into separate directories.
 
-    Move the rms and mean images created by the QA report code to
-    dedicated per image type directories. Create metadata files per
-    image type directory. Move each QA report directory to
-    a given directory, write a metadata file in each individual report
-    directory.
+    Create dedicated directories for each QA product to be ingested in the
+    archive. This includes the rms and mean images created by the QA report code
+    and the QA report. Move the data products to their final directories and
+    create a metadata file for each of them. A directory contains a single QA product
+    per target, the target and product type are indicated by the suffix of the
+    directory name.
+
     Parameters
     ----------
     metadata : dict
         dictionary containing pipeline metadata
-    pb_dir : str
-        path containing primary beam corrected images and QA output
-    qa_dir : str
-        path where qa report will be moved
-    rms_dir : str
-        path where rms images will be moved
-    bkg_dir : str
-        path where bkg images will be moved
+    in_dir : str
+        base name of the created directories, the target name and product type
+        is appended to this
+    write_tag : str
+        tag appended to directory name to indicate it is still being written to
     """
     filenames = metadata['FITSImageFilename']
-    targets = metadata['KatpointTargets']
-    for target, fits_file in zip(targets, filenames):
-        target = katpoint.Target(target)
+    for i, fits_file in enumerate(filenames):
+        kat_target = katpoint.Target(metadata['KatpointTargets'][i])
 
+        # Move QA report and create metadata
         pb_filebase = os.path.splitext(fits_file)[0] + '_PB'
         qa_report = pb_filebase + '_continuum_validation_snr5.0_int'
-        os.mkdir(os.path.join(qa_dir, qa_report))
-        os.rename(os.path.join(pb_dir, qa_report), os.path.join(qa_dir, qa_report))
-        make_report_metadata(metadata, os.path.join(qa_dir, qa_report))
+        pb_dir = _productdir(metadata, base_dir, i, '_PB', write_tag)
 
+        qa_dir = _productdir(metadata, base_dir, i, '_QA', write_tag)
+        os.mkdir(qa_dir)
+        os.rename(os.path.join(pb_dir, qa_report), qa_dir)
+        make_report_metadata(metadata, qa_dir)
+
+        # Move RMS image and create metadata
+        rms_dir = _productdir(metadata, base_dir, i, '_RMS', write_tag)
+        os.mkdir(rms_dir)
         rms_image = pb_filebase + '_aegean_rms'
         os.rename(os.path.join(pb_dir, rms_image + FITS_EXT),
                   os.path.join(rms_dir, rms_image + FITS_EXT))
         _add_missing_axes(os.path.join(rms_dir, rms_image + FITS_EXT))
-        _caption_pngs(rms_dir, rms_image, target, 'RMS PB Corrected')
+        _caption_pngs(rms_dir, rms_image, kat_target, 'RMS PB Corrected')
+        make_image_metadata(metadata, '_aegean_rms', rms_dir, i,
+                            'Continuum PB Corrected RMS Image',
+                            'Continuum PB Corrected RMS image')
 
+        # Move MEAN image and create metadata
+        bkg_dir = _productdir(metadata, base_dir, i, '_BKG', write_tag)
+        os.mkdir(bkg_dir)
         bkg_image = pb_filebase + '_aegean_bkg'
         os.rename(os.path.join(pb_dir, bkg_image + FITS_EXT),
                   os.path.join(bkg_dir, bkg_image + FITS_EXT))
         _add_missing_axes(os.path.join(bkg_dir, bkg_image + FITS_EXT))
-        _caption_pngs(bkg_dir, bkg_image, target, 'MEAN PB Corrected')
+        _caption_pngs(bkg_dir, bkg_image, kat_target, 'MEAN PB Corrected')
+        make_image_metadata(metadata, '_aegean_bkg', bkg_dir, i,
+                            'Continuum PB Corrected Mean Image',
+                            'Continuum PB Corrected Mean image')
 
-    make_image_metadata(metadata, '_aegean_rms', rms_dir,
-                        'Continuum PB Corrected RMS Image',
-                        'Continuum PB Corrected RMS image')
-    make_image_metadata(metadata, '_aegean_bkg', bkg_dir,
-                        'Continuum PB Corrected Mean Image',
-                        'Continuum PB Corrected Mean image')
+        # Remove .writing tag
+        dir_list = [pb_dir, qa_dir, rms_dir, bkg_dir]
+        for product_dir in dir_list:
+            os.rename(product_dir, os.path.splitext(product_dir)[0])
 
 
 def _caption_pngs(in_dir, fits_file, target, label):
@@ -172,7 +198,7 @@ def _add_missing_axes(fitsimage):
     new_hdu.writeto(fitsimage, overwrite=True)
 
 
-def make_image_metadata(metadata, suffix, outdir, rname, desc):
+def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
     """Write a new image metadata file, based on the original pipeline metadata.
 
     Parameters
@@ -187,15 +213,15 @@ def make_image_metadata(metadata, suffix, outdir, rname, desc):
         'Description' value in new metdata file
     """
     meta_suffix = copy.deepcopy(metadata)
-    filenames = metadata['FITSImageFilename']
-    for i, out_file in enumerate(filenames):
-        out_filebase = os.path.splitext(out_file)[0]
-        out_filebase_suffix = out_filebase + suffix
-        _update_metadata_imagenames(meta_suffix, out_filebase_suffix, i)
+    out_file = metadata['FITSImageFilename'][i]
+
+    out_filebase = os.path.splitext(out_file)[0]
+    out_filebase_suffix = out_filebase + suffix
+    _update_metadata_imagedata(meta_suffix, out_filebase_suffix, i)
 
     meta_suffix['ProductType']['ReductionName'] = rname
     desc_prefix = meta_suffix['Description'].split(':')[0]
-    meta_suffix['Description'] = desc_prefix + ': Continuum image PB corrected'
+    meta_suffix['Description'] = desc_prefix + f': {desc}'
 
     write_metadata(meta_suffix, outdir)
 
@@ -205,6 +231,7 @@ def make_report_metadata(metadata, out_dir):
 
     It is based on the original pipeline metadata, but with
     updated 'Description' and 'ReductionName' keys.
+
     Parameters
     ----------
     metadata : dict
@@ -226,14 +253,20 @@ def make_report_metadata(metadata, out_dir):
                    "Run"]
     for key in report_keys:
         metadata_qa[key] = metadata[key]
+
     write_metadata(metadata_qa, out_dir)
 
 
-def _update_metadata_imagenames(metadata, out_filebase, i):
-    """Update the filenames in the metadata dictionary"""
-    metadata['FITSImageFilename'][i] = out_filebase + FITS_EXT
-    metadata['PNGImageFileName'][i] = out_filebase + PNG_EXT
-    metadata['PNGThumbNailFileName'][i] = out_filebase + '_tnail' + FITS_EXT
+def _update_metadata_imagedata(metadata, out_filebase, i):
+    """Update the filenames and image data in the metadata dictionary"""
+    metadata['FITSImageFilename'] = [out_filebase + FITS_EXT]
+    metadata['PNGImageFileName'] = [out_filebase + PNG_EXT]
+    metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + FITS_EXT]
+
+    image_keys = ["IntegrationTime", "RMSNoise", "RightAscension", "Declination",
+                  "DecRa", "Targets",  "KatpointTargets"]
+    for key in image_keys:
+        metadata[key] = [metadata[key][i]]
 
 
 def write_metadata(metadata, out_dir):

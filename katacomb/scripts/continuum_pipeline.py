@@ -252,26 +252,13 @@ def main():
     # Execute it
     metadata = pipeline.execute()
 
-    # Create directory for PB output
-    work_outputdir_pb = outputdir + '_PB' + WRITE_TAG
-    os.mkdir(work_outputdir_pb)
-
-    log.info('Using PB data area: %s', outputdir + '_PB')
-
-    make_pbeam_images(metadata, work_outputdir, work_outputdir_pb)
-    make_qa_report(metadata, work_outputdir_pb)
-
-    # Create directories for QA output
-    os.mkdir(outputdir + '_RMS' + WRITE_TAG)
-    os.mkdir(outputdir + '_BKG' + WRITE_TAG)
-
-    organise_qa_output(metadata, work_outputdir_pb, args.outputdir,
-                       outputdir + '_RMS' + WRITE_TAG,
-                       outputdir + '_BKG' + WRITE_TAG)
+    # Create QA products
+    make_pbeam_images(metadata, outputdir, WRITE_TAG)
+    make_qa_report(metadata, outputdir, WRITE_TAG)
+    organise_qa_output(metadata, outputdir, WRITE_TAG)
 
     # Remove the writing tag from the output directory
-    for suffix in ['', '_PB', '_RMS', '_BKG']:
-        os.rename(outputdir + suffix + WRITE_TAG, outputdir + suffix)
+    os.rename(work_outputdir + WRITE_TAG, outputdir)
 
 
 if __name__ == "__main__":
