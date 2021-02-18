@@ -18,20 +18,69 @@ from katacomb.aips_export import _make_pngs, FITS_EXT, PNG_EXT, METADATA_JSON
 log = logging.getLogger('katacomb')
 
 
-@contextlib.contextmanager
-def log_qa(logger):
-    """Trap QA stdout and stderr messages and send them to logger."""
-    original = sys.stdout
-    original_err = sys.stderr
-    sl = StreamToLogger(logger, logging.INFO)
-    sys.stdout = sl
+def _productdir(metadata, base_dir, i, suffix, write_tag):
+    target_name = metadata['Targets'][i]
+    run = metadata['Run']
+    return base_dir + f'_{target_name}_{run}{suffix}' + write_tag
 
-    sl = StreamToLogger(logger, logging.ERROR)
-    sys.stderr = sl
 
-    yield
-    sys.stdout = original
-    sys.stderr = original_err
+def _caption_pngs(in_dir, fits_file, target, label):
+    """Caption and make PNG files"""
+    imghdr = fits.open(os.path.join(in_dir, fits_file + FITS_EXT))[0].header
+    center_freq = imghdr['CRVAL3'] / 1e6
+    caption = f'{target.name} Continuum ({center_freq:.0f} MHz) ({label})'
+    _make_pngs(in_dir, fits_file, caption)
+
+
+def _update_metadata_imagedata(metadata, out_filebase, i):
+    """Update the filenames and image data in the metadata dictionary"""
+    metadata['FITSImageFilename'] = [out_filebase + FITS_EXT]
+    metadata['PNGImageFileName'] = [out_filebase + PNG_EXT]
+    metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + FITS_EXT]
+
+    image_keys = ["IntegrationTime", "RMSNoise", "RightAscension", "Declination",
+                  "DecRa", "Targets",  "KatpointTargets"]
+    for key in image_keys:
+        metadata[key] = [metadata[key][i]]
+
+
+def write_metadata(metadata, out_dir):
+    """Write metadata file to out_dir"""
+    try:
+        metadata_file = os.path.join(out_dir, METADATA_JSON)
+        log.info('Write metadata JSON: %s', metadata_file)
+        with open(metadata_file, 'w') as meta:
+            json.dump(metadata, meta)
+    except Exception as e:
+        log.warn("Creation of %s failed.\n%s", metadata_file, str(e))
+
+
+def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
+    """Write a new image metadata file, based on the original pipeline metadata.
+
+    Parameters
+    ----------
+    suffix : str
+        suffix added to the FITS and PNG image file names
+    outdir : str
+        path to write metadata file to
+    rname : str
+        'ReductionName' value in new metadata file
+    desc : str
+        'Description' value in new metdata file
+    """
+    meta_suffix = copy.deepcopy(metadata)
+    out_file = metadata['FITSImageFilename'][i]
+
+    out_filebase = os.path.splitext(out_file)[0]
+    out_filebase_suffix = out_filebase + suffix
+    _update_metadata_imagedata(meta_suffix, out_filebase_suffix, i)
+
+    meta_suffix['ProductType']['ReductionName'] = rname
+    desc_prefix = meta_suffix['Description'].split(':')[0]
+    meta_suffix['Description'] = desc_prefix + f': {desc}'
+
+    write_metadata(meta_suffix, outdir)
 
 
 def make_pbeam_images(metadata, in_dir, write_tag):
@@ -78,6 +127,42 @@ def make_pbeam_images(metadata, in_dir, write_tag):
                             'Continuum image PB corrected')
 
 
+class StreamToLogger:
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    """
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            # Remove the process id from Aegean log messages, they have the format
+            # process : level message
+            line = line.rstrip().split(':')[-1]
+            self.logger.log(self.log_level, line)
+
+    def flush(self):
+        pass
+
+
+@contextlib.contextmanager
+def log_qa(logger):
+    """Trap QA stdout and stderr messages and send them to logger."""
+    original = sys.stdout
+    original_err = sys.stderr
+    sl = StreamToLogger(logger, logging.INFO)
+    sys.stdout = sl
+
+    sl = StreamToLogger(logger, logging.ERROR)
+    sys.stderr = sl
+
+    yield
+    sys.stdout = original
+    sys.stderr = original_err
+
+
 def make_qa_report(metadata, base_dir, write_tag):
     """Write the QA report.
 
@@ -110,10 +195,45 @@ def make_qa_report(metadata, base_dir, write_tag):
     os.chdir(work_dir)
 
 
-def _productdir(metadata, base_dir, i, suffix, write_tag):
-    target_name = metadata['Targets'][i]
-    run = metadata['Run']
-    return base_dir + f'_{target_name}_{run}{suffix}' + write_tag
+def make_report_metadata(metadata, out_dir):
+    """Write a new reduction product metadata file.
+
+    It is based on the original pipeline metadata, but with
+    updated 'Description' and 'ReductionName' keys.
+
+    Parameters
+    ----------
+    metadata : dict
+        dictionary containing pipeline metadata
+    out_dir : str
+        path to write metadata file to
+    """
+    metadata_qa = {}
+    # Edit the product type and description
+    metadata_qa["ProductType"] = {"ProductTypeName": "MeerKATReductionProduct",
+                                  "ReductionName": "Continuum Image Quality Report"}
+
+    desc_prefix = metadata["Description"].split(':')[0]
+    metadata_qa["Description"] = desc_prefix + ": Continuum image quality report"
+
+    # Copy remaining keys from original metadata
+    report_keys = ["StartTime", "CaptureBlockId",
+                   "ProposalId", "Observer", "ScheduleBlockIdCode",
+                   "Run"]
+    for key in report_keys:
+        metadata_qa[key] = metadata[key]
+
+    write_metadata(metadata_qa, out_dir)
+
+
+def _add_missing_axes(fitsimage):
+    """Aegean strips off the first two axes of fits image, restore them"""
+    image = fits.open(fitsimage)
+    hdr = image[0].header
+    data = image[0].data
+
+    new_hdu = fits.PrimaryHDU(data[np.newaxis, np.newaxis, :, :], hdr)
+    new_hdu.writeto(fitsimage, overwrite=True)
 
 
 def organise_qa_output(metadata, base_dir, write_tag):
@@ -178,123 +298,3 @@ def organise_qa_output(metadata, base_dir, write_tag):
         dir_list = [pb_dir, qa_dir, rms_dir, bkg_dir]
         for product_dir in dir_list:
             os.rename(product_dir, os.path.splitext(product_dir)[0])
-
-
-def _caption_pngs(in_dir, fits_file, target, label):
-    """Caption and make PNG files"""
-    imghdr = fits.open(os.path.join(in_dir, fits_file + FITS_EXT))[0].header
-    center_freq = imghdr['CRVAL3'] / 1e6
-    caption = f'{target.name} Continuum ({center_freq:.0f} MHz) ({label})'
-    _make_pngs(in_dir, fits_file, caption)
-
-
-def _add_missing_axes(fitsimage):
-    """Aegean strips off the first two axes of fits image, restore them"""
-    image = fits.open(fitsimage)
-    hdr = image[0].header
-    data = image[0].data
-
-    new_hdu = fits.PrimaryHDU(data[np.newaxis, np.newaxis, :, :], hdr)
-    new_hdu.writeto(fitsimage, overwrite=True)
-
-
-def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
-    """Write a new image metadata file, based on the original pipeline metadata.
-
-    Parameters
-    ----------
-    suffix : str
-        suffix added to the FITS and PNG image file names
-    outdir : str
-        path to write metadata file to
-    rname : str
-        'ReductionName' value in new metadata file
-    desc : str
-        'Description' value in new metdata file
-    """
-    meta_suffix = copy.deepcopy(metadata)
-    out_file = metadata['FITSImageFilename'][i]
-
-    out_filebase = os.path.splitext(out_file)[0]
-    out_filebase_suffix = out_filebase + suffix
-    _update_metadata_imagedata(meta_suffix, out_filebase_suffix, i)
-
-    meta_suffix['ProductType']['ReductionName'] = rname
-    desc_prefix = meta_suffix['Description'].split(':')[0]
-    meta_suffix['Description'] = desc_prefix + f': {desc}'
-
-    write_metadata(meta_suffix, outdir)
-
-
-def make_report_metadata(metadata, out_dir):
-    """Write a new reduction product metadata file.
-
-    It is based on the original pipeline metadata, but with
-    updated 'Description' and 'ReductionName' keys.
-
-    Parameters
-    ----------
-    metadata : dict
-        dictionary containing pipeline metadata
-    out_dir : str
-        path to write metadata file to
-    """
-    metadata_qa = {}
-    # Edit the product type and description
-    metadata_qa["ProductType"] = {"ProductTypeName": "MeerKATReductionProduct",
-                                  "ReductionName": "Continuum Image Quality Report"}
-
-    desc_prefix = metadata["Description"].split(':')[0]
-    metadata_qa["Description"] = desc_prefix + ": Continuum image quality report"
-
-    # Copy remaining keys from original metadata
-    report_keys = ["StartTime", "CaptureBlockId",
-                   "ProposalId", "Observer", "ScheduleBlockIdCode",
-                   "Run"]
-    for key in report_keys:
-        metadata_qa[key] = metadata[key]
-
-    write_metadata(metadata_qa, out_dir)
-
-
-def _update_metadata_imagedata(metadata, out_filebase, i):
-    """Update the filenames and image data in the metadata dictionary"""
-    metadata['FITSImageFilename'] = [out_filebase + FITS_EXT]
-    metadata['PNGImageFileName'] = [out_filebase + PNG_EXT]
-    metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + FITS_EXT]
-
-    image_keys = ["IntegrationTime", "RMSNoise", "RightAscension", "Declination",
-                  "DecRa", "Targets",  "KatpointTargets"]
-    for key in image_keys:
-        metadata[key] = [metadata[key][i]]
-
-
-def write_metadata(metadata, out_dir):
-    """Write metadata file to out_dir"""
-    try:
-        metadata_file = os.path.join(out_dir, METADATA_JSON)
-        log.info('Write metadata JSON: %s', metadata_file)
-        with open(metadata_file, 'w') as meta:
-            json.dump(metadata, meta)
-    except Exception as e:
-        log.warn("Creation of %s failed.\n%s", metadata_file, str(e))
-
-
-class StreamToLogger:
-    """
-    Fake file-like stream object that redirects writes to a logger instance.
-    """
-    def __init__(self, logger, log_level=logging.INFO):
-        self.logger = logger
-        self.log_level = log_level
-        self.linebuf = ''
-
-    def write(self, buf):
-        for line in buf.rstrip().splitlines():
-            # Remove the process id from Aegean log messages, they have the format
-            # process : level message
-            line = line.rstrip().split(':')[-1]
-            self.logger.log(self.log_level, line)
-
-    def flush(self):
-        pass
