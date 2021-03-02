@@ -1,3 +1,4 @@
+AegeanTools == 2.2.0
 asteval == 0.9.21
 astropy == 4.0
 attrs
@@ -23,6 +24,7 @@ lmfit == 1.0.1
 llvmlite
 markupsafe == 1.1.1
 matplotlib
+mpld3 == 0.5.2
 msgpack
 netifaces
 nose
@@ -48,10 +50,8 @@ tornado
 urllib3
 uncertainties == 3.1.4
 
-Aegean @ git+https://github.com/PaulHancock/Aegean.git
 katdal @ git+https://github.com/ska-sa/katdal
 katpoint @ git+https://github.com/ska-sa/katpoint
 katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils
 katsdpservices @ git+https://github.com/ska-sa/katsdpservices
 katsdptelstate @ git+https://github.com/ska-sa/katsdptelstate
-mpld3 @ git+https://github.com/mpld3/mpld3.git
