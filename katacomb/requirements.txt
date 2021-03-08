@@ -1,56 +1,29 @@
-AegeanTools == 2.2.0
-asteval == 0.9.21
-astropy == 4.0
+-c https://raw.githubusercontent.com/ska-sa/katsdpdockerbase/master/docker-base-build/base-requirements.txt
+AegeanTools == 2.2.0   # for MeerKAT-continuum-validation
+asteval == 0.9.21      # for MeerKAT-continuum-validation
+astropy
 attrs
-botocore
 cerberus == 1.1
-certifi
-chardet
-cityhash
-cycler
 dask
-docopt == 0.6.2
-docutils
-ephem
-future
-h5py
-healpy == 1.14.0
-idna
-jmespath
-jinja2
-katversion
-kiwisolver
-lmfit == 1.0.1
-llvmlite
-markupsafe == 1.1.1
-matplotlib
-mpld3 == 0.5.2
-msgpack
-netifaces
+docopt == 0.6.2        # for MeerKAT-continuum-validation
+healpy == 1.14.0       # for MeerKAT-continuum-validation
+Jinja2                 # for MeerKAT-continuum-validation
+lmfit == 1.0.1         # for MeerKAT-continuum-validation
+markupsafe == 1.1.1    # for MeerKAT-continuum-validation
+matplotlib             # for MeerKAT-continuum-validation
+mpld3 == 0.5.2         # for MeerKAT-continuum-validation
 nose
 numba
 numpy
-pandas
+pandas                 # for MeerKAT-continuum-validation
 pretty-py3 == 0.2.4
-pyephem
-pygelf
-pyjwt
-pytz
-pyparsing
-python-dateutil
-python-lzf
+pytz                   # for MeerKAT-continuum-validation
 pyyaml
-rdbtools
-redis
-requests
-seaborn == 0.10.1
 scipy
-toolz
-tornado
-urllib3
-uncertainties == 3.1.4
+seaborn == 0.10.1      # for MeerKAT-continuum-validation
+uncertainties == 3.1.4 # for MeerKAT-continuum-validation
 
-katdal @ git+https://github.com/ska-sa/katdal
+katdal[s3credentials] @ git+https://github.com/ska-sa/katdal
 katpoint @ git+https://github.com/ska-sa/katpoint
 katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils
 katsdpservices @ git+https://github.com/ska-sa/katsdpservices

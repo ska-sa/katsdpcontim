@@ -95,7 +95,7 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-RUN install-requirements.py -d ~/docker-base/base-requirements.txt -r /tmp/requirements.txt
+RUN install_pinned.py -r /tmp/requirements.txt
 
 # Install validation package
 ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
