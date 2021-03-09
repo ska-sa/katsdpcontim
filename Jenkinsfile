@@ -12,5 +12,7 @@ katsdp.setDependencies([
     'ska-sa/katsdptelstate/master'])
 katsdp.standardBuild(cuda: true,
                      label: 'cpu-avx2',
-                     docker_timeout: [time: 90, unit: 'MINUTES'])
+                     docker_timeout: [time: 90, unit: 'MINUTES']
+                     docker_venv: true)
+
 katsdp.mail('sdpdev+katsdpcontim@ska.ac.za')
