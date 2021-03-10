@@ -9,7 +9,6 @@ docopt == 0.6.2        # for MeerKAT-continuum-validation
 healpy == 1.14.0       # for MeerKAT-continuum-validation
 Jinja2                 # for MeerKAT-continuum-validation
 lmfit == 1.0.1         # for MeerKAT-continuum-validation
-markupsafe == 1.1.1    # for MeerKAT-continuum-validation
 matplotlib             # for MeerKAT-continuum-validation
 mpld3 == 0.5.2         # for MeerKAT-continuum-validation
 nose
