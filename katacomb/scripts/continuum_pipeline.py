@@ -258,7 +258,7 @@ def main():
     organise_qa_output(metadata, outputdir, WRITE_TAG)
 
     # Remove the writing tag from the output directory
-    os.rename(work_outputdir + WRITE_TAG, outputdir)
+    os.rename(work_outputdir, outputdir)
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ def _update_metadata_imagedata(metadata, out_filebase, i):
     """Update the filenames and image data in the metadata dictionary"""
     metadata['FITSImageFilename'] = [out_filebase + FITS_EXT]
     metadata['PNGImageFileName'] = [out_filebase + PNG_EXT]
-    metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + FITS_EXT]
+    metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + PNG_EXT]
 
     image_keys = ["IntegrationTime", "RMSNoise", "RightAscension", "Declination",
                   "DecRa", "Targets",  "KatpointTargets"]
