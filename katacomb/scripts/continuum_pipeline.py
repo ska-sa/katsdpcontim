@@ -24,7 +24,9 @@ from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory, aips_ant_nr, make_pbeam_images, make_qa_report
+from katacomb import (pipeline_factory, aips_ant_nr,
+                      make_pbeam_images, make_qa_report,
+                      organise_qa_output)
 from katacomb.util import (parse_python_assigns,
                            recursive_merge,
                            get_and_merge_args,
@@ -250,18 +252,13 @@ def main():
     # Execute it
     metadata = pipeline.execute()
 
-    # Create directory for QA output
-    work_outputdir_qa = outputdir + '_QA' + WRITE_TAG
-    os.mkdir(work_outputdir_qa)
-
-    log.info('Using QA data area: %s', outputdir + '_QA')
-
-    make_pbeam_images(metadata, work_outputdir, work_outputdir_qa)
-    make_qa_report(metadata, work_outputdir_qa)
+    # Create QA products
+    make_pbeam_images(metadata, outputdir, WRITE_TAG)
+    make_qa_report(metadata, outputdir, WRITE_TAG)
+    organise_qa_output(metadata, outputdir, WRITE_TAG)
 
     # Remove the writing tag from the output directory
     os.rename(work_outputdir, outputdir)
-    os.rename(work_outputdir_qa, outputdir + '_QA')
 
 
 if __name__ == "__main__":
