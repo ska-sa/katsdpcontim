@@ -95,7 +95,7 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-RUN install-requirements.py -d ~/docker-base/base-requirements.txt -r /tmp/requirements.txt
+RUN install_pinned.py -r /tmp/requirements.txt
 
 # Install validation package
 ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
@@ -106,9 +106,14 @@ RUN mkdir -p $VALIDATION_BASE_PATH && \
     git clone $VALIDATION_REPO ${VALIDATION_BASE_PATH}
 
 # Install katacomb
-COPY --chown=kat:kat katacomb $KATHOME/src/katacomb
+COPY --chown=kat:kat . $KATHOME/src/katsdpcontim
+WORKDIR $KATHOME/src/katsdpcontim/katacomb
+# Workaround to get katversion working for katacomb:
+# create a '___version___' file and put it in the katacomb install dir
+RUN pip install katversion
+RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
 
-RUN pip install --no-deps $KATHOME/src/katacomb && pip check
+RUN pip install --no-deps . && pip check
 
 #######################################################################
 
