@@ -278,7 +278,7 @@ def organise_qa_output(metadata, base_dir, write_tag):
                   os.path.join(rms_dir, rms_image + FITS_EXT))
         _add_missing_axes(os.path.join(rms_dir, rms_image + FITS_EXT))
         _caption_pngs(rms_dir, rms_image, kat_target, 'RMS PB Corrected')
-        make_image_metadata(metadata, '_aegean_rms', rms_dir, i,
+        make_image_metadata(metadata, '_PB_aegean_rms', rms_dir, i,
                             'Continuum PB Corrected RMS Image',
                             'Continuum PB Corrected RMS image')
 
@@ -290,7 +290,7 @@ def organise_qa_output(metadata, base_dir, write_tag):
                   os.path.join(bkg_dir, bkg_image + FITS_EXT))
         _add_missing_axes(os.path.join(bkg_dir, bkg_image + FITS_EXT))
         _caption_pngs(bkg_dir, bkg_image, kat_target, 'MEAN PB Corrected')
-        make_image_metadata(metadata, '_aegean_bkg', bkg_dir, i,
+        make_image_metadata(metadata, '_PB_aegean_bkg', bkg_dir, i,
                             'Continuum PB Corrected Mean Image',
                             'Continuum PB Corrected Mean image')
 
