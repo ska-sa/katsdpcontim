@@ -100,10 +100,7 @@ class TestMakePBImages:
         # Create temporary directory
         self.tmpdir_in = tempfile.TemporaryDirectory()
         in_array = np.ones([1, 3, 100, 100])
-        hdu = fits.PrimaryHDU(in_array)
-
-        for h in HDR_KEYS.keys():
-            hdu.header[h] = HDR_KEYS[h]
+        hdu = fits.PrimaryHDU(in_array, header=fits.Header(HDR_KEYS))
 
         # Construct 4 targets
         target_names = ['Gunther Lord of the Gibichungs',
@@ -156,11 +153,7 @@ class TestMakeQAReport:
         # Leave in extra axes as QA code will try to drop extra axes
         # inferred from the header
         in_array += gaus_data[np.newaxis, np.newaxis, :, :]
-
-        hdu = fits.PrimaryHDU(in_array)
-
-        for h in HDR_KEYS.keys():
-            hdu.header[h] = HDR_KEYS[h]
+        hdu = fits.PrimaryHDU(in_array, header=fits.Header(HDR_KEYS))
 
         # QA code expects a frequency axis
         hdu.header['CTYPE3'] = 'FREQ '
