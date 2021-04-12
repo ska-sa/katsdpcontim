@@ -125,7 +125,7 @@ def _make_pngs(out_dir, out_filebase, caption):
     )
 
 
-def _update_fits_header(fitsfile, clean_file):
+def _update_fits_header(fitsfile, clean_file, kat_adapter):
     """Update FITS header keywords to their more common equivalents."""
 
     with fits.open(fitsfile, mode='update') as ff:
@@ -142,6 +142,10 @@ def _update_fits_header(fitsfile, clean_file):
         # Correct BUNIT to FITS standard v4.0 (So that astropy can read it)
         if fh['BUNIT'] == 'JY/BEAM':
             fh['BUNIT'] = ('Jy/beam', fh.comments['BUNIT'])
+
+        # Add BAND keyword
+        sw = kat_adapter._katds.spectral_windows[kat_adapter._katds.spw]
+        fh['BANDCODE'] = sw.band
 
 
 def export_images(clean_files, target_indices, disk, kat_adapter):
@@ -189,7 +193,7 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 log.info('Write FITS image output: %s', out_filebase + FITS_EXT)
                 cf.writefits(disk, out_filebase + FITS_EXT)
                 # Correct values in output FITS header
-                _update_fits_header(pjoin(out_dir, out_filebase + FITS_EXT), cf)
+                _update_fits_header(pjoin(out_dir, out_filebase + FITS_EXT), cf, kat_adapter)
 
                 # Export PNG and a thumbnail PNG
                 log.info('Write PNG image output: %s', out_filebase + PNG_EXT)

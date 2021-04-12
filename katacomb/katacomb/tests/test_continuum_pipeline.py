@@ -77,6 +77,8 @@ def _check_fits_headers(filepath):
         assert_in('BMAJ', fh)
         assert_in('BMIN', fh)
         assert_in('BPA', fh)
+        # Ensure output images have a BAND keyword
+        assert_in('BANDCODE', fh)
 
 
 def construct_SN_desc(nif, rows, version=1):
