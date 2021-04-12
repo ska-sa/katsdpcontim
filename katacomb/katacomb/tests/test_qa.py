@@ -81,6 +81,8 @@ def _check_files(outDirName, file_base, suffix):
     assert os.path.isfile(outFileName + suffix + PNG_EXT)
     assert os.path.isfile(outFileName + suffix + '_tnail' + PNG_EXT)
 
+
+def _check_metadata(outDirName):
     metadata_file = os.path.join(outDirName, METADATA_JSON)
     assert os.path.isfile(metadata_file)
     return metadata_file
@@ -126,12 +128,8 @@ class TestMakePBImages:
             outDirName = pipe_dirname + '_' + self.metadata['Targets'][i] + \
                          '_' + self.metadata['Run']
             # Files exist in expected directory
-            pb_metadata_file = _check_files(outDirName + '_PB.writing',
-                                            self.metadata['Targets'][i], '_PB')
-
-            # Check a sample of the keys are correct
-            _check_keys(pb_metadata_file, self.metadata, '_PB', i,
-                        'Continuum Image PB corrected')
+            _check_files(outDirName + '_PB.writing',
+                         self.metadata['Targets'][i], '_PB')
 
 
 class TestMakeQAReport:
@@ -200,12 +198,18 @@ class TestMakeQAReport:
             file_base = os.path.splitext(f)[0]
             outPBName = os.path.join(dir_base + '_PB', file_base + '_PB' + FITS_EXT)
             assert os.path.isfile(outPBName)
+            # Check metadata file exists and a sample of the keys are correct
+            meta_pb = _check_metadata(dir_base + '_PB')
+            _check_keys(meta_pb, self.metadata, '_PB', i,
+                        'Continuum Image PB corrected')
 
             # RMS and BKG images moved to their own dedicated directories with metadata file
-            meta_rms = _check_files(dir_base + '_RMS', file_base, '_PB_aegean_rms')
+            _check_files(dir_base + '_RMS', file_base, '_PB_aegean_rms')
+            meta_rms = _check_metadata(dir_base + '_RMS')
             _check_keys(meta_rms, self.metadata, '_PB_aegean_rms', i,
                         'Continuum PB Corrected RMS Image')
-            meta_bkg = _check_files(dir_base + '_BKG', file_base, '_PB_aegean_bkg')
+            _check_files(dir_base + '_BKG', file_base, '_PB_aegean_bkg')
+            meta_bkg = _check_metadata(dir_base + '_BKG')
             _check_keys(meta_bkg, self.metadata, '_PB_aegean_bkg', i,
                         'Continuum PB Corrected Mean Image')
 
