@@ -143,7 +143,7 @@ def _update_fits_header(fitsfile, clean_file, kat_adapter):
         if fh['BUNIT'] == 'JY/BEAM':
             fh['BUNIT'] = ('Jy/beam', fh.comments['BUNIT'])
 
-        # Add BAND keyword
+        # Add BANDCODE keyword cf. AIPS Memo 117
         sw = kat_adapter._katds.spectral_windows[kat_adapter._katds.spw]
         fh['BANDCODE'] = sw.band
 
