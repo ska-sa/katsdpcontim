@@ -1048,7 +1048,7 @@ class KatdalAdapter(object):
             'epoch': 2000.0,
             'equinox': 2000.0,
             'teles': MEERKAT,
-            'instrume': MEERKAT,
+            'instrume': self._katds.spectral_windows[self._katds.spw].product,
 
             'isort': 'TB',     # Time, Baseline sort order
             'object': 'MULTI',  # Source, this implies multiple sources
