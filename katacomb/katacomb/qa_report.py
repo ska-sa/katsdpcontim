@@ -113,7 +113,8 @@ def make_pbeam_images(metadata, in_dir, write_tag):
 
         os.mkdir(pb_dir)
         pbc_path = os.path.join(pb_dir, out_filebase_pb + FITS_EXT)
-        bp, raw_image = pbc.beam_pattern(in_path)
+        bp = pbc.beam_pattern(in_path)
+        raw_image = pbc.read_fits(in_path)
         pbc_image = pbc.primary_beam_correction(bp, raw_image, px_cut=0.1)
         pbc.write_new_fits(pbc_image, in_path, outputFilename=pbc_path)
 
@@ -278,7 +279,7 @@ def organise_qa_output(metadata, base_dir, write_tag):
                   os.path.join(rms_dir, rms_image + FITS_EXT))
         _add_missing_axes(os.path.join(rms_dir, rms_image + FITS_EXT))
         _caption_pngs(rms_dir, rms_image, kat_target, 'RMS PB Corrected')
-        make_image_metadata(metadata, '_aegean_rms', rms_dir, i,
+        make_image_metadata(metadata, '_PB_aegean_rms', rms_dir, i,
                             'Continuum PB Corrected RMS Image',
                             'Continuum PB Corrected RMS image')
 
@@ -290,7 +291,7 @@ def organise_qa_output(metadata, base_dir, write_tag):
                   os.path.join(bkg_dir, bkg_image + FITS_EXT))
         _add_missing_axes(os.path.join(bkg_dir, bkg_image + FITS_EXT))
         _caption_pngs(bkg_dir, bkg_image, kat_target, 'MEAN PB Corrected')
-        make_image_metadata(metadata, '_aegean_bkg', bkg_dir, i,
+        make_image_metadata(metadata, '_PB_aegean_bkg', bkg_dir, i,
                             'Continuum PB Corrected Mean Image',
                             'Continuum PB Corrected Mean image')
 
