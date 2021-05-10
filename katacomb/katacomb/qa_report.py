@@ -116,7 +116,8 @@ def make_pbeam_images(metadata, in_dir, write_tag):
 
         os.mkdir(pb_dir)
         pbc_path = os.path.join(pb_dir, out_filebase_pb + FITS_EXT)
-        bp, raw_image = pbc.beam_pattern(in_path)
+        bp = pbc.beam_pattern(in_path)
+        raw_image = pbc.read_fits(in_path)
         pbc_image = pbc.primary_beam_correction(bp, raw_image, px_cut=0.1)
         pbc.write_new_fits(pbc_image, in_path, outputFilename=pbc_path)
 
