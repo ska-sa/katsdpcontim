@@ -38,7 +38,7 @@ def _update_metadata_imagedata(metadata, out_filebase, i):
     metadata['PNGImageFileName'] = [out_filebase + PNG_EXT]
     metadata['PNGThumbNailFileName'] = [out_filebase + '_tnail' + PNG_EXT]
 
-    image_keys = ["IntegrationTime", "RMSNoise", "RightAscension", "Declination",
+    image_keys = ["IntegrationTime", "RightAscension", "Declination",
                   "DecRa", "Targets",  "KatpointTargets"]
     for key in image_keys:
         metadata[key] = [metadata[key][i]]
@@ -55,7 +55,7 @@ def write_metadata(metadata, out_dir):
         log.warn("Creation of %s failed.\n%s", metadata_file, str(e))
 
 
-def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
+def make_image_metadata(metadata, suffix, outdir, i, rname, desc, rmsnoise):
     """Write a new image metadata file, based on the original pipeline metadata.
 
     Parameters
@@ -67,7 +67,9 @@ def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
     rname : str
         'ReductionName' value in new metadata file
     desc : str
-        'Description' value in new metdata file
+        'Description' value in new metadata file
+    rmsnoise : float
+         'RMSNoise' value in new metadata file
     """
     meta_suffix = copy.deepcopy(metadata)
     out_file = metadata['FITSImageFilename'][i]
@@ -80,6 +82,7 @@ def make_image_metadata(metadata, suffix, outdir, i, rname, desc):
     desc_prefix = meta_suffix['Description'].split(':')[0]
     meta_suffix['Description'] = desc_prefix + f': {desc}'
 
+    meta_suffix['RMSNoise'] = str(rmsnoise)
     write_metadata(meta_suffix, outdir)
 
 
@@ -122,10 +125,6 @@ def make_pbeam_images(metadata, in_dir, write_tag):
                  out_filebase_pb + PNG_EXT)
         _caption_pngs(pb_dir, out_filebase_pb,
                       kat_target, 'PB Corrected')
-
-        make_image_metadata(metadata, '_PB', pb_dir, i,
-                            'Continuum Image PB corrected',
-                            'Continuum image PB corrected')
 
 
 class StreamToLogger:
@@ -237,6 +236,13 @@ def _add_missing_axes(fitsimage):
     new_hdu.writeto(fitsimage, overwrite=True)
 
 
+def _calc_rms(rmsimage):
+    rms_data = fits.open(rmsimage)[0].data
+    rms_valid = rms_data > 0
+    mean_rms = np.median(rms_data[rms_valid])
+    return mean_rms
+
+
 def organise_qa_output(metadata, base_dir, write_tag):
     """Organise QA output into separate directories.
 
@@ -275,13 +281,21 @@ def organise_qa_output(metadata, base_dir, write_tag):
         rms_dir = _productdir(metadata, base_dir, i, '_RMS', write_tag)
         os.mkdir(rms_dir)
         rms_image = pb_filebase + '_aegean_rms'
+        mean_pb_rms = _calc_rms(os.path.join(pb_dir, rms_image + FITS_EXT))
+
+        make_image_metadata(metadata, '_PB', pb_dir, i,
+                            'Continuum Image PB corrected',
+                            'Continuum image PB corrected',
+                            mean_pb_rms)
+
         os.rename(os.path.join(pb_dir, rms_image + FITS_EXT),
                   os.path.join(rms_dir, rms_image + FITS_EXT))
         _add_missing_axes(os.path.join(rms_dir, rms_image + FITS_EXT))
         _caption_pngs(rms_dir, rms_image, kat_target, 'RMS PB Corrected')
         make_image_metadata(metadata, '_PB_aegean_rms', rms_dir, i,
                             'Continuum PB Corrected RMS Image',
-                            'Continuum PB Corrected RMS image')
+                            'Continuum PB Corrected RMS image',
+                            mean_pb_rms)
 
         # Move MEAN image and create metadata
         bkg_dir = _productdir(metadata, base_dir, i, '_BKG', write_tag)
@@ -293,7 +307,8 @@ def organise_qa_output(metadata, base_dir, write_tag):
         _caption_pngs(bkg_dir, bkg_image, kat_target, 'MEAN PB Corrected')
         make_image_metadata(metadata, '_PB_aegean_bkg', bkg_dir, i,
                             'Continuum PB Corrected Mean Image',
-                            'Continuum PB Corrected Mean image')
+                            'Continuum PB Corrected Mean image',
+                            mean_pb_rms)
 
         # Remove .writing tag
         dir_list = [pb_dir, qa_dir, rms_dir, bkg_dir]
