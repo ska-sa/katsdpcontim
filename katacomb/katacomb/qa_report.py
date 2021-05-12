@@ -82,7 +82,7 @@ def make_image_metadata(metadata, suffix, outdir, i, rname, desc, rmsnoise):
     desc_prefix = meta_suffix['Description'].split(':')[0]
     meta_suffix['Description'] = desc_prefix + f': {desc}'
 
-    meta_suffix['RMSNoise'] = str(rmsnoise)
+    meta_suffix['RMSNoise'] = [str(rmsnoise)]
     write_metadata(meta_suffix, outdir)
 
 
