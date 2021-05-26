@@ -5,7 +5,9 @@ import logging
 import os
 import pickle
 import re
+import requests
 import sys
+import warnings
 
 from pretty import pretty
 import yaml
@@ -45,6 +47,23 @@ OBIT_TO_LOG = {
 }
 
 OBIT_LOG_PREAMBLE_LEN = 23
+
+
+VERIFY_METADATA_URL="http://kat-archive.kat.ac.za:8083/products/verify"
+
+
+def _validate_metadata(metadata):
+    """Validate metadata dictionary using VERIFY_METADATA_URL"""
+    try:
+        response = requests.post(VERIFY_METADATA_URL, json={"metadata": metadata})
+    except requests.ConnectionError as e:
+        # If we can't connect to VERIFY_METADATA_URL don't validate
+        warnings.warn(f"{e}\nSkipping metadata verification", RuntimeWarning)
+    else:
+        if response.status_code != 200:
+            # Log the problem if the metadata doesn't validate and raise an HTTPError
+            log.error(response.text)
+            response.raise_for_status()
 
 
 @contextlib.contextmanager
