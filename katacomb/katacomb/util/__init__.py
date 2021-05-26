@@ -49,7 +49,7 @@ OBIT_TO_LOG = {
 OBIT_LOG_PREAMBLE_LEN = 23
 
 
-VERIFY_METADATA_URL="http://kat-archive.kat.ac.za:8083/products/verify"
+VERIFY_METADATA_URL = "http://kat-archive.kat.ac.za:8083/products/verify"
 
 
 def _validate_metadata(metadata):
