@@ -86,7 +86,7 @@ DEFAULT_METADATA = {
     'description':  'mock observation',
     'experiment_id': 'mock',
     'obs_params': {
-        'sb_id_code': 'MOCK_SBID',
+        'sb_id_code': '20999999-9999',
         'description': 'mock observation',
         'proposal_id': 'MOCK_PID',
         'observer': 'ghost'

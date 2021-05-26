@@ -29,9 +29,11 @@ from katacomb.mock_dataset import (MockDataSet,
                                    DEFAULT_TIMESTAMPS,
                                    ANTENNA_DESCRIPTIONS)
 from katacomb.util import (parse_python_assigns,
-                           setup_aips_disks)
+                           setup_aips_disks,
+                           _validate_metadata)
 from katacomb.uv_facade import uv_factory
 import katacomb.configuration as kc
+
 
 CLOBBER = set(['scans', 'avgscans', 'merge', 'clean', 'mfimage'])
 
@@ -278,7 +280,7 @@ class TestOnlinePipeline(unittest.TestCase):
         # Dummy CB_ID and Product ID and temp fits disk
         fd = kc.get_config()['fitsdirs']
         fd += [(None, '/tmp/FITS')]
-        kc.set_config(output_id='OID', cb_id='CBID', fitsdirs=fd)
+        kc.set_config(output_id='OID', cb_id='9999999999', fitsdirs=fd)
 
         setup_aips_disks()
 
@@ -289,6 +291,8 @@ class TestOnlinePipeline(unittest.TestCase):
                                     mfimage_params=mfimage_params)
 
         metadata = pipeline.execute()
+
+        _validate_metadata(metadata)
 
         # Check that output FITS files exist and have the right names
         # Expected target name in file output for the list of targets
