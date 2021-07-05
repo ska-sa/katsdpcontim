@@ -161,44 +161,6 @@ Index: trunk/ObitSystem/Obit/python/makesetup.py
 +outfile.write('                              runtime_library_dirs='+str(runtimeLibDirs)+','+os.linesep)
 +outfile.write('       include_dirs='+str(incDirs)+')]'+os.linesep)
  outfile.write(')')
-Index: trunk/ObitSystem/Obit/share/scripts/getVersion.py
-===================================================================
---- trunk/ObitSystem/Obit/share/scripts/getVersion.py	(revision 630)
-+++ trunk/ObitSystem/Obit/share/scripts/getVersion.py	(working copy)
-@@ -41,12 +41,12 @@
-     # Save the original file
-     cmd = 'cp -pv ' + filename + ' ' + tempFile # copy and preserve timestamps
-     f = os.popen(cmd)
--    print f.read(),
-+    print(f.read())
- 
- # Revert original file so svnversion does not see it as modified
- cmd = 'svn revert ' + filename 
- f = os.popen(cmd)
--print f.read(),
-+print(f.read())
- 
- # Get revision number
- cmd = 'svnversion -n ' + OBIT 
-@@ -55,10 +55,10 @@
- print('Obit version is ' + ver)
- 
- if ( verOrig and verOrig == ver ):
--    print "Obit version in ObitVersion.c is already up to date."
-+    print("Obit version in ObitVersion.c is already up to date.")
-     cmd = 'cp -pv ' + tempFile + ' ' + filename
-     f = os.popen(cmd)
--    print f.read(),
-+    print(f.read())
-     #os.remove(tempFile)
-     sys.exit() # terminate script
- 
-@@ -85,4 +85,4 @@
- # Remove tempFile
- if os.path.exists(tempFile):
-     os.remove(tempFile)
--print 'Obit version written to ' + filename
-+print('Obit version written to ' + filename)
 Index: trunk/ObitSystem/Obit/src/Makefile.in
 ===================================================================
 --- trunk/ObitSystem/Obit/src/Makefile.in	(revision 630)
