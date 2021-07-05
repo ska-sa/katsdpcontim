@@ -426,9 +426,11 @@ class ImageFacade(object):
                    "from image '%s'" % (plane, self.name))
 
         try:
-            if array is None:
-                array = Image.PGetFArray(self.img)
             self.img.GetPlane(array, plane, self._err)
+            if array is None:
+                # Plane is retrieved to self.img.FArray
+                # Return a deep copy.
+                array = FArray.PCopy(self.img.FArray, self._err)
         except Exception:
             raise Exception(err_msg)
 
