@@ -448,20 +448,22 @@ class ImageFacade(object):
 
         handle_obit_err(err_msg, self._err)
 
-    def FitMF(self, **kwargs):
+    def FitMF(self, out_path, **kwargs):
         """
         Fit spectrum to each pixel of an ImageMF.
 
-        Uses ImageMF.PFitSpec and takes kwargs (from ImageMF.PFitSpec docstring).
+        Uses ImageMF.PFitSpec2 and passes kwargs (from ImageMF.PFitSpec2 docstring).
 
         Parameters
         ----------
+        out_path : :class:AIPSPath
+            AIPS catalog entry to write output
         antSize  : float
             If > 0 make primary beam corrections assuming antenna
             diameter (m) antSize (default: 0.0)
-        nOrder   : int
-            Order of fit, 0=intensity, 1=spectral index,
-            2=also curvature (default: 1)
+        nterm   : int
+            Order of fit, 1=intensity, 2=spectral index,
+            3=also curvature (default: 2)
         corAlpha : float
             Spectral index correction to apply before fitting
             (default: 0.0)
@@ -471,12 +473,15 @@ class ImageFacade(object):
 
         # Check we have the right type of image
         if self.isObitImageMF():
-            try:
-                # Need an ImageMF pointer for PFitSpec
-                ImageMF.PFitSpec(self.imgMF, self._err, **kwargs)
-            except Exception:
-                raise Exception(err_msg)
-            handle_obit_err(err_msg)
+            with img_factory(aips_path=out_path, mode='rw') as out_img:
+                try:
+                    # Copy the structure of self.img to out_img
+                    self.img.Clone(out_img.img, self._err)
+                    # Use an imgMF pointer for PFitSpec2
+                    ImageMF.PFitSpec2(self.imgMF, out_img.imgMF, self._err, **kwargs)
+                except Exception:
+                    raise Exception(err_msg)
+                handle_obit_err(err_msg)
 
     @property
     def Desc(self):

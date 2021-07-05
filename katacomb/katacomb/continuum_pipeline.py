@@ -240,17 +240,12 @@ class PipelineImplementation(Pipeline):
             with img_factory(aips_path=img, mode="rw") as imf:
                 if imf.exists:
                     tmp_img = img.copy(seq=next_seq_nr(img))
-                    imf.Copy(tmp_img)
-                    tmp_imf = img_factory(aips_path=tmp_img, mode="rw")
-                    # nOrder=0 does weighted average of planes
-                    tmp_imf.FitMF(nOrder=0)
-                    # Re-instantiate tmp_imf to sync with disk
-                    # TODO: Work out why the FitMF method causes
-                    # the need to do this and fix the problem.
+                    # nterm=1 does weighted average of planes
+                    imf.FitMF(tmp_img, nterm=1)
                     tmp_imf = img_factory(aips_path=tmp_img, mode="r")
-                    # Get the first (weighted average plane)
+                    # Get the first (weighted average) plane of tmp_imf.
                     img_plane = tmp_imf.GetPlane()
-                    # Stick it into the first plane of img.
+                    # Stick it into the first plane of imf.
                     imf.PutPlane(img_plane)
                     tmp_imf.Zap()
 
