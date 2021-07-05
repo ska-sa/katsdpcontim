@@ -14,8 +14,8 @@ doRestore: True             # Restore CCs to images?
 doFit: True                 # Fit spectrum to CLEANed planes??
 Catalog: 'AllSkyVZ.FIT'     # Outlier catalog name
 CatDisk: 1                  # Catalog FITS disk number
-OutlierDist: 2.5            # Maximum distance to add outliers (deg)
-OutlierFlux: 0.005          # Minimum estimated outlier flux density (Jy)
+OutlierDist: 2.0            # Maximum distance to add outliers (deg)
+OutlierFlux: 0.002          # Minimum estimated outlier flux density (Jy)
 OutlierSI: -0.7             # Spectral index to estimate flux density
 OutlierSize: 200            # Size in pixels of outlier fields
 minFlux: 0.005              # Minimum Clean component (Jy)
@@ -35,4 +35,4 @@ solAType: 'L1'              # A&P SC Soln. Type: '  ', 'L1'
 solAMode: 'A&P'             # A&P SC Soln. Mode:'A&P', 'P', 'P!A'
 Reuse: 20.0                 # Number of sigma to reuse CCs
 doGPU: True                 # Use GPU predict
-minFList: [0.0005, 0.0001]  # Minimum flux density to CLEAN per Self-cal cycle after first
+minFList: [0.0005, 0.00009] # Minimum flux density to CLEAN per Self-cal cycle after first
