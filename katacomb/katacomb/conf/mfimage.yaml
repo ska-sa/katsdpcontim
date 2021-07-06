@@ -14,7 +14,7 @@ doRestore: True             # Restore CCs to images?
 doFit: True                 # Fit spectrum to CLEANed planes??
 Catalog: 'AllSkyVZ.FIT'     # Outlier catalog name
 CatDisk: 1                  # Catalog FITS disk number
-OutlierDist: 2.0            # Maximum distance to add outliers (deg)
+OutlierDist: 1.75           # Maximum distance to add outliers (deg)
 OutlierFlux: 0.002          # Minimum estimated outlier flux density (Jy)
 OutlierSI: -0.7             # Spectral index to estimate flux density
 OutlierSize: 200            # Size in pixels of outlier fields
