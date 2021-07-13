@@ -458,7 +458,7 @@ class ImageFacade(object):
 
         Parameters
         ----------
-        out_path : :class:AIPSPath
+        out_path : :class:`AIPSPath`
             AIPS catalog entry to write output
         antSize  : float
             If > 0 make primary beam corrections assuming antenna
