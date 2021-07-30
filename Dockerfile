@@ -48,10 +48,10 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /u
 ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
 
 # Get CUDA samples- Obit needs some headers from there
-RUN CUDA_RUN_FILE=cuda_11.3.1_465.19.01_linux.run && \
-    mirror_wget --progress=dot:mega "http://developer.download.nvidia.com/compute/cuda/11.3.1/local_installers/$CUDA_RUN_FILE" && \
+RUN CUDA_RUN_FILE=cuda_10.0.130_410.48_linux && \
+    mirror_wget --progress=dot:mega "https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/$CUDA_RUN_FILE" && \
     sh ./$CUDA_RUN_FILE --samples --silent && \
-    mv /root/NVIDIA_CUDA-11.3_Samples /usr/local/cuda/samples
+    mv /root/NVIDIA_CUDA-10.0_Samples /usr/local/cuda/samples
 
 ENV KATHOME=/home/kat
 
