@@ -168,8 +168,9 @@ def _infer_defaults_from_katdal(katds):
     t_obs = katds.shape[0] * katds.dump_period
     maxRealtime = max(MINRUNTIME, t_obs * (1. + RUNTIME_PAD))
     mfimage_params['maxRealtime'] = float(maxRealtime)
+    band = katds.spectral_windows[katds.spw].band
 
-    return uvblavg_params, mfimage_params
+    return uvblavg_params, mfimage_params, band
 
 
 def main():
@@ -191,11 +192,17 @@ def main():
 
     post_process_args(args, katdata)
 
-    uvblavg_args, mfimage_args = _infer_defaults_from_katdal(katdata)
+    uvblavg_args, mfimage_args, band = _infer_defaults_from_katdal(katdata)
 
     # Get config defaults for uvblavg and mfimage and merge user supplied ones
-    user_uvblavg_args = get_and_merge_args(pjoin(CONFIG, 'uvblavg_MKAT.yaml'), args.uvblavg)
-    user_mfimage_args = get_and_merge_args(pjoin(CONFIG, 'mfimage_MKAT.yaml'), args.mfimage)
+    uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_{band}.yaml')
+    log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+    mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_{band}.yaml')
+    log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+
+    user_uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
+    user_mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
+
 
     # Merge katdal defaults with user supplied defaults
     recursive_merge(user_uvblavg_args, uvblavg_args)
