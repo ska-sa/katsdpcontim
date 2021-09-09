@@ -1,4 +1,6 @@
 # Default options for UVBlAvg
-FOV: 1.0         # Field of view (deg)
-maxInt: 1.0      # Maximum integration (min)
+FOV: 2.0         # Field of view (deg)
+maxInt: 0.5      # Maximum integration (min)
 maxFact: 1.01    # Maximum time smearing factor
+avgFreq: 1       # Averaging channels?
+chAvg: 4         # Assume 4K -> 1K for offline.
