@@ -79,9 +79,10 @@ def create_parser():
                              "Default: %(default)s")
 
     parser.add_argument("--uvblavg-config",
-                        default=os.path.join(os.sep, "obitconf", "uvblavg.yaml"),
+                        default="",
                         type=str,
-                        help="Configuration yaml file for UVBlAvg. Default: %(default)s")
+                        help="Configuration yaml file for UVBlAvg. "
+                             "Default: %s" % os.path.join(os.sep, "obitconf", "uvblavg_<band>.yaml"))
 
     parser.add_argument("-mf", "--mfimage",
                         default="",
@@ -93,9 +94,10 @@ def create_parser():
                              "See %s/MFImage.TDF for valid parameters. " % TDF_URL)
 
     parser.add_argument("--mfimage-config",
-                        default=os.path.join(os.sep, "obitconf", "mfimage.yaml"),
+                        default="",
                         type=str,
-                        help="Configuration yaml file for MFImage. Default: %(default)s")
+                        help="Configuration yaml file for MFImage. "
+                             "Default: %s" % os.path.join(os.sep, "obitconf", "mfimage_<band>.yaml"))
 
     parser.add_argument("--nif", default=8, type=int,
                         help="Number of AIPS 'IFs' to equally subdivide the band. "
@@ -180,9 +182,20 @@ def main():
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
 
+    # Get band and determine default .yaml files
+    band = katdata.spectral_windows[katdata.spw].band
+    uvblavg_parm_file = args.uvblavg_config
+    if not uvblavg_parm_file:
+        uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_{band}.yaml")
+    log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+    mfimage_parm_file = args.mfimage_config
+    if not mfimage_parm_file:
+        mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_{band}.yaml")
+    log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+
     # Get defaults for uvblavg and mfimage and merge user supplied ones
-    uvblavg_args = get_and_merge_args(args.uvblavg_config, args.uvblavg)
-    mfimage_args = get_and_merge_args(args.mfimage_config, args.mfimage)
+    uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
+    mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
 
     # Grab the cal refant from the katdal dataset and default to
     # it if it is available and hasn't been set by the user.
