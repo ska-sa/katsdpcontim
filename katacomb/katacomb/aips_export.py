@@ -35,6 +35,8 @@ OFILE_SEPARATOR = '_'
 IMG_PLANE = 1
 # Image slice to plot to PNG output
 PNG_SLICE = ('x', 'y', 0, 0)
+# Contrast in zscale for PNG output
+CONTRAST = 0.5
 # File extensions for FITS, PNG and thumbnails
 FITS_EXT = '.fits'
 PNG_EXT = '.png'
@@ -107,7 +109,7 @@ def _metadata(katds, cb_id, target_metadata):
     return metadata
 
 
-def _make_pngs(out_dir, out_filebase, caption):
+def _make_pngs(out_dir, out_filebase, caption, contrast=0.02):
     """Export FITS file in filebase to png and thumbnail in same location."""
     out_pngfile = pjoin(out_dir, out_filebase + PNG_EXT)
     in_fitsfile = pjoin(out_dir, out_filebase + FITS_EXT)
@@ -115,13 +117,15 @@ def _make_pngs(out_dir, out_filebase, caption):
         in_fitsfile, out_pngfile,
         width=6500, height=5000,
         dpi=10 * katsdpimageutils.render.DEFAULT_DPI,
-        caption=caption, facecolor='black'
+        caption=caption, facecolor='black',
+        contrast=contrast
     )
     out_pngthumbnail = pjoin(out_dir, out_filebase + TNAIL_EXT)
     katsdpimageutils.render.write_image(
         in_fitsfile, out_pngthumbnail,
         width=650, height=500,
-        caption=caption, facecolor='black'
+        caption=caption, facecolor='black',
+        contrast=contrast
     )
 
 
@@ -199,7 +203,7 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                 log.info('Write PNG image output: %s', out_filebase + PNG_EXT)
                 center_freq = cf.Desc.Dict['crval'][cf.Desc.Dict['jlocf']] / 1.e6
                 caption = f'{targ.name} Continuum ({center_freq:.0f} MHz)'
-                _make_pngs(out_dir, out_filebase, caption)
+                _make_pngs(out_dir, out_filebase, caption, contrast=CONTRAST)
 
                 # Set up metadata for this target
                 _update_target_metadata(target_metadata, cf, targ, tn,

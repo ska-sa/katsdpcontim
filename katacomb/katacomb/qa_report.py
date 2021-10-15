@@ -17,6 +17,9 @@ from katacomb.aips_export import _make_pngs, FITS_EXT, PNG_EXT, METADATA_JSON
 
 log = logging.getLogger('katacomb')
 
+# Contrast in zscale for PB image PNG
+PB_CONTRAST = 0.3
+
 
 def _productdir(metadata, base_dir, i, suffix, write_tag):
     target_name = metadata['Targets'][i]
@@ -24,12 +27,12 @@ def _productdir(metadata, base_dir, i, suffix, write_tag):
     return base_dir + f'_{target_name}_{run}{suffix}' + write_tag
 
 
-def _caption_pngs(in_dir, fits_file, target, label):
+def _caption_pngs(in_dir, fits_file, target, label, contrast=0.02):
     """Caption and make PNG files"""
     imghdr = fits.open(os.path.join(in_dir, fits_file + FITS_EXT))[0].header
     center_freq = imghdr['CRVAL3'] / 1e6
     caption = f'{target.name} Continuum ({center_freq:.0f} MHz) ({label})'
-    _make_pngs(in_dir, fits_file, caption)
+    _make_pngs(in_dir, fits_file, caption, contrast=contrast)
 
 
 def _update_metadata_imagedata(metadata, out_filebase, i):
@@ -124,7 +127,7 @@ def make_pbeam_images(metadata, in_dir, write_tag):
         log.info('Write primary beam corrected PNG output: %s',
                  out_filebase_pb + PNG_EXT)
         _caption_pngs(pb_dir, out_filebase_pb,
-                      kat_target, 'PB Corrected')
+                      kat_target, 'PB Corrected', contrast=PB_CONTRAST)
 
 
 class StreamToLogger:
