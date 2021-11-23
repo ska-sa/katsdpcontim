@@ -14,7 +14,7 @@
 Stokes: 'I'                 # Stokes to process
 norder: 1                   # Maximum order of spectral terms
 Alpha: 0.0                  # Spectral Index to correct
-maxFBW: 0.045               # Max. fractional sub-band center bandwidth
+maxFBW: 0.038               # Max. fractional sub-band center bandwidth
 FOV: 0.65                   # Radius of field to image (deg)
 xCells: 0.0                 # Image cell spacing in X in asec.
 yCells: 0.0                 # Image cell spacing in Y in asec.
