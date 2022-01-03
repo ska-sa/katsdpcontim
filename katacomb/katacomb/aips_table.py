@@ -224,6 +224,7 @@ class AIPSTableRow(object):
         self._rownr = row_nr
         self._row_def = row_def
         self._err = err
+
         self._row = None if row is None else _default_row_base(row_def, row)
 
     def read(self):
@@ -235,7 +236,6 @@ class AIPSTableRow(object):
         """ Writes the appropriate row of the AIPS Table """
         if self._row is None:
             return
-
         self._table.WriteRow(self._rownr, self._row, self._err)
         handle_obit_err("Error writing row '%s'" % self._rownr, self._err)
 

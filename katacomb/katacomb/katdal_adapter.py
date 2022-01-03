@@ -246,9 +246,13 @@ def aips_catalogue(katdata, nif):
             aradec = t.apparent_radec()
 
         # Right Ascension and Declination
-        ra, dec = np.rad2deg(radec)
+        #ra, dec = np.rad2deg(radec)
+        ra = radec.ra.deg
+        dec = radec.dec.deg 
         # Apparent position
-        raa, deca = np.rad2deg(aradec)
+        #raa, deca = np.rad2deg(aradec)
+        raa = aradec.ra.deg
+        deca = aradec.dec.deg
 
         source_name = aips_source_name(t.name, used)
 
@@ -870,7 +874,7 @@ class KatdalAdapter(object):
             'NOSTA': [aips_ant_nr(a.name)],
             'ANNAME': [a.name],
             'STABXYZ': list(a.position_ecef),
-            'DIAMETER': [a.diameter],
+            'DIAMETER': [a.diameter.to_value('m')],
             'POLAA': [90.0],
 
             # Defaults for the rest

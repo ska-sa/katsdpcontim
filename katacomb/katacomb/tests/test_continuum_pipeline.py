@@ -49,7 +49,7 @@ def vis(dataset, sources):
     uvw_wl = uvw[:, :, np.newaxis, :] / wl[np.newaxis, np.newaxis, :, np.newaxis]
     for target in sources:
         flux_freq = target.flux_density(dataset.freqs/1.e6)
-        lmn = np.array(pc.lmn(*target.radec()))
+        lmn = np.array(pc.lmn(target.radec().ra.rad, target.radec().dec.rad))
         n = lmn[2]
         lmn[2] -= 1.
         # uvw_wl has shape (uvw, ntimes, nchannels, nbl), move uvw to
@@ -443,9 +443,9 @@ class TestOnlinePipeline(unittest.TestCase):
         # Position should be accurate to within a 5" pixel
         delta_dec = np.deg2rad(5./3600.)
         for model, cc in zip(offax_cat.targets, all_ccs.targets):
-            delta_ra = delta_dec/np.cos(model.radec()[1])
-            self.assertAlmostEqual(cc.radec()[0], model.radec()[0], delta=delta_ra)
-            self.assertAlmostEqual(cc.radec()[1], model.radec()[1], delta=delta_dec)
+            delta_ra = delta_dec/np.cos(model.radec().dec.rad)
+            self.assertAlmostEqual(cc.radec().ra.rad, model.radec().ra.rad, delta=delta_ra)
+            self.assertAlmostEqual(cc.radec().dec.rad, model.radec().dec.rad, delta=delta_dec)
 
         # Empty the scratch space
         shutil.rmtree(fd[-1][1])

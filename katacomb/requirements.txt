@@ -22,9 +22,13 @@ scipy
 seaborn == 0.10.1      # for MeerKAT-continuum-validation
 uncertainties == 3.1.4 # for MeerKAT-continuum-validation
 
+#katpoint == 1.0a1
+sgp4 == 2.20
+ephem
+
 katbeam @ git+https://github.com/ska-sa/katbeam  # for katsdpimageutils
-katdal[s3credentials] @ git+https://github.com/ska-sa/katdal
-katpoint @ git+https://github.com/ska-sa/katpoint
+katdal[s3credentials] @ git+https://github.com/ska-sa/katdal@spr1-1493-astrometry-test
+katpoint @ git+https://gitlab.com/ska-telescope/katpoint@spaza-287-astrometry-test
 katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils
 katsdpservices @ git+https://github.com/ska-sa/katsdpservices
 katsdptelstate @ git+https://github.com/ska-sa/katsdptelstate

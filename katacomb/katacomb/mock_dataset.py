@@ -64,8 +64,16 @@ DEFAULT_SPWS = [{
 
 # Pick 10 random ephem stars as katpoint targets
 _NR_OF_DEFAULT_TARGETS = 10
-DEFAULT_TARGETS = [katpoint.Target("%s, star" % t) for t in
-                   random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)]
+star_names = random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)
+ephem_targets = [stars[name] for name in star_names]
+DEFAULT_TARGETS = []
+for name, t in zip(star_names,ephem_targets):
+    t.compute()
+    DEFAULT_TARGETS.append(katpoint.Target(f'{name}, radec, {str(t.ra)}, {str(t.dec)}'))
+#ephem_targets = [targ.compute() for targ in ephem_targets]
+#DEFAULT_TARGETS = [katpoint.Target(f'{name}, radec, {str(t.ra)} {str(t.dec)}') for name,t in zip(star_names,ephem_targets)]
+#DEFAULT_TARGETS = [katpoint.Target("%s, star" % t) for t in
+#                   random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)]
 
 # Slew for 1 dumps then track for 4 on random targets
 _SLEW_TRACK_DUMPS = (('slew', 1), ('track', 4))
@@ -432,9 +440,12 @@ class MockDataSet(DataSet):
         el['timestamp'] = self._timestamps
         for ant in self.ants:
             for _, _, target in self.scans():
-                scan_az, scan_el = target.azel(self.timestamps, ant)
-                az['value'][self.dumps] = np.rad2deg(scan_az)
-                el['value'][self.dumps] = np.rad2deg(scan_el)
+                azel = target.azel(self.timestamps, ant) 
+                #scan_az, scan_el = target.azel(self.timestamps, ant)
+                #az['value'][self.dumps] = np.rad2deg(scan_az)
+                #el['value'][self.dumps] = np.rad2deg(scan_el)
+                az['value'][self.dumps] = azel.az.deg
+                el['value'][self.dumps] = azel.alt.deg
             az_name = f'Antennas/{ant.name}/pos_actual_scan_azim'
             el_name = f'Antennas/{ant.name}/pos_actual_scan_elev'
             ant_az = RecordSensorGetter(az, name=az_name)
