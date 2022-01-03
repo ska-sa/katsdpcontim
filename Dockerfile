@@ -72,9 +72,9 @@ ENV OBIT_REPO https://github.com/bill-cotton/Obit/trunk/ObitSystem
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
-# Retrieve Obit r632
+# Retrieve Obit r636
 RUN mkdir -p $OBIT_BASE_PATH && \
-    svn co -q -r 632 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
+    svn co -q -r 636 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
 
 WORKDIR $OBIT_BASE_PATH
 
