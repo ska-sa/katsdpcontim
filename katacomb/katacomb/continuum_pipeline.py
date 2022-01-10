@@ -668,8 +668,8 @@ class KatdalPipelineImplementation(PipelineImplementation):
                     blavg_uvf.Close()
 
         if merge_blavg_nvis == 0:
-            log.error("Final merged file '%s' has %s averaged visibilities",
-                     self.uv_merge_path, merge_blavg_nvis)
+            log.error("Final merged file '%s' has ZERO averaged visibilities",
+                      self.uv_merge_path)
         # Write the index table
         merge_uvf.tables["AIPS NX"].write()
 
