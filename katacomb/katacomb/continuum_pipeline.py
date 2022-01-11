@@ -572,6 +572,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
         # Scan indices
         scan_indices = [int(si) for si in self.ka.scan_indices]
 
+        merge_blavg_nvis = 0
         # Export each scan individually, baseline averaging and merging it
         # into the final observation file.
         # NOTE: Loop over scan indices here rather than using the ka.scans
@@ -624,6 +625,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                                                      global_table_cmds)
 
             blavg_nvis = blavg_uvf.nvis_from_NX()
+            merge_blavg_nvis += blavg_nvis
 
             # Record something about the baseline averaging process
             param_str = ', '.join("%s=%s" % (k, v)
@@ -665,6 +667,9 @@ class KatdalPipelineImplementation(PipelineImplementation):
                 else:
                     blavg_uvf.Close()
 
+        if merge_blavg_nvis == 0:
+            log.error("Final merged file '%s' has ZERO averaged visibilities",
+                      self.uv_merge_path)
         # Write the index table
         merge_uvf.tables["AIPS NX"].write()
 
@@ -673,6 +678,8 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
         # Close merge file
         merge_uvf.close()
+
+        return merge_blavg_nvis
 
 
 @register_workmode('continuum_export')
@@ -766,25 +773,30 @@ class OnlinePipeline(KatdalPipelineImplementation):
         result_tuple = self._select_and_infer_files()
         uv_sources, target_indices, uv_files, clean_files = result_tuple
 
-        self._export_and_merge_scans()
+        merge_nvis = self._export_and_merge_scans()
         self.cleanup_uv_files.append(self.uv_merge_path)
 
-        self._run_mfimage(self.uv_merge_path, uv_sources)
-        self.cleanup_uv_files += uv_files
-        self.cleanup_img_files += clean_files
+        log.info('There are %s visibilities in the merged file', merge_nvis)
+        # If no visibilities to image then abort
+        if merge_nvis < 1:
+            return {}
+        else:
+            self._run_mfimage(self.uv_merge_path, uv_sources)
+            self.cleanup_uv_files += uv_files
+            self.cleanup_img_files += clean_files
 
-        self._get_wavg_img(clean_files)
+            self._get_wavg_img(clean_files)
 
-        for uv, clean in zip(uv_files, clean_files):
-            self._attach_SN_tables_to_image(uv, clean)
+            for uv, clean in zip(uv_files, clean_files):
+                self._attach_SN_tables_to_image(uv, clean)
 
-        metadata = export_images(clean_files, target_indices,
-                                 self.odisk, self.ka)
-        export_calibration_solutions(uv_files, self.ka,
-                                     self.mfimage_params, self.telstate)
-        export_clean_components(clean_files, target_indices,
-                                self.ka, self.telstate)
-        return metadata
+            metadata = export_images(clean_files, target_indices,
+                                     self.odisk, self.ka)
+            export_calibration_solutions(uv_files, self.ka,
+                                         self.mfimage_params, self.telstate)
+            export_clean_components(clean_files, target_indices,
+                                    self.ka, self.telstate)
+            return metadata
 
 
 @register_workmode('offline')
@@ -897,15 +909,23 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
                 self.uv_merge_path = uv_mp.copy(seq=hiseq)
                 log.info("Re-using UV data in '%s' from AIPS disk: '%s'",
                          self.uv_merge_path, kc.get_config()['aipsdirs'][self.disk - 1][-1])
+                merge_uvf = uv_factory(aips_path=self.uv_merge_path, mode='r',
+                                       nvispio=self.nvispio)
+
+                merge_nvis = merge_uvf.nvis_from_NX()
         else:
-            self._export_and_merge_scans()
+            merge_nvis = self._export_and_merge_scans()
         if "merge" in self.clobber:
             self.cleanup_uv_files.append(self.uv_merge_path)
-        self._run_mfimage(self.uv_merge_path, uv_sources)
+        log.info('There are %s visibilities in the merged file', merge_nvis)
+        if merge_nvis < 1:
+            return {}
+        else:
+            self._run_mfimage(self.uv_merge_path, uv_sources)
 
-        self._get_wavg_img(clean_files)
-        for uv, clean in zip(uv_files, clean_files):
-            self._attach_SN_tables_to_image(uv, clean)
+            self._get_wavg_img(clean_files)
+            for uv, clean in zip(uv_files, clean_files):
+                self._attach_SN_tables_to_image(uv, clean)
 
-        metadata = export_images(clean_files, target_indices, self.odisk, self.ka)
-        return metadata
+            metadata = export_images(clean_files, target_indices, self.odisk, self.ka)
+            return metadata

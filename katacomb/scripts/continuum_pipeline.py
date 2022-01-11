@@ -203,7 +203,6 @@ def main():
     user_uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
     user_mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
 
-
     # Merge katdal defaults with user supplied defaults
     recursive_merge(user_uvblavg_args, uvblavg_args)
     recursive_merge(user_mfimage_args, mfimage_args)
@@ -259,13 +258,16 @@ def main():
     # Execute it
     metadata = pipeline.execute()
 
-    # Create QA products
-    make_pbeam_images(metadata, outputdir, WRITE_TAG)
-    make_qa_report(metadata, outputdir, WRITE_TAG)
-    organise_qa_output(metadata, outputdir, WRITE_TAG)
+    # Create QA products if images were created
+    if metadata:
+        make_pbeam_images(metadata, outputdir, WRITE_TAG)
+        make_qa_report(metadata, outputdir, WRITE_TAG)
+        organise_qa_output(metadata, outputdir, WRITE_TAG)
 
-    # Remove the writing tag from the output directory
-    os.rename(work_outputdir, outputdir)
+        # Remove the writing tag from the output directory
+        os.rename(work_outputdir, outputdir)
+    else:
+        os.rmdir(work_outputdir)
 
 
 if __name__ == "__main__":
