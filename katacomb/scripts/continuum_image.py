@@ -82,7 +82,8 @@ def create_parser():
                         default="",
                         type=str,
                         help="Configuration yaml file for UVBlAvg. "
-                             "Default: %s" % os.path.join(os.sep, "obitconf", "uvblavg_<band>.yaml"))
+                             "Default: %s" % os.path.join(os.sep, "obitconf",
+                                                          "uvblavg_<band>.yaml"))
 
     parser.add_argument("-mf", "--mfimage",
                         default="",
@@ -97,7 +98,8 @@ def create_parser():
                         default="",
                         type=str,
                         help="Configuration yaml file for MFImage. "
-                             "Default: %s" % os.path.join(os.sep, "obitconf", "mfimage_<band>.yaml"))
+                             "Default: %s" % os.path.join(os.sep, "obitconf",
+                                                          "mfimage_<band>.yaml"))
 
     parser.add_argument("--nif", default=8, type=int,
                         help="Number of AIPS 'IFs' to equally subdivide the band. "
@@ -217,7 +219,7 @@ def main():
     dc = kc.get_config()
 
     # capture_block_id is used to generate AIPS disk filenames
-    capture_block_id = katdata.obs_params['capture_block_id']
+    capture_block_id = katdata.name[0:10]
 
     if args.reuse:
         # Set up AIPS disk from specified directory

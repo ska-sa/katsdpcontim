@@ -193,13 +193,20 @@ def main():
     post_process_args(args, katdata)
 
     uvblavg_args, mfimage_args, band = _infer_defaults_from_katdal(katdata)
-
+    # Get frequncies and convert them to MHz
+    freqs = katdata.freqs/1e6
     # Get config defaults for uvblavg and mfimage and merge user supplied ones
-    uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_{band}.yaml')
-    log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
-    mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_{band}.yaml')
-    log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
-
+    # Check if the observation is narrowband by checking the bandwith size
+    if (freqs[-1] - freqs[0]) < 200:
+        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_narrow_{band}.yaml')
+        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow_{band}.yaml')
+        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+    else:
+        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_{band}.yaml')
+        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_{band}.yaml')
+        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
     user_uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
     user_mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
 
@@ -246,7 +253,11 @@ def main():
     ts_view = telstate.view(view)
 
     katdal_select = args.select
-    katdal_select['nif'] = args.nif
+    # Setting number of nif to 2 for narrowband
+    if (freqs[-1] - freqs[0]) < 200:
+        katdal_select['nif'] = 2
+    else:
+        katdal_select['nif'] = args.nif
 
     # Create Continuum Pipeline
     pipeline = pipeline_factory('online', katdata, ts_view,
