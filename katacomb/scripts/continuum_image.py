@@ -170,10 +170,20 @@ def main():
     # Apply the supplied mask to the flags
     if args.mask:
         apply_user_mask(katdata, args.mask)
-
+    # Get frequencies and convert them to MHz
+    freqs = katdata.freqs/1e6
+    # Condition to check if the observation is narrow based on the bandwidth
+    bandwidth = freqs[-1] - freqs[0]
+    narrow_band = bandwidth < 200
     # Set up katdal selection based on arguments
-    kat_select = {'pol': args.pols,
-                  'nif': args.nif}
+    kat_select = {'pol': args.pols}
+    # Get band
+    band = katdata.spectral_windows[katdata.spw].band
+    # Set number of nif to 2 for narrowband
+    if band == 'L' and narrow_band:
+        kat_select['nif'] = 2
+    else:
+        kat_select['nif'] = args.nif
 
     if args.targets:
         kat_select['targets'] = args.targets
@@ -184,16 +194,27 @@ def main():
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
 
-    # Get band and determine default .yaml files
-    band = katdata.spectral_windows[katdata.spw].band
+    # Determine default .yaml files
     uvblavg_parm_file = args.uvblavg_config
     if not uvblavg_parm_file:
-        uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_{band}.yaml")
-    log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+        if band == 'L' and narrow_band:
+            log.info('Using parameter files for narrow {}-band'.format(band))
+            uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_narrow_{band}.yaml")
+            log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+        else:
+            log.info('Using parameter files for wide {}-band'.format(band))
+            uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_{band}.yaml")
+            log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
     mfimage_parm_file = args.mfimage_config
     if not mfimage_parm_file:
-        mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_{band}.yaml")
-    log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+        if band == 'L' and narrow_band:
+            log.info('Using parameter files for narrow {}-band'.format(band))
+            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_narrow_{band}.yaml")
+            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+        else:
+            log.info('Using parameter files for wide {}-band'.format(band))
+            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_{band}.yaml")
+            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
 
     # Get defaults for uvblavg and mfimage and merge user supplied ones
     uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
