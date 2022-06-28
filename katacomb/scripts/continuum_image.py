@@ -174,13 +174,14 @@ def main():
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth
     bandwidth = freqs[-1] - freqs[0]
-    narrow_band = bandwidth < 200
+    cond_50mhz = 0 < bandwidth < 100  # 50MHz
+    cond_100mhz = 100 < bandwidth < 200  # 100MHz
     # Set up katdal selection based on arguments
     kat_select = {'pol': args.pols}
     # Get band
     band = katdata.spectral_windows[katdata.spw].band
     # Set number of nif to 2 for narrowband
-    if band == 'L' and narrow_band:
+    if band == 'L' and cond_50mhz or cond_100mhz:
         kat_select['nif'] = 2
     else:
         kat_select['nif'] = args.nif
@@ -197,7 +198,7 @@ def main():
     # Determine default .yaml files
     uvblavg_parm_file = args.uvblavg_config
     if not uvblavg_parm_file:
-        if band == 'L' and narrow_band:
+        if band == 'L' and cond_50mhz or cond_100mhz:
             log.info('Using parameter files for narrow {}-band'.format(band))
             uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_narrow_{band}.yaml")
             log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
@@ -207,9 +208,14 @@ def main():
             log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
     mfimage_parm_file = args.mfimage_config
     if not mfimage_parm_file:
-        if band == 'L' and narrow_band:
+        if band == 'L' and cond_50mhz:
             log.info('Using parameter files for narrow {}-band'.format(band))
-            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_narrow_{band}.yaml")
+            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_narrow50mhz_{band}.yaml")
+            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+        if band == 'L' and cond_100mhz:
+            log.info('Using parameter files for narrow {}-band'.format(band))
+            mfimage_parm_file = os.path.join(os.sep, "obitconf",
+                                             f"mfimage_narrow100mhz_{band}.yaml")
             log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
         else:
             log.info('Using parameter files for wide {}-band'.format(band))

@@ -197,14 +197,21 @@ def main():
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth
     bandwidth = freqs[-1] - freqs[0]
-    narrow_band = bandwidth < 200
+    cond_50mhz = 0 < bandwidth < 100  # 50MHz
+    cond_100mhz = 100 < bandwidth < 200  # 100MHz
     # Get config defaults for uvblavg and mfimage and merge user supplied ones
     # Check if the observation is L-band and narrrow.
-    if band == 'L' and narrow_band:
+    if band == 'L' and cond_50mhz:
         log.info('Using parameter files for narrow {}-band'.format(band))
         uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_narrow_{band}.yaml')
         log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
-        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow_{band}.yaml')
+        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow50mhz_{band}.yaml')
+        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+    elif band == 'L' and cond_100mhz:
+        log.info('Using parameter files for narrow {}-band'.format(band))
+        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_narrow_{band}.yaml')
+        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow100mhz_{band}.yaml')
         log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
     else:
         log.info('Using parameter files for wide {}-band'.format(band))
@@ -260,7 +267,7 @@ def main():
 
     katdal_select = args.select
     # Setting number of nif to 2 for narrowband
-    if (freqs[-1] - freqs[0]) < 200:
+    if cond_50mhz or cond_100mhz:
         katdal_select['nif'] = 2
     else:
         katdal_select['nif'] = args.nif
