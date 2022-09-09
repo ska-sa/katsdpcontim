@@ -141,11 +141,11 @@ RUN apt-get update && \
 # Set up areas for image/metadata output
 RUN mkdir -p /var/kat/data
 RUN chown -R kat:kat /var/kat
-VOLUME ['/var/kat/data/']
+VOLUME ["/var/kat/data/"]
 
 RUN mkdir /scratch
 RUN chown kat:kat /scratch
-VOLUME ['/scratch']
+VOLUME ["/scratch"]
 
 # Now downgrade to kat
 USER kat
