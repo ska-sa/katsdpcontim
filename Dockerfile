@@ -76,6 +76,7 @@ RUN patch -p1 -N -s < /tmp/obit.patch
 RUN cd ObitSystem/Obit && \
     ./configure --prefix=/usr --without-plplot --without-wvr && \
     make clean && \
+    make versionupdate && \
     make -j 8
 
 # Add python package requirements
