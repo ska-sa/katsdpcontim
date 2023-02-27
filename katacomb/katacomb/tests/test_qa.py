@@ -17,6 +17,7 @@ from katacomb.aips_export import (_update_target_metadata,
                                   PNG_EXT,
                                   METADATA_JSON)
 from katacomb.mock_dataset import MockDataSet
+from katacomb.util import _validate_metadata
 
 HDR_KEYS = {'NAXIS': 4,
             'NAXIS1': 100,
@@ -70,7 +71,7 @@ def _create_test_metadata(target_names):
 
     scans = [('track', 3, targets[0]), ('track', 3, targets[1])]
     ds = MockDataSet(dumps=scans)
-    metadata = _metadata(ds, '1234', target_metadata)
+    metadata = _metadata(ds, '1234567890', target_metadata)
 
     return metadata
 
@@ -86,6 +87,12 @@ def _check_metadata(outDirName):
     metadata_file = os.path.join(outDirName, METADATA_JSON)
     assert os.path.isfile(metadata_file)
     return metadata_file
+
+
+def _verify_metadata(meta_file):
+    with open(meta_file) as f:
+        meta = json.load(f)
+        _validate_metadata(meta)
 
 
 def _check_keys(meta_file, meta_in, suffix, i, name):
@@ -202,18 +209,22 @@ class TestMakeQAReport:
             meta_pb = _check_metadata(dir_base + '_PB')
             _check_keys(meta_pb, self.metadata, '_PB', i,
                         'Continuum Image PB corrected')
+            _verify_metadata(meta_pb)
 
             # RMS and BKG images moved to their own dedicated directories with metadata file
             _check_files(dir_base + '_RMS', file_base, '_PB_aegean_rms')
             meta_rms = _check_metadata(dir_base + '_RMS')
             _check_keys(meta_rms, self.metadata, '_PB_aegean_rms', i,
                         'Continuum PB Corrected RMS Image')
+            _verify_metadata(meta_rms)
             _check_files(dir_base + '_BKG', file_base, '_PB_aegean_bkg')
             meta_bkg = _check_metadata(dir_base + '_BKG')
             _check_keys(meta_bkg, self.metadata, '_PB_aegean_bkg', i,
                         'Continuum PB Corrected Mean Image')
+            _verify_metadata(meta_bkg)
 
             # QA reports are moved to the own dedicated directories with metadata file
             outQAName = os.path.join(dir_base + '_QA', 'index.html')
             assert os.path.isfile(outQAName)
-            assert os.path.isfile(os.path.join(dir_base + '_QA', METADATA_JSON))
+            meta_qa = _check_metadata(dir_base + '_QA')
+            _verify_metadata(meta_qa)
