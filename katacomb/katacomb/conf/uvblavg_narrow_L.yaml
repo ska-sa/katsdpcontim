@@ -12,5 +12,5 @@
 FOV: 1.25        # Field of view (deg)
 maxInt: 0.5      # Maximum integration (min)
 maxFact: 1.01    # Maximum time smearing factor
-avgFreq: 1       # Averaging channels?
-chAvg: 32         # Assume 32K -> 1K for offline.
+avgFreq: 1       # Frequency averaging control
+chAvg: 128       # Assume 32K -> 256 channels for offline.

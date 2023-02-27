@@ -13,6 +13,6 @@ FOV: 1.0         # Field of view (deg)
 maxInt: 1.0      # Maximum integration (min)
                  # (Should always be less than the self calibration
                  # interval (solPInt and solAInt) in MFImage parameters)
-maxFact: 1.0    # Maximum time smearing factor
-avgFreq: 1      # Frequency averaging control 
-chAvg: 32       # Number of channels to average
+maxFact: 1.0     # Maximum time smearing factor
+avgFreq: 1       # Frequency averaging control
+chAvg: 4         # Number of channels to average
