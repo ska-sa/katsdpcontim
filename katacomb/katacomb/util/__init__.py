@@ -651,7 +651,7 @@ def selection_options(parser):
                        help="Range of channels to image, must be of the form <start>,<end>. "
                             "Default: Image all (unmasked) channels.")
     group.add_argument("--pols",
-                       default="HH,VV",
+                       default="HH,VV,HV,VH",
                        type=str,
                        help="Which polarisations to copy from the archive. "
                             "Default: %(default)s")
@@ -663,3 +663,24 @@ def selection_options(parser):
                             "to flag for all times. Must have the same number "
                             "of channels as the input dataset. "
                             "Default: No mask")
+
+def setup_selection(katdata, args):
+    """Return a Dict of katdal select options based on selection args"""
+    # Apply the supplied mask to the flags
+    if args.mask:
+        apply_user_mask(katdata, args.mask)
+    # Set up katdal selection based on arguments
+    kat_select = {'pol': args.pols}
+    sw = katdata.spectral_windows[katdata.spw]
+    # Set number of nif to 2 for narrowband
+    if sw.band == 'L' and sw.bandwidth < 200e6:
+        kat_select['nif'] = 2
+    else:
+        kat_select['nif'] = args.nif
+
+    if args.targets:
+        kat_select['targets'] = args.targets
+    if args.channels:
+        start_chan, end_chan = args.channels
+        kat_select['channels'] = slice(start_chan, end_chan)
+    return kat_select

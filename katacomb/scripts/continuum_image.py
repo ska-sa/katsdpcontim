@@ -74,30 +74,12 @@ def main():
     log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
 
-    # Apply the supplied mask to the flags
-    if args.mask:
-        apply_user_mask(katdata, args.mask)
     # Get frequencies and convert them to MHz
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth
     bandwidth = freqs[-1] - freqs[0]
     cond_50mhz = 0 < bandwidth < 100  # 50MHz
     cond_100mhz = 100 < bandwidth < 200  # 100MHz
-    # Set up katdal selection based on arguments
-    kat_select = {'pol': args.pols}
-    # Get band
-    band = katdata.spectral_windows[katdata.spw].band
-    # Set number of nif to 2 for narrowband
-    if band == 'L' and cond_50mhz or cond_100mhz:
-        kat_select['nif'] = 2
-    else:
-        kat_select['nif'] = args.nif
-
-    if args.targets:
-        kat_select['targets'] = args.targets
-    if args.channels:
-        start_chan, end_chan = args.channels
-        kat_select['channels'] = slice(start_chan, end_chan)
 
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
