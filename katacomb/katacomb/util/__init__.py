@@ -633,3 +633,33 @@ def imaging_options(parser):
         help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
         "will be placed here for each target. Default: %(default)s"
     )
+
+
+def selection_options(parser):
+    """Add options to :class:ArgumentParser for data selection and masking options."""
+    group = parser.add_argument_group("Data selection options")
+    group.add_argument("-t",
+                       "--targets",
+                       default=None,
+                       type=str,
+                       help="Comma separated list of target names to image. "
+                            "Default: All targets")
+    group.add_argument("-c",
+                       "--channels",
+                       default=None,
+                       type=lambda s: map(int, s.split(",")),
+                       help="Range of channels to image, must be of the form <start>,<end>. "
+                            "Default: Image all (unmasked) channels.")
+    group.add_argument("--pols",
+                       default="HH,VV",
+                       type=str,
+                       help="Which polarisations to copy from the archive. "
+                            "Default: %(default)s")
+    group.add_argument("-m",
+                       "--mask",
+                       default=None,
+                       type=str,
+                       help="Pickle file containing a static mask of channels "
+                            "to flag for all times. Must have the same number "
+                            "of channels as the input dataset. "
+                            "Default: No mask")
