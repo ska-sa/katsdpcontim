@@ -51,12 +51,12 @@ CONFIG = os.path.join(os.sep, "obitconf")
 
 
 @contextlib.contextmanager
-def log_obit_err(logger):
+def log_obit_err(logger, istask=True):
     """ Trap Obit log messages written to stdout and send them to logger"""
 
-    def parse_obit_message(msg):
-        # Generate log entry from Obit error string
-        # All Obit logs have the form '<taskname>: <level> <timestamp> <message>\n'
+    def parse_obit_task_message(msg):
+        # Generate log entry from Obit error string from task
+        # All Obit task logs have the form '<taskname>: <level> <timestamp> <message>\n'
 
         # Ignore empty lines
         if not msg.strip():
@@ -78,8 +78,21 @@ def log_obit_err(logger):
         except KeyError:
             log.info(msg)
 
+    def parse_message(msg):
+        # For Obit log output that doesn't come from tasks
+        # Strip carriage returns (logging doesnt like them).
+        msg = msg.rstrip()
+        if not msg:
+            return
+        log.info(msg)
+
+
     original = sys.stdout
-    logger.write = parse_obit_message
+    # Is this an Obit task? Otherwise likely something like uv.Header()
+    if istask:
+        logger.write = parse_obit_task_message
+    else:
+        logger.write = parse_message
     # The go() method inside ObitTask needs sys.stdout.isatty
     logger.isatty = sys.stdout.isatty
     sys.stdout = logger

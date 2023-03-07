@@ -74,15 +74,16 @@ def main():
     log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
 
+    kat_select = setup_selection(katdata, args)
+    # Command line katdal selection overrides command line options
+    kat_select = recursive_merge(args.select, kat_select)
+
     # Get frequencies and convert them to MHz
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth
     bandwidth = freqs[-1] - freqs[0]
     cond_50mhz = 0 < bandwidth < 100  # 50MHz
     cond_100mhz = 100 < bandwidth < 200  # 100MHz
-
-    # Command line katdal selection overrides command line options
-    kat_select = recursive_merge(args.select, kat_select)
 
     # Determine default .yaml files
     uvblavg_parm_file = args.uvblavg_config
