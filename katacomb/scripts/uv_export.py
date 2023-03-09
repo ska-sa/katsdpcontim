@@ -3,7 +3,6 @@ import argparse
 import logging
 import os
 from os.path import join as pjoin
-import time
 
 import katdal
 
@@ -11,7 +10,6 @@ import katacomb.configuration as kc
 from katacomb import pipeline_factory, AIPSPath
 from katacomb.util import (recursive_merge,
                            get_and_merge_args,
-                           post_process_args,
                            setup_aips_disks,
                            katdal_options,
                            export_options,
@@ -20,12 +18,14 @@ from katacomb.util import (recursive_merge,
 
 log = logging.getLogger('katacomb')
 
+
 def configure_logging(args):
     log_handler = logging.StreamHandler()
     fmt = "[%(levelname)s] %(message)s"
     log_handler.setFormatter(logging.Formatter(fmt))
     log.addHandler(log_handler)
     log.setLevel(args.log_level.upper())
+
 
 def create_parser():
     parser = argparse.ArgumentParser(description='Export MVF data to AIPS UV')
@@ -39,6 +39,10 @@ def create_parser():
                         default="merge",
                         help="AIPS UV Class. Default: %(default)s",
                         type=str)
+    parser.add_argument("--aseq",
+                        default=0,
+                        help="AIPS UV seq. Default is next available on disk",
+                        type=int)
     parser.add_argument("--aipsdisk",
                         help="Path to AIPS disk to store the AIPS UV file. "
                              "Default: CBID_aipsdisk")
@@ -74,18 +78,17 @@ def main():
         uvblavg_parm_file = args.uvblavg_config
         if os.path.isdir(uvblavg_parm_file):
             if sw.band == "L" and sw.bandwidth < 200e6:
-                log.info("Using parameter files for narrow {}-band".format(band))
-                uvblavg_parm_file = os.path.join(uvblavg_parm_file, f"uvblavg_narrow_{band}.yaml")
-        else:
-            log.info("Using parameter files for wide {}-band".format(band))
-            uvblavg_parm_file = os.path.join(uvblavg_parm_file, f"uvblavg_{band}.yaml")
-        log.info("UVBlAvg parameter file for %s-band: %s", band, uvblavg_parm_file)
+                log.info("Using parameter files for narrow {}-band".format(sw.band))
+                uvblavg_parm_file = pjoin(uvblavg_parm_file,
+                                          f"uvblavg_narrow_{sw.band}.yaml")
+            else:
+                log.info("Using parameter files for wide {}-band".format(sw.band))
+                uvblavg_parm_file = pjoin(uvblavg_parm_file,
+                                          f"uvblavg_{sw.band}.yaml")
+        log.info("UVBlAvg parameter file for %s-band: %s", sw.band, uvblavg_parm_file)
 
         # Get defaults for uvblavg and mfimage and merge user supplied ones
         uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
-
-    # Get the default config.
-    dc = kc.get_config()
 
     # capture_block_id is used to generate AIPS disk filenames
     capture_block_id = katdata.obs_params['capture_block_id']
@@ -100,9 +103,9 @@ def main():
     setup_aips_disks()
     # Default file name = capture_block_id
     aname = args.aname if args.aname else capture_block_id
-    # AIPS disk is always disk 1 in this script, seq will be next available
+    # AIPS disk is always disk 1 in this script, default seq will be next available
     out_file = AIPSPath(aname, disk=1, aclass=args.aclass,
-                        seq=0, atype='UV', dtype='AIPS')
+                        seq=args.aseq, atype='UV', dtype='AIPS')
 
     # Set up a pipeline and run it
     pipeline = pipeline_factory('continuum_export', katdata,

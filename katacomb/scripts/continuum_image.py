@@ -10,10 +10,11 @@ from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
-                           apply_user_mask,
                            katdal_options,
                            export_options,
-                           imaging_options)
+                           selection_options,
+                           imaging_options,
+                           setup_selection)
 
 
 log = logging.getLogger('katacomb')
@@ -78,6 +79,7 @@ def main():
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
 
+    band = katdata.spectral_windows[katdata.spw].band
     # Get frequencies and convert them to MHz
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth

@@ -18,7 +18,7 @@ from katacomb import (KatdalAdapter, obit_context, AIPSPath,
                       export_calibration_solutions,
                       export_clean_components,
                       export_images)
-from katacomb.aips_path import next_seq_nr
+from katacomb.aips_path import next_seq_nr, path_exists
 from katacomb.util import (fractional_bandwidth,
                            log_obit_err)
 import katacomb.configuration as kc
@@ -299,6 +299,15 @@ class PipelineImplementation(Pipeline):
                 log.info("Zapping '%s'", imf.aips_path)
                 imf.Zap()
 
+    def _get_merge_default(self):
+        """Generate a default AIPS path for a merge file.
+
+        Usually <CBID>.merge.UV.1 on AIPS 1.
+        """
+        uv_mp = self.ka.aips_path(aclass='merge', name=kc.get_config()['cb_id'])
+        # Find the highest available sequence number
+        return uv_mp.copy(seq=next_seq_nr(uv_mp))
+
 
 class KatdalPipelineImplementation(PipelineImplementation):
     """
@@ -397,7 +406,8 @@ class KatdalPipelineImplementation(PipelineImplementation):
             raise ValueError("merge and averaged FQ rows "
                              "differ as follows\n:%s" % pretty(diff))
 
-    def _maybe_create_merge_uvf(self, merge_uvf, blavg_uvf, global_table_cmds):
+    def _maybe_create_merge_uvf(self, merge_uvf, merge_path,
+                                blavg_uvf, global_table_cmds):
         """
         Create the merge file if it hasn't yet been created,
         conditioning it with the baseline averaged file
@@ -417,7 +427,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
         blavg_desc = blavg_uvf.Desc.Dict
 
-        log.info("Creating '%s'",  self.uv_merge_path)
+        log.info("Creating '%s'",  merge_path)
 
         # Use the FQ table rows and keywords to create
         # the merge UV file.
@@ -431,7 +441,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
         fq_cmd["rows"] = blavg_fq_rows
 
         # Create the UV object
-        merge_uvf = uv_factory(aips_path=self.uv_merge_path,
+        merge_uvf = uv_factory(aips_path=merge_path,
                                mode="w",
                                nvispio=self.nvispio,
                                table_cmds=blavg_table_cmds,
@@ -548,24 +558,22 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
         return result_tuple
 
-    def _export_and_merge_scans(self):
+    def _export_and_merge_scans(self, merge_path):
         """
         1. Read scans from katdal
         2. Export scan data to an AIPS UV file
         3. Baseline average the file.
         4. Merge averaged AIPS UV file into a merge UV file.
+
+        Parameters
+        ==========
+        merge_path : :class:`AIPSPath`
+            The aips path of the desired output file
         """
 
         # The merged UV observation file. We wait until
         # we have a baseline averaged file with which to condition it
         merge_uvf = None
-
-        # Use self.uv_merge_path if it is already defined
-        # Otherwise set up merge_path with defaults
-        if not hasattr(self, 'uv_merge_path'):
-            # Otherwise set up merge_path with defaults
-            uv_mp = self.ka.aips_path(aclass='merge', name=kc.get_config()['cb_id'])
-            self.uv_merge_path = uv_mp.copy(seq=next_seq_nr(uv_mp))
 
         global_desc = self.ka.uv_descriptor()
         global_table_cmds = self.ka.default_table_cmds()
@@ -585,7 +593,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
             # Select the current scan
             self.ka.select(scans=si)
             # Get path, with sequence based on scan index
-            scan_path = self.uv_merge_path.copy(aclass='raw', seq=int(si))
+            scan_path = merge_path.copy(aclass='raw', seq=int(si))
             # Get the AIPS source for logging purposes
             aips_source = self.ka.catalogue[self.ka.target_indices[0]]
             aips_source_name = aips_source["SOURCE"][0].strip()
@@ -625,8 +633,8 @@ class KatdalPipelineImplementation(PipelineImplementation):
                                        nvispio=self.nvispio)
 
             # Create the merge UV file, if necessary
-            merge_uvf = self._maybe_create_merge_uvf(merge_uvf, blavg_uvf,
-                                                     global_table_cmds)
+            merge_uvf = self._maybe_create_merge_uvf(merge_uvf, merge_path,
+                                                     blavg_uvf, global_table_cmds)
 
             blavg_nvis = blavg_uvf.nvis_from_NX()
             merge_blavg_nvis += blavg_nvis
@@ -646,7 +654,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                 merge_uvf.append_history(blavg_history)
 
             if blavg_nvis > 0:
-                log.info("Merging '%s' into '%s'", blavg_path, self.uv_merge_path)
+                log.info("Merging '%s' into '%s'", blavg_path, merge_path)
                 merge_firstVis = self._copy_scan_to_merge(merge_firstVis,
                                                           merge_uvf, blavg_uvf,
                                                           nx_row)
@@ -674,7 +682,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 
         if merge_blavg_nvis == 0:
             log.error("Final merged file '%s' has ZERO averaged visibilities",
-                      self.uv_merge_path)
+                      merge_path)
         # Write the index table
         merge_uvf.tables["AIPS NX"].write()
 
@@ -715,7 +723,9 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         self.uvblavg_params = uvblavg_params
         self.nvispio = nvispio
         self.merge_scans = merge_scans
-        self.uv_merge_path = out_path
+        self.out_path = out_path
+        # Always get rid of scan and avgscan files
+        self.clobber = ['scans', 'avgscans']
 
     def __enter__(self):
         return self
@@ -726,14 +736,21 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         self._cleanup()
 
     def execute_implementation(self):
-        # Get a default uv_merge_path with an unused seq number
-        self.uv_merge_path =  self.uv_merge_path.copy(seq=next_seq_nr(self.uv_merge_path))
-        log.info('Exporting visibility data to %s', self.uv_merge_path)
+        desired_seq = self.out_path.seq
+        self.out_path
+        if desired_seq == 0:
+            # Get a default uv_merge_path with an unused seq number
+            self.out_path = self.out_path.copy(seq=next_seq_nr(self.out_path))
+        # Make sure our desired output file doesn't already exist
+        if path_exists(self.out_path):
+            raise FileExistsError(f"Desired output path {self.out_path} already exists.")
+        log.info('Exporting visibility data to %s', self.out_path)
         self._select_and_infer_files()
-        self._export_and_merge_scans()
-        log.info('Finished exporting visibility data to %s', self.uv_merge_path)
-        uv = uv_factory(aips_path=self.uv_merge_path)
+        nvis = self._export_and_merge_scans(self.out_path)
+        log.info('Exported %d visibilities to %s', nvis, self.out_path)
+        uv = uv_factory(aips_path=self.out_path)
         uv.log_header()
+
 
 @register_workmode('online')
 class OnlinePipeline(KatdalPipelineImplementation):
@@ -782,15 +799,16 @@ class OnlinePipeline(KatdalPipelineImplementation):
     def execute_implementation(self):
         result_tuple = self._select_and_infer_files()
         uv_sources, target_indices, uv_files, clean_files = result_tuple
-        merge_nvis = self._export_and_merge_scans()
-        self.cleanup_uv_files.append(self.uv_merge_path)
+        merge_path = self._get_merge_default()
+        merge_nvis = self._export_and_merge_scans(merge_path)
+        self.cleanup_uv_files.append(merge_path)
 
         log.info('There are %s visibilities in the merged file', merge_nvis)
         # If no visibilities to image then abort
         if merge_nvis < 1:
             return {}
         else:
-            self._run_mfimage(self.uv_merge_path, uv_sources)
+            self._run_mfimage(merge_path, uv_sources)
             self.cleanup_uv_files += uv_files
             self.cleanup_img_files += clean_files
 
@@ -915,22 +933,23 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
                                  (kc.get_config()['aipsdirs'][self.disk - 1][-1]))
             else:
                 # Get the AIPS entry of the UV data to reuse
-                self.uv_merge_path = uv_mp.copy(seq=hiseq)
+                merge_path = uv_mp.copy(seq=hiseq)
                 log.info("Re-using UV data in '%s' from AIPS disk: '%s'",
-                         self.uv_merge_path, kc.get_config()['aipsdirs'][self.disk - 1][-1])
-                merge_uvf = uv_factory(aips_path=self.uv_merge_path, mode='r',
+                         merge_path, kc.get_config()['aipsdirs'][self.disk - 1][-1])
+                merge_uvf = uv_factory(aips_path=merge_path, mode='r',
                                        nvispio=self.nvispio)
 
                 merge_nvis = merge_uvf.nvis_from_NX()
         else:
-            merge_nvis = self._export_and_merge_scans()
+            merge_path = self._get_merge_default()
+            merge_nvis = self._export_and_merge_scans(merge_path)
         if "merge" in self.clobber:
-            self.cleanup_uv_files.append(self.uv_merge_path)
+            self.cleanup_uv_files.append(merge_path)
         log.info('There are %s visibilities in the merged file', merge_nvis)
         if merge_nvis < 1:
             return {}
         else:
-            self._run_mfimage(self.uv_merge_path, uv_sources)
+            self._run_mfimage(merge_path, uv_sources)
 
             self._get_wavg_img(clean_files)
             for uv, clean in zip(uv_files, clean_files):

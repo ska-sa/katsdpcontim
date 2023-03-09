@@ -86,7 +86,6 @@ def log_obit_err(logger, istask=True):
             return
         log.info(msg)
 
-
     original = sys.stdout
     # Is this an Obit task? Otherwise likely something like uv.Header()
     if istask:
@@ -655,13 +654,13 @@ def selection_options(parser):
                        "--targets",
                        default=None,
                        type=str,
-                       help="Comma separated list of target names to image. "
+                       help="Comma separated list of target names to copy. "
                             "Default: All targets")
     group.add_argument("-c",
                        "--channels",
                        default=None,
                        type=lambda s: map(int, s.split(",")),
-                       help="Range of channels to image, must be of the form <start>,<end>. "
+                       help="Range of channels to use, must be of the form <start>,<end>. "
                             "Default: Image all (unmasked) channels.")
     group.add_argument("--pols",
                        default="HH,VV,HV,VH",
@@ -676,6 +675,7 @@ def selection_options(parser):
                             "to flag for all times. Must have the same number "
                             "of channels as the input dataset. "
                             "Default: No mask")
+
 
 def setup_selection(katdata, args):
     """Return a Dict of katdal select options based on selection args"""
