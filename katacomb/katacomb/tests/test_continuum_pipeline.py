@@ -20,7 +20,7 @@ from katacomb.aips_export import (fit_flux_model,
                                   obit_flux_model,
                                   _massage_gains,
                                   AIPS_NAN, NP_NAN)
-from katacomb.aips_path import AIPSPath
+from katacomb.aips_path import AIPSPath, path_exists
 from katacomb.continuum_pipeline import IMG_CLASS
 from katacomb.katdal_adapter import CORR_ID_MAP
 from katacomb.mock_dataset import (MockDataSet,
@@ -243,6 +243,105 @@ class TestOfflinePipeline(unittest.TestCase):
 
         # Remove the tmp/FITS dir
         shutil.rmtree(fits_area)
+
+
+class TestUVExportPipeline(unittest.TestCase):
+    def setUp(self):
+        self.nchan = 32
+        self.spws = [{
+            'centre_freq': .856e9 + .856e9 / 2.,
+            'num_chans': self.nchan,
+            'channel_width': .856e9 / self.nchan,
+            'sideband': 1,
+            'band': 'L'}]
+
+        target = katpoint.Target('Lohengrin, radec, 100, -35')
+        self.scans = [('track', 3, target),
+                      ('slew', 1, target),
+                      ('track', 3, target)]
+        select = {
+            'scans': 'track',
+            'corrprods': 'cross',
+            'pol': 'HH,VV',
+            'channels': slice(0, self.nchan), }
+        assign_str = '; '.join('%s=%s' % (k, repr(v)) for k, v in select.items())
+        self.select = parse_python_assigns(assign_str)
+
+    def test_uv_export_pipeline(self):
+        """Test the UV export pipeline"""
+
+        # Create Mock dataset and wrap it in a KatdalAdapter
+        ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
+                         subarrays=DEFAULT_SUBARRAYS,
+                         spws=self.spws,
+                         dumps=self.scans)
+
+        # Create a scratch aipsdisk
+        adisk = os.path.join(os.sep, 'tmp', 'aipsscratch')
+        disk = [(None, adisk)]
+        config = kc.get_config()
+        config['aipsdirs'] = disk
+        kc.set_config(config)
+        setup_aips_disks()
+
+        # Make an output file with seq=1
+        out_file = AIPSPath('testdummy', disk=1, aclass='crash',
+                            seq=1, atype='UV', dtype='AIPS')
+
+        # Make sure it isn't there
+        with obit_context():
+            self.assertFalse(path_exists(out_file))
+
+        # Create a pipeline that just copies the UV data to disk
+        pipeline = pipeline_factory('continuum_export', ds,
+                                    katdal_select=self.select,
+                                    uvblavg_params={},
+                                    merge_scans=True,
+                                    nvispio=1024,
+                                    out_path=out_file)
+
+        pipeline.execute()
+
+        # Check our file has been created
+        with obit_context():
+            self.assertTrue(path_exists(out_file))
+
+        # Try and export the file again to make sure it won't
+        # overwrite the original file
+        self.assertRaises(FileExistsError, pipeline.execute)
+
+        # Make sure the default file works as expected
+        pipeline = pipeline_factory('continuum_export', ds,
+                                    katdal_select=self.select,
+                                    uvblavg_params={},
+                                    merge_scans=True,
+                                    nvispio=1024,
+                                    out_path=None)
+
+        pipeline.execute()
+
+        # Default path when out_path=None
+        default_path = AIPSPath(kc.get_config()['cb_id'],
+                                aclass='merge')
+        with obit_context():
+            self.assertTrue(path_exists(default_path))
+
+        # Do it again and default seq should be 2
+        default_path2 = default_path.copy(seq=2)
+        with obit_context():
+            self.assertFalse(path_exists(default_path2))
+        pipeline = pipeline_factory('continuum_export', ds,
+                                    katdal_select=self.select,
+                                    uvblavg_params={},
+                                    merge_scans=True,
+                                    nvispio=1024,
+                                    out_path=None)
+        pipeline.execute()
+        with obit_context():
+            self.assertTrue(path_exists(default_path2))
+
+        # Clean up the scratch aips space
+        shutil.rmtree(adisk)
 
 
 class TestOnlinePipeline(unittest.TestCase):

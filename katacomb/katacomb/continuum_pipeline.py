@@ -736,8 +736,10 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         self._cleanup()
 
     def execute_implementation(self):
+        # Get the default out path if required
+        if self.out_path is None:
+            self.out_path = self._get_merge_default()
         desired_seq = self.out_path.seq
-        self.out_path
         if desired_seq == 0:
             # Get a default uv_merge_path with an unused seq number
             self.out_path = self.out_path.copy(seq=next_seq_nr(self.out_path))
