@@ -9,14 +9,16 @@ from astropy.io import fits
 from astropy.modeling import models
 from unittest import mock
 
-from katacomb import (make_pbeam_images, make_qa_report,
-                      normalise_target_name, organise_qa_output)
+from katacomb import normalise_target_name
 from katacomb.aips_export import (_update_target_metadata,
                                   _metadata,
                                   FITS_EXT,
                                   PNG_EXT,
                                   METADATA_JSON)
 from katacomb.mock_dataset import MockDataSet
+from katacomb.qa_report import (make_pbeam_images,
+                                make_qa_report,
+                                organise_qa_output)
 
 HDR_KEYS = {'NAXIS': 4,
             'NAXIS1': 100,
