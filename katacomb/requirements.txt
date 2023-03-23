@@ -25,6 +25,6 @@ uncertainties == 3.1.4 # for MeerKAT-continuum-validation
 katbeam @ git+https://github.com/ska-sa/katbeam  # for katsdpimageutils
 katdal[s3credentials] @ git+https://github.com/ska-sa/katdal
 katpoint @ git+https://github.com/ska-sa/katpoint
-katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils@optimise_pbcor
+katsdpimageutils @ git+https://github.com/ska-sa/katsdpimageutils
 katsdpservices @ git+https://github.com/ska-sa/katsdpservices
 katsdptelstate @ git+https://github.com/ska-sa/katsdptelstate
