@@ -54,7 +54,7 @@ def create_parser():
                         help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
                              "will be placed here for each target. Default: %(default)s")
 
-    parser.add_argument("--nvispio", default=10240, type=int,
+    parser.add_argument("--nvispio", default=1024, type=int,
                         help="Number of visibilities per write when copying data from archive. "
                              "Default: %(default)s")
 

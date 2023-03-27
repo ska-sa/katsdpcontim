@@ -74,7 +74,7 @@ def create_parser():
                              "and metadata dictionary. "
                              "Default: %(default)s")
 
-    parser.add_argument("--nvispio", default=10240, type=int,
+    parser.add_argument("--nvispio", default=1024, type=int,
                         help="Number of visibilities per write when "
                              "copying data from archive. "
                              "Default: %(default)s")
