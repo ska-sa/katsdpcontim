@@ -69,14 +69,13 @@ def create_parser():
     TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
 
     parser.add_argument("-ba", "--uvblavg",
-                        default="avgFreq=1; chAvg=4",
+                        default="",
                         type=log_exception(log)(parse_python_assigns),
                         help="UVBlAvg task parameter assignment statement. "
                              "Should only contain python "
                              "assignment statements to python "
                              "literals, separated by semi-colons. "
-                             "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
-                             "Default: %(default)s")
+                             "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. ")
 
     parser.add_argument("--uvblavg-config",
                         default="",
