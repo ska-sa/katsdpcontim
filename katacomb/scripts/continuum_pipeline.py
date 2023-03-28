@@ -24,15 +24,16 @@ from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
-from katacomb import (pipeline_factory, aips_ant_nr,
-                      make_pbeam_images, make_qa_report,
-                      organise_qa_output)
+from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (parse_python_assigns,
                            recursive_merge,
                            get_and_merge_args,
                            log_exception,
                            post_process_args,
                            setup_aips_disks)
+from katacomb.qa_report import (make_pbeam_images,
+                                make_qa_report,
+                                organise_qa_output)
 
 log = logging.getLogger('katacomb')
 # Tag to append to the output directory while the pipeline runs
