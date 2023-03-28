@@ -25,8 +25,7 @@ from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
 from katacomb import pipeline_factory, aips_ant_nr
-from katacomb.util import (parse_python_assigns,
-                           recursive_merge,
+from katacomb.util import (recursive_merge,
                            get_and_merge_args,
                            post_process_args,
                            setup_aips_disks,
