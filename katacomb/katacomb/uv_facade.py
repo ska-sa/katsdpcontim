@@ -14,6 +14,7 @@ from katacomb import (AIPSTable,
                       AIPSPath,
                       obit_err,
                       handle_obit_err)
+from katacomb.util import log_obit_err
 
 log = logging.getLogger('katacomb')
 
@@ -536,3 +537,11 @@ class UVFacade(object):
             raise Exception(err_msg)
 
         handle_obit_err(err_msg, self._err)
+
+    def log_header(self):
+        """Log header info."""
+        log.info('==============')
+        log.info('AIPS UV Header')
+        log.info('==============')
+        with log_obit_err(log, istask=False):
+            self._uv.Header(self._err)

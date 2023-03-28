@@ -7,12 +7,14 @@ import katdal
 
 import katacomb.configuration as kc
 from katacomb import pipeline_factory, aips_ant_nr
-from katacomb.util import (log_exception,
-                           parse_python_assigns,
-                           get_and_merge_args,
+from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
-                           apply_user_mask)
+                           katdal_options,
+                           export_options,
+                           selection_options,
+                           imaging_options,
+                           setup_selection)
 
 
 log = logging.getLogger('katacomb')
@@ -27,136 +29,42 @@ def configure_logging(args):
 
 
 def create_parser():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("katdata",
-                        help="Katdal observation reference.")
-
-    parser.add_argument("-a", "--applycal",
-                        default="l1", type=str,
-                        help="Apply calibration solutions to visibilities "
-                             "before imaging. The list of desired solutions "
-                             "is comma separated and each takes the form "
-                             "'stream'.'product' where 'stream' is either of "
-                             "'l1' (cal) or 'l2' (self-cal) and product is "
-                             "one of 'K','G','B' for l1 and 'GPHASE', 'GAMP_PHASE' "
-                             "for l2. You can also select 'default' (Apply l1.K, l1.G, l1.B "
-                             "and l2.GPHASE) or 'all' (Apply all available solutions). "
-                             "Default: %(default)s")
-
-    parser.add_argument("-w", "--workdir",
-                        default=os.path.join(os.sep, 'scratch'), type=str,
+    parser = argparse.ArgumentParser(description="MeerKAT offline continuum pipeline.")
+    parser.add_argument("katdata", help="Katdal observation reference.")
+    parser.add_argument("-w",
+                        "--workdir",
+                        default=os.path.join(os.sep, "scratch"),
+                        type=str,
                         help="Location of scratch space. An AIPS disk "
                              "will be created in this space. Default: %(default)s")
-
-    parser.add_argument("-o", "--outputdir",
-                        default=os.path.join(os.sep, 'scratch'), type=str,
-                        help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
-                             "will be placed here for each target. Default: %(default)s")
-
-    parser.add_argument("--nvispio", default=10240, type=int,
-                        help="Number of visibilities per write when copying data from archive. "
-                             "Default: %(default)s")
-
-    parser.add_argument("-t", "--targets", default=None, type=str,
-                        help="Comma separated list of target names to image. "
-                             "Default: All targets")
-
-    parser.add_argument("-c", "--channels", default=None, type=lambda s: map(int, s.split(',')),
-                        help="Range of channels to image, must be of the form <start>,<end>. "
-                             "Default: Image all (unmasked) channels.")
-
-    TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
-
-    parser.add_argument("-ba", "--uvblavg",
-                        default="avgFreq=1; chAvg=4",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="UVBlAvg task parameter assignment statement. "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons. "
-                             "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
-                             "Default: %(default)s")
-
-    parser.add_argument("--uvblavg-config",
-                        default="",
+    parser.add_argument("-r",
+                        "--reuse",
+                        default=None,
                         type=str,
-                        help="Configuration yaml file for UVBlAvg. "
-                             "Default: %s" % os.path.join(os.sep, "obitconf",
-                                                          "uvblavg_<band>.yaml"))
-
-    parser.add_argument("-mf", "--mfimage",
-                        default="",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="MFImage task parameter assignment statement. "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons. "
-                             "See %s/MFImage.TDF for valid parameters. " % TDF_URL)
-
-    parser.add_argument("--mfimage-config",
-                        default="",
-                        type=str,
-                        help="Configuration yaml file for MFImage. "
-                             "Default: %s" % os.path.join(os.sep, "obitconf",
-                                                          "mfimage_<band>.yaml"))
-
-    parser.add_argument("--nif", default=8, type=int,
-                        help="Number of AIPS 'IFs' to equally subdivide the band. "
-                             "NOTE: Must divide the number of channels. "
-                             "Default: %(default)s")
-
-    parser.add_argument("--log-level", type=str, default="INFO",
-                        help='Logging level. Default: %(default)s')
-
-    parser.add_argument("--pols", default="HH,VV", type=str,
-                        help="Which polarisations to copy from the archive. "
-                             "Default: %(default)s")
-
-    parser.add_argument("-ks", "--select",
-                        default="scans='track'; corrprods='cross'",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="katdal select statement "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons.")
-
-    parser.add_argument("--open-args", default="",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="kwargs to pass to katdal.open() "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons.")
-
+                        help="Location of AIPS disk from which to read UV "
+                             "data. This will skip reading the UV data from "
+                             "the archive and no aipsdisk will be created in "
+                             "--workdir. "
+                             "Default: Read the UV data from the archive.")
     parser.add_argument("--clobber",
                         default="scans, avgscans",
-                        type=lambda s: set(v.strip() for v in s.split(',')),
+                        type=lambda s: set(v.strip() for v in s.split(",")),
                         help="Class of AIPS/Obit output files to clobber. "
                              "'scans' => Individual scans. "
                              "'avgscans' => Averaged individual scans. "
                              "'merge' => Observation file containing merged, "
                              "averaged scans. "
                              "'clean' => Output CLEAN files. "
-                             "'mfimage' => Output MFImage files.")
-
-    parser.add_argument("--prtlv", default=2, type=int,
-                        help="Integer between 0 and 5 indicating the desired "
-                             "verbosity of Obit tasks. 0=None 5=Maximum. "
+                             "'mfimage' => Output MFImage files. "
                              "Default: %(default)s")
-
-    parser.add_argument("-m", "--mask", default=None, type=str,
-                        help="Pickle file containing a static mask of channels "
-                             "to flag for all times. Must have the same number "
-                             "of channels as the input dataset. "
-                             "Default: No mask")
-
-    parser.add_argument("-r", "--reuse", default=None, type=str,
-                        help="Location of AIPS disk from which to read UV "
-                             "data. This will skip reading the UV data from "
-                             "the archive and no aipsdisk will be created in "
-                             "--workdir. "
-                             "Default: Read the UV data from the archive.")
-
+    parser.add_argument("--log-level",
+                        type=str,
+                        default="INFO",
+                        help="Logging level. Default: %(default)s")
+    katdal_options(parser)
+    selection_options(parser)
+    export_options(parser)
+    imaging_options(parser)
     return parser
 
 
@@ -165,63 +73,48 @@ def main():
     args = parser.parse_args()
     configure_logging(args)
     log.info("Reading data with applycal=%s", args.applycal)
-    katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_args)
+    katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
 
-    # Apply the supplied mask to the flags
-    if args.mask:
-        apply_user_mask(katdata, args.mask)
+    kat_select = setup_selection(katdata, args)
+    # Command line katdal selection overrides command line options
+    kat_select = recursive_merge(args.select, kat_select)
+
+    band = katdata.spectral_windows[katdata.spw].band
     # Get frequencies and convert them to MHz
     freqs = katdata.freqs/1e6
     # Condition to check if the observation is narrow based on the bandwidth
     bandwidth = freqs[-1] - freqs[0]
     cond_50mhz = 0 < bandwidth < 100  # 50MHz
     cond_100mhz = 100 < bandwidth < 200  # 100MHz
-    # Set up katdal selection based on arguments
-    kat_select = {'pol': args.pols}
-    # Get band
-    band = katdata.spectral_windows[katdata.spw].band
-    # Set number of nif to 2 for narrowband
-    if band == 'L' and cond_50mhz or cond_100mhz:
-        kat_select['nif'] = 2
-    else:
-        kat_select['nif'] = args.nif
-
-    if args.targets:
-        kat_select['targets'] = args.targets
-    if args.channels:
-        start_chan, end_chan = args.channels
-        kat_select['channels'] = slice(start_chan, end_chan)
-
-    # Command line katdal selection overrides command line options
-    kat_select = recursive_merge(args.select, kat_select)
 
     # Determine default .yaml files
     uvblavg_parm_file = args.uvblavg_config
-    if not uvblavg_parm_file:
-        if band == 'L' and cond_50mhz or cond_100mhz:
-            log.info('Using parameter files for narrow {}-band'.format(band))
-            uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_narrow_{band}.yaml")
-            log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+    if os.path.isdir(uvblavg_parm_file):
+        if band == "L" and cond_50mhz or cond_100mhz:
+            log.info("Using parameter files for narrow {}-band".format(band))
+            uvblavg_parm_file = os.path.join(
+                uvblavg_parm_file, f"uvblavg_narrow_{band}.yaml"
+            )
         else:
-            log.info('Using parameter files for wide {}-band'.format(band))
-            uvblavg_parm_file = os.path.join(os.sep, "obitconf", f"uvblavg_{band}.yaml")
-            log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
+            log.info("Using parameter files for wide {}-band".format(band))
+            uvblavg_parm_file = os.path.join(uvblavg_parm_file, f"uvblavg_{band}.yaml")
+    log.info("UVBlAvg parameter file for %s-band: %s", band, uvblavg_parm_file)
     mfimage_parm_file = args.mfimage_config
-    if not mfimage_parm_file:
-        if band == 'L' and cond_50mhz:
-            log.info('Using parameter files for narrow {}-band'.format(band))
-            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_narrow50mhz_{band}.yaml")
-            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
-        if band == 'L' and cond_100mhz:
-            log.info('Using parameter files for narrow {}-band'.format(band))
-            mfimage_parm_file = os.path.join(os.sep, "obitconf",
-                                             f"mfimage_narrow100mhz_{band}.yaml")
-            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+    if os.path.isdir(mfimage_parm_file):
+        if band == "L" and cond_50mhz:
+            log.info("Using parameter files for narrow {}-band".format(band))
+            mfimage_parm_file = os.path.join(
+                mfimage_parm_file, f"mfimage_narrow50mhz_{band}.yaml"
+            )
+        if band == "L" and cond_100mhz:
+            log.info("Using parameter files for narrow {}-band".format(band))
+            mfimage_parm_file = os.path.join(
+                mfimage_parm_file, f"mfimage_narrow100mhz_{band}.yaml"
+            )
         else:
-            log.info('Using parameter files for wide {}-band'.format(band))
-            mfimage_parm_file = os.path.join(os.sep, "obitconf", f"mfimage_{band}.yaml")
-            log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
-
+            log.info("Using parameter files for wide {}-band".format(band))
+            mfimage_parm_file = os.path.join(mfimage_parm_file, f"mfimage_{band}.yaml")
+    log.info("MFImage parameter file for %s-band: %s", band, mfimage_parm_file)
     # Get defaults for uvblavg and mfimage and merge user supplied ones
     uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
     mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
