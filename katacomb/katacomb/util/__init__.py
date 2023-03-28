@@ -663,7 +663,7 @@ def selection_options(parser):
                        help="Range of channels to use, must be of the form <start>,<end>. "
                             "Default: Image all (unmasked) channels.")
     group.add_argument("--pols",
-                       default="HH,VV,HV,VH",
+                       default="HH,VV",
                        type=str,
                        help="Which polarisations to copy from the archive. "
                             "Default: %(default)s")
