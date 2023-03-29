@@ -13,7 +13,8 @@ import dask.array as da
 import numpy as np
 
 import katacomb.configuration as kc
-from katacomb import obit_config_from_aips
+from katacomb import (obit_config_from_aips,
+                      parameter_dir)
 
 from katdal.flags import STATIC
 
@@ -47,7 +48,7 @@ OBIT_TO_LOG = {
 OBIT_LOG_PREAMBLE_LEN = 23
 TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
 # Default location of MFImage and UVBlavg yaml configurations
-CONFIG = os.path.join(os.sep, "obitconf")
+CONFIG = parameter_dir
 
 
 @contextlib.contextmanager
@@ -594,7 +595,7 @@ def export_options(parser):
         type=str,
         help="Either a configuration yaml file for UVBlAvg "
         "or a path to which an appropriate file can be found. "
-        "Default: Appropriate file from %s" % CONFIG
+        "Default: Appropriate file from katacomb/conf/parameters"
     )
     group.add_argument(
         "--nif",
@@ -627,7 +628,7 @@ def imaging_options(parser):
         type=str,
         help="Either a configuration yaml file for MFImage "
         "or a path to which an approriate file can be found. "
-        "Default: Appropriate file from %s" % CONFIG
+        "Default: Appropriate file from katacomb/conf/parameters"
     )
     group.add_argument(
         "--prtlv",

@@ -39,5 +39,5 @@ setup(name=PKG,
                         'scipy'],
       scripts=glob(pjoin('scripts', '*.py')),
       packages=find_packages(),
-      package_data={PKG: [pjoin('conf', '*.in')]},
+      package_data={'': ['conf/*/*']},
       use_katversion=True)

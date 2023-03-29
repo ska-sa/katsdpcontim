@@ -1,4 +1,9 @@
 # flake8: noqa F401
+from pkg_resources import resource_filename
+
+parameter_dir = resource_filename(__name__, 'conf/parameters')
+fits_dir = resource_filename(__name__, 'conf/FITS')
+
 from .obit_context import (obit_context,
                            obit_err,
                            obit_sys,
