@@ -24,118 +24,81 @@ from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
-from katacomb import (pipeline_factory, aips_ant_nr,
-                      make_pbeam_images, make_qa_report,
-                      organise_qa_output)
-from katacomb.util import (parse_python_assigns,
-                           recursive_merge,
+from katacomb import pipeline_factory, aips_ant_nr
+from katacomb.util import (recursive_merge,
                            get_and_merge_args,
-                           log_exception,
                            post_process_args,
-                           setup_aips_disks)
+                           setup_aips_disks,
+                           katdal_options,
+                           export_options,
+                           imaging_options)
+from katacomb.qa_report import (make_pbeam_images,
+                                make_qa_report,
+                                organise_qa_output)
 
 log = logging.getLogger('katacomb')
 # Tag to append to the output directory while the pipeline runs
 WRITE_TAG = '.writing'
 OUTDIR_SEPARATOR = '_'
 START_TIME = '%d' % (int(time.time()*1000))
-# Location of mfimage and uvblavg yaml configurations
-CONFIG = '/obitconf'
 # Minimum Walltime in sec. and extra time padding for MFImage
 MINRUNTIME = 3. * 3600.
 RUNTIME_PAD = 1.0
 
 
 def create_parser():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("katdata",
-                        help="Katdal observation file")
-
+    parser = argparse.ArgumentParser(description='MeerKAT online continuum pipeline.')
+    parser.add_argument('katdata',
+                        help='Katdal observation reference')
     parser.add_argument('--access-key',
                         help='S3 access key to access the data')
-
     parser.add_argument('--secret-key',
                         help='S3 secret key to access the data')
-
     parser.add_argument('--token',
-                        help='JWT to access the MeerKAT archive')
-
-    parser.add_argument("-w", "--workdir",
-                        default=pjoin(os.sep, 'scratch'), type=str,
-                        help="Location of scratch space. An AIPS disk "
-                             "will be created in this space. "
-                             "Default: %(default)s")
-
-    parser.add_argument("-o", "--outputdir",
-                        default=pjoin(os.sep, 'var', os.sep, 'kat', os.sep, 'data'),
+                        help="JWT to access the MeerKAT archive")
+    parser.add_argument('-w',
+                        '--workdir',
+                        default=pjoin(os.sep, 'scratch'),
                         type=str,
-                        help="Location to store output FITS, PNG files "
-                             "and metadata dictionary. "
-                             "Default: %(default)s")
-
-    parser.add_argument("--nvispio", default=1024, type=int,
-                        help="Number of visibilities per write when "
-                             "copying data from archive. "
-                             "Default: %(default)s")
-
-    parser.add_argument("-cbid", "--capture-block-id",
-                        default=None, type=str,
-                        help="Capture Block ID. Unique identifier "
-                             "for the observation on which the "
-                             "continuum pipeline is run. "
-                             "Default: Infer it from the katdal dataset.")
-
-    parser.add_argument("-ts", "--telstate",
-                        default='', type=str,
+                        help='Location of scratch space. An AIPS disk '
+                             'will be created in this space. '
+                             'Default: %(default)s')
+    parser.add_argument('-cbid',
+                        '--capture-block-id',
+                        default=None,
+                        type=str,
+                        help='Capture Block ID. Unique identifier '
+                             'for the observation on which the '
+                             'continuum pipeline is run. '
+                             'Default: Infer it from the katdal dataset.')
+    parser.add_argument("-ts",
+                        "--telstate",
+                        default="",
+                        type=str,
                         help="Address of the telstate server. "
                              "Default: Use a local telstate server.")
-
-    parser.add_argument("-tsid", "--telstate-id",
-                        default=None, type=str,
+    parser.add_argument("-tsid",
+                        "--telstate-id",
+                        default=None,
+                        type=str,
                         help="Namespace for output telescope "
                              "state keys (within the '-cbid' namespace). "
                              "Default: Value of --output-id")
-
-    parser.add_argument("-oid", "--output-id",
-                        default="continuum_image", type=str,
+    parser.add_argument("-oid",
+                        "--output-id",
+                        default="continuum_image",
+                        type=str,
                         help="Label the product of the continuum pipeline. "
                              "Used to generate FITS and PNG filenames. "
                              "Default: %(default)s")
+    katdal_options(parser)
+    export_options(parser)
+    imaging_options(parser)
+    parser.set_defaults(outputdir=pjoin(os.sep, "var", os.sep, "kat", os.sep, "data"),
+                        select="scans='track'; spw=0; corrprods='cross'",
+                        uvblavg="",
+                        applycal="l1")
 
-    parser.add_argument("-ks", "--select",
-                        default="scans='track'; spw=0; corrprods='cross'",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="katdal select statement "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons. "
-                             "Default: %(default)s")
-
-    TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
-
-    parser.add_argument("-ba", "--uvblavg",
-                        default="",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="UVBLAVG task parameter assignment statement. "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons. "
-                             "See %s/UVBlAvg.TDF for valid parameters. " % TDF_URL)
-
-    parser.add_argument("-mf", "--mfimage",
-                        default="",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="MFImage task parameter assignment statement. "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons. "
-                             "See %s/MFImage.TDF for valid parameters. " % TDF_URL)
-
-    parser.add_argument("--nif", default=8, type=int,
-                        help="Number of AIPS 'IFs' to equally subdivide the band. "
-                             "NOTE: Must divide the number of channels after any "
-                             "katdal selection. Default: %(default)s")
     return parser
 
 
@@ -177,18 +140,17 @@ def main():
     setup_logging()
     parser = create_parser()
     args = parser.parse_args()
-
     # Open the observation
     if (args.access_key is not None) != (args.secret_key is not None):
         parser.error('--access-key and --secret-key must be used together')
     if args.access_key is not None and args.token is not None:
         parser.error('--access-key/--secret-key cannot be used with --token')
-    open_kwargs = {}
+    open_kwargs = args.open_kwargs
     if args.access_key is not None:
         open_kwargs['credentials'] = (args.access_key, args.secret_key)
     elif args.token is not None:
         open_kwargs['token'] = args.token
-    katdata = katdal.open(args.katdata, applycal='l1', **open_kwargs)
+    katdata = katdal.open(args.katdata, applycal=args.applycal, **open_kwargs)
 
     post_process_args(args, katdata)
 
@@ -201,29 +163,42 @@ def main():
     cond_100mhz = 100 < bandwidth < 200  # 100MHz
     # Get config defaults for uvblavg and mfimage and merge user supplied ones
     # Check if the observation is L-band and narrrow.
-    if band == 'L' and cond_50mhz:
-        log.info('Using parameter files for narrow {}-band'.format(band))
-        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_narrow_{band}.yaml')
-        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
-        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow50mhz_{band}.yaml')
-        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
-    elif band == 'L' and cond_100mhz:
-        log.info('Using parameter files for narrow {}-band'.format(band))
-        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_narrow_{band}.yaml')
-        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
-        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_narrow100mhz_{band}.yaml')
-        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
-    else:
-        log.info('Using parameter files for wide {}-band'.format(band))
-        uvblavg_parm_file = pjoin(CONFIG, f'uvblavg_MKAT_{band}.yaml')
-        log.info('UVBlAvg parameter file for %s-band: %s', band, uvblavg_parm_file)
-        mfimage_parm_file = pjoin(CONFIG, f'mfimage_MKAT_{band}.yaml')
-        log.info('MFImage parameter file for %s-band: %s', band, mfimage_parm_file)
+    uvblavg_parm_file = args.uvblavg_config
+    if os.path.isdir(uvblavg_parm_file):
+        if band == "L" and cond_50mhz or cond_100mhz:
+            log.info("Using UVBlAvg parameter file for narrow {}-band".format(band))
+            uvblavg_parm_file = os.path.join(
+                uvblavg_parm_file, f"uvblavg_MKAT_narrow_{band}.yaml"
+            )
+        else:
+            log.info("Using UVBlAvg parameter files for wide {}-band".format(band))
+            uvblavg_parm_file = os.path.join(
+                uvblavg_parm_file, f"uvblavg_MKAT_{band}.yaml"
+            )
+    log.info("UVBlAvg parameter file for %s-band: %s", band, uvblavg_parm_file)
+    mfimage_parm_file = args.mfimage_config
+    if os.path.isdir(mfimage_parm_file):
+        if band == "L" and cond_50mhz:
+            log.info("Using MFImage parameter file for narrow {}-band".format(band))
+            mfimage_parm_file = os.path.join(
+                mfimage_parm_file, f"mfimage_MKAT_narrow50mhz_{band}.yaml"
+            )
+        if band == "L" and cond_100mhz:
+            log.info("Using MFImage parameter file for narrow {}-band".format(band))
+            mfimage_parm_file = os.path.join(
+                mfimage_parm_file, f"mfimage_MKAT_narrow100mhz_{band}.yaml"
+            )
+        else:
+            log.info("Using MFImage parameter file for wide {}-band".format(band))
+            mfimage_parm_file = os.path.join(
+                mfimage_parm_file, f"mfimage_MKAT_{band}.yaml"
+            )
+    log.info("MFImage parameter file for %s-band: %s", band, mfimage_parm_file)
 
     user_uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
     user_mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
 
-    # Merge katdal defaults with user supplied defaults
+    # Merge defaults with user supplied defaults
     recursive_merge(user_uvblavg_args, uvblavg_args)
     recursive_merge(user_mfimage_args, mfimage_args)
 

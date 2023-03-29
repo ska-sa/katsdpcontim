@@ -45,15 +45,18 @@ OBIT_TO_LOG = {
 }
 
 OBIT_LOG_PREAMBLE_LEN = 23
+TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
+# Default location of MFImage and UVBlavg yaml configurations
+CONFIG = os.path.join(os.sep, "obitconf")
 
 
 @contextlib.contextmanager
-def log_obit_err(logger):
+def log_obit_err(logger, istask=True):
     """ Trap Obit log messages written to stdout and send them to logger"""
 
-    def parse_obit_message(msg):
-        # Generate log entry from Obit error string
-        # All Obit logs have the form '<taskname>: <level> <timestamp> <message>\n'
+    def parse_obit_task_message(msg):
+        # Generate log entry from Obit error string from task
+        # All Obit task logs have the form '<taskname>: <level> <timestamp> <message>\n'
 
         # Ignore empty lines
         if not msg.strip():
@@ -75,8 +78,20 @@ def log_obit_err(logger):
         except KeyError:
             log.info(msg)
 
+    def parse_message(msg):
+        # For Obit log output that doesn't come from tasks
+        # Strip carriage returns (logging doesnt like them).
+        msg = msg.rstrip()
+        if not msg:
+            return
+        log.info(msg)
+
     original = sys.stdout
-    logger.write = parse_obit_message
+    # Is this an Obit task? Otherwise likely something like uv.Header()
+    if istask:
+        logger.write = parse_obit_task_message
+    else:
+        logger.write = parse_message
     # The go() method inside ObitTask needs sys.stdout.isatty
     logger.isatty = sys.stdout.isatty
     sys.stdout = logger
@@ -508,3 +523,177 @@ def apply_user_mask(kat_ds, mask_file):
     except Exception:
         log.exception('Unable to apply supplied mask file from: %s', mask_file)
         raise
+
+
+def katdal_options(parser):
+    """Add options to :class:ArgumentParser for katdal."""
+    group = parser.add_argument_group("katdal options")
+    group.add_argument(
+        "-a",
+        "--applycal",
+        default="l1",
+        type=str,
+        help="Apply calibration solutions to visibilities "
+        "before imaging. The list of desired solutions "
+        "is comma separated and each takes the form "
+        "'stream'.'product' where 'stream' is either of "
+        "'l1' (cal) or 'l2' (self-cal) and product is "
+        "one of 'K','G','B' for l1 and 'GPHASE', 'GAMP_PHASE' "
+        "for l2. You can also select 'default' (Apply l1.K, l1.G, l1.B "
+        "and l2.GPHASE) or 'all' (Apply all available solutions). "
+        "Default: %(default)s"
+    )
+    group.add_argument(
+        "-ks",
+        "--select",
+        default="scans='track'; corrprods='cross'",
+        type=log_exception(log)(parse_python_assigns),
+        help="katdal select statement "
+        "Should only contain python "
+        "assignment statements to python "
+        "literals, separated by semi-colons. "
+        "Default: %(default)s"
+    )
+    group.add_argument(
+        "--open-kwargs",
+        default="",
+        type=log_exception(log)(parse_python_assigns),
+        help="kwargs to pass to katdal.open() "
+        "Should only contain python "
+        "assignment statements to python "
+        "literals, separated by semi-colons. "
+        "Default: None"
+    )
+
+
+def export_options(parser):
+    """Add options to :class:ArgumentParser for data export to AIPS UV format."""
+    group = parser.add_argument_group("Data export options")
+    group.add_argument(
+        "--nvispio",
+        default=1024,
+        type=int,
+        help="Number of visibilities per write when copying data from archive. "
+        "Default: %(default)s"
+    )
+    group.add_argument(
+        "-ba",
+        "--uvblavg",
+        default="",
+        type=log_exception(log)(parse_python_assigns),
+        help="UVBlAvg task parameter assignment statement. "
+        "Should only contain python "
+        "assignment statements to python "
+        "literals, separated by semi-colons. "
+        "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
+        "Default: None"
+    )
+    group.add_argument(
+        "--uvblavg-config",
+        default=CONFIG,
+        type=str,
+        help="Either a configuration yaml file for UVBlAvg "
+        "or a path to which an appropriate file can be found. "
+        "Default: Appropriate file from %s" % CONFIG
+    )
+    group.add_argument(
+        "--nif",
+        default=8,
+        type=int,
+        help="Number of AIPS 'IFs' to equally subdivide the band. "
+        "NOTE: Must divide the number of channels after any "
+        "katdal selection. Default: %(default)s"
+    )
+
+
+def imaging_options(parser):
+    """Add options to :class:ArgumentParser for katsdpcontim imaging scripts."""
+    group = parser.add_argument_group("Imaging options")
+    group.add_argument(
+        "-mf",
+        "--mfimage",
+        default="",
+        type=log_exception(log)(parse_python_assigns),
+        help="MFImage task parameter assignment statement. "
+        "Should only contain python "
+        "assignment statements to python "
+        "literals, separated by semi-colons. "
+        "See " + TDF_URL + "/MFImage.TDF for valid parameters. "
+        "Default: None"
+    )
+    group.add_argument(
+        "--mfimage-config",
+        default=CONFIG,
+        type=str,
+        help="Either a configuration yaml file for MFImage "
+        "or a path to which an approriate file can be found. "
+        "Default: Appropriate file from %s" % CONFIG
+    )
+    group.add_argument(
+        "--prtlv",
+        default=2,
+        type=int,
+        help="Integer between 0 and 5 indicating the desired "
+        "verbosity of MFImage. 0=None 5=Maximum. "
+        "Default: %(default)s"
+    )
+    group.add_argument(
+        "-o",
+        "--outputdir",
+        default=os.path.join(os.sep, "scratch"),
+        type=str,
+        help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
+        "will be placed here for each target. Default: %(default)s"
+    )
+
+
+def selection_options(parser):
+    """Add options to :class:ArgumentParser for data selection and masking options."""
+    group = parser.add_argument_group("Data selection options")
+    group.add_argument("-t",
+                       "--targets",
+                       default=None,
+                       type=str,
+                       help="Comma separated list of target names to copy. "
+                            "Default: All targets")
+    group.add_argument("-c",
+                       "--channels",
+                       default=None,
+                       type=lambda s: map(int, s.split(",")),
+                       help="Range of channels to use, must be of the form <start>,<end>. "
+                            "Default: Image all (unmasked) channels.")
+    group.add_argument("--pols",
+                       default="HH,VV",
+                       type=str,
+                       help="Which polarisations to copy from the archive. "
+                            "Default: %(default)s")
+    group.add_argument("-m",
+                       "--mask",
+                       default=None,
+                       type=str,
+                       help="Pickle file containing a static mask of channels "
+                            "to flag for all times. Must have the same number "
+                            "of channels as the input dataset. "
+                            "Default: No mask")
+
+
+def setup_selection(katdata, args):
+    """Return a Dict of katdal select options based on selection args"""
+    # Apply the supplied mask to the flags
+    if args.mask:
+        apply_user_mask(katdata, args.mask)
+    # Set up katdal selection based on arguments
+    kat_select = {'pol': args.pols}
+    sw = katdata.spectral_windows[katdata.spw]
+    # Set number of nif to 2 for narrowband
+    if sw.band == 'L' and sw.bandwidth < 200e6:
+        kat_select['nif'] = 2
+    else:
+        kat_select['nif'] = args.nif
+
+    if args.targets:
+        kat_select['targets'] = args.targets
+    if args.channels:
+        start_chan, end_chan = args.channels
+        kat_select['channels'] = slice(start_chan, end_chan)
+    return kat_select
