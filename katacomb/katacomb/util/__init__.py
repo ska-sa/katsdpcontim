@@ -104,9 +104,9 @@ def post_process_args(args, kat_ds):
     Perform post-processing on command line arguments.
 
     1. Capture Block ID set to katdal experiment ID if not present or
-    found in kat_ds.obs_params.
-
+    found in kat_ds.name.
     2. Telstate ID set to value of output-id if not present.
+    3. Set workdir to the current working directory if not present.
 
     Parameters
     ----------
@@ -121,19 +121,22 @@ def post_process_args(args, kat_ds):
         Modified arguments
     """
 
-    # Set capture block ID to experiment ID if not set or found in obs_params
-    if args.capture_block_id is None:
+    # Set capture block ID to experiment ID if not set or name doesn't exist
+    capture_block_id = getattr(args, 'capture_block_id', None)
+    if capture_block_id is None:
         try:
-            args.capture_block_id = kat_ds.obs_params['capture_block_id']
-        except KeyError:
+            args.capture_block_id = kat_ds.name[0:10]
+        except AttributeError:
             args.capture_block_id = kat_ds.experiment_id
-
             log.warn("No capture block ID was specified or "
                      "found in katdal. "
                      "Using experiment_id '%s' instead.",
                      kat_ds.experiment_id)
-    if args.telstate_id is None:
+    telstate_id = getattr(args, 'telstate_id', None)
+    args.output_id = getattr(args, 'output_id', '')
+    if telstate_id is None:
         args.telstate_id = args.output_id
+    args.workdir = getattr(args, 'workdir', os.path.curdir)
     return args
 
 
@@ -697,3 +700,34 @@ def setup_selection(katdata, args):
         start_chan, end_chan = args.channels
         kat_select['channels'] = slice(start_chan, end_chan)
     return kat_select
+
+
+def setup_configuration(args, aipsdisks=None, fitsdisks=None):
+    """Setup configuration and AIPS and FITS disk locations.
+
+       aipsdisks and fitsdisks are a string or list of strings of paths to
+       disk locations. Setting either of them overrides the defaults derived
+       from args.
+    """
+    if aipsdisks is None:
+        # Set up aipsdisk configuration from args.workdir
+        aipsdisks = [os.path.join(args.workdir, args.capture_block_id + '_aipsdisk')]
+    # Ensure aipsdirs is a list of strings
+    if isinstance(aipsdisks, str):
+        aipsdisks = [aipsdisks]
+    if len(aipsdisks) > 0:
+        log.info('Using AIPS data areas: %s', ', '.join(aipsdisks))
+    aipsdirs = [(None, aipsdisks) for aipsdisks in aipsdisks]
+    if fitsdisks is None:
+        fitsdisks = [args.outputdir]
+    if isinstance(fitsdisks, str):
+        fitsdisks = [fitsdisks]
+    if len(fitsdisks) > 0:
+        # The scripts use the highest numbered FITS disk as their 'output' area
+        log.info('Using output data area: %s', fitsdisks[-1])
+    fitsdirs = [(None, fitsdisks) for fitsdisks in fitsdisks]
+
+    # Add disks, output_id and capture_block_id to configuration
+    kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
+                  output_id=args.output_id, cb_id=args.capture_block_id)
+    return kc.get_config()

@@ -5,7 +5,6 @@ import os
 
 import katdal
 
-import katacomb.configuration as kc
 from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
@@ -14,7 +13,9 @@ from katacomb.util import (get_and_merge_args,
                            export_options,
                            selection_options,
                            imaging_options,
-                           setup_selection)
+                           setup_selection,
+                           setup_configuration,
+                           post_process_args)
 
 
 log = logging.getLogger('katacomb')
@@ -74,7 +75,7 @@ def main():
     configure_logging(args)
     log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
-
+    post_process_args(args, katdata)
     kat_select = setup_selection(katdata, args)
     # Command line katdal selection overrides command line options
     kat_select = recursive_merge(args.select, kat_select)
@@ -135,38 +136,15 @@ def main():
             uvblavg_args['avgFreq'] = 1
             uvblavg_args['chAvg'] = factor
 
-    # Get the default config.
-    dc = kc.get_config()
-
-    # capture_block_id is used to generate AIPS disk filenames
-    capture_block_id = katdata.name[0:10]
-
+    aipsdir = None
+    # Set up AIPS disk from specified reuse directory
     if args.reuse:
-        # Set up AIPS disk from specified directory
-        if os.path.exists(args.reuse):
-            aipsdirs = [(None, args.reuse)]
-            log.info('Re-using AIPS data area: %s', aipsdirs[0][1])
-            reuse = True
-        else:
+        aipsdir = args.reuse
+        if not os.path.exists(aipsdir):
             msg = "AIPS disk at '%s' does not exist." % (args.reuse)
             log.exception(msg)
             raise IOError(msg)
-    else:
-        # Set up aipsdisk configuration from args.workdir
-        aipsdirs = [(None, os.path.join(args.workdir, capture_block_id + '_aipsdisk'))]
-        log.info('Using AIPS data area: %s', aipsdirs[0][1])
-        reuse = False
-
-    # Set up output configuration from args.outputdir
-    fitsdirs = dc['fitsdirs']
-
-    # Append outputdir to fitsdirs
-    fitsdirs += [(None, args.outputdir)]
-    log.info('Using output data area: %s', args.outputdir)
-
-    kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
-                  output_id='', cb_id=capture_block_id)
-
+    setup_configuration(args, aipsdisks=aipsdir)
     setup_aips_disks()
 
     pipeline = pipeline_factory('offline', katdata,
@@ -176,7 +154,7 @@ def main():
                                 nvispio=args.nvispio,
                                 clobber=args.clobber,
                                 prtlv=args.prtlv,
-                                reuse=reuse)
+                                reuse=bool(args.reuse))
 
     # Execute it
     pipeline.execute()

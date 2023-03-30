@@ -23,7 +23,6 @@ import katdal
 from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
-import katacomb.configuration as kc
 from katacomb import pipeline_factory, aips_ant_nr
 from katacomb.util import (recursive_merge,
                            get_and_merge_args,
@@ -31,7 +30,8 @@ from katacomb.util import (recursive_merge,
                            setup_aips_disks,
                            katdal_options,
                            export_options,
-                           imaging_options)
+                           imaging_options,
+                           setup_configuration)
 from katacomb.qa_report import (make_pbeam_images,
                                 make_qa_report,
                                 organise_qa_output)
@@ -202,37 +202,13 @@ def main():
     recursive_merge(user_uvblavg_args, uvblavg_args)
     recursive_merge(user_mfimage_args, mfimage_args)
 
-    # Get the default config.
-    dc = kc.get_config()
-    # Set up aipsdisk configuration from args.workdir
-    if args.workdir is not None:
-        aipsdirs = [(None, pjoin(args.workdir, args.capture_block_id + '_aipsdisk'))]
-    else:
-        aipsdirs = dc['aipsdirs']
-    log.info('Using AIPS data area: %s', aipsdirs[0][1])
-
-    # Set up output configuration from args.outputdir
-    fitsdirs = dc['fitsdirs']
-
-    outputname = args.capture_block_id + OUTDIR_SEPARATOR + args.telstate_id + \
-        OUTDIR_SEPARATOR + START_TIME
-
+    outputname = OUTDIR_SEPARATOR.join((args.capture_block_id, args.telstate_id, START_TIME))
     outputdir = pjoin(args.outputdir, outputname)
     # Set writing tag for duration of the pipeline
     work_outputdir = outputdir + WRITE_TAG
-    # Append outputdir to fitsdirs
-    # NOTE: Pipeline is set up to always place its output in the
-    # highest numbered fits disk so we ensure that is the case
-    # here.
-    fitsdirs += [(None, work_outputdir)]
-    log.info('Using output data area: %s', outputdir)
 
-    kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs)
-
+    setup_configuration(args, fitsdisks=work_outputdir)
     setup_aips_disks()
-
-    # Add output_id and capture_block_id to configuration
-    kc.set_config(cfg=kc.get_config(), output_id=args.output_id, cb_id=args.capture_block_id)
 
     # Set up telstate link then create
     # a view based the capture block ID and output ID
