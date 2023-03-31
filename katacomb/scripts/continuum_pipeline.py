@@ -23,7 +23,7 @@ import katdal
 from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
-from katacomb import pipeline_factory, aips_ant_nr
+from katacomb import pipeline_factory
 from katacomb.util import (recursive_merge,
                            get_and_merge_args,
                            post_process_args,
@@ -31,7 +31,9 @@ from katacomb.util import (recursive_merge,
                            katdal_options,
                            export_options,
                            imaging_options,
-                           setup_configuration)
+                           setup_configuration,
+                           setup_selection_and_parameters,
+                           get_parameter_file)
 from katacomb.qa_report import (make_pbeam_images,
                                 make_qa_report,
                                 organise_qa_output)
@@ -102,40 +104,6 @@ def create_parser():
     return parser
 
 
-def _infer_defaults_from_katdal(katds):
-    """
-    Infer some default parameters for MFImage and UVBlAvg based
-    upon what we know from the katdal object.
-    """
-
-    uvblavg_params = {}
-    mfimage_params = {}
-
-    # Try and always average down to ~1024 channels if necessary
-    num_chans = len(katds.channels)
-    factor = num_chans // 1024
-    if factor > 1:
-        uvblavg_params['avgFreq'] = 1
-        uvblavg_params['chAvg'] = factor
-
-    # Get the reference antenna used by cal
-    # and use the same one for self-cal
-    ts = katds.source.telstate
-    refant = ts.get('cal_refant')
-    if refant is not None:
-        mfimage_params['refAnt'] = aips_ant_nr(refant)
-
-    # Get the total observed time (t_obs) currently selected in the
-    # kat_adapter and set the MFImage:maxRealtime parameter to
-    # max(mintime, t_obs*(1. + extra)).
-    t_obs = katds.shape[0] * katds.dump_period
-    maxRealtime = max(MINRUNTIME, t_obs * (1. + RUNTIME_PAD))
-    mfimage_params['maxRealtime'] = float(maxRealtime)
-    band = katds.spectral_windows[katds.spw].band
-
-    return uvblavg_params, mfimage_params, band
-
-
 def main():
     setup_logging()
     parser = create_parser()
@@ -151,56 +119,29 @@ def main():
     elif args.token is not None:
         open_kwargs['token'] = args.token
     katdata = katdal.open(args.katdata, applycal=args.applycal, **open_kwargs)
-
     post_process_args(args, katdata)
+    # Get defaults and katdal selection
+    (uvblavg_defaults,
+     mfimage_defaults,
+     katdal_select) = setup_selection_and_parameters(katdata, args)
 
-    uvblavg_args, mfimage_args, band = _infer_defaults_from_katdal(katdata)
-    # Get frequencies and convert them to MHz
-    freqs = katdata.freqs/1e6
-    # Condition to check if the observation is narrow based on the bandwidth
-    bandwidth = freqs[-1] - freqs[0]
-    cond_50mhz = 0 < bandwidth < 100  # 50MHz
-    cond_100mhz = 100 < bandwidth < 200  # 100MHz
-    # Get config defaults for uvblavg and mfimage and merge user supplied ones
-    # Check if the observation is L-band and narrrow.
-    uvblavg_parm_file = args.uvblavg_config
-    if os.path.isdir(uvblavg_parm_file):
-        if band == "L" and cond_50mhz or cond_100mhz:
-            log.info("Using UVBlAvg parameter file for narrow {}-band".format(band))
-            uvblavg_parm_file = os.path.join(
-                uvblavg_parm_file, f"uvblavg_MKAT_narrow_{band}.yaml"
-            )
-        else:
-            log.info("Using UVBlAvg parameter files for wide {}-band".format(band))
-            uvblavg_parm_file = os.path.join(
-                uvblavg_parm_file, f"uvblavg_MKAT_{band}.yaml"
-            )
-    log.info("UVBlAvg parameter file for %s-band: %s", band, uvblavg_parm_file)
-    mfimage_parm_file = args.mfimage_config
-    if os.path.isdir(mfimage_parm_file):
-        if band == "L" and cond_50mhz:
-            log.info("Using MFImage parameter file for narrow {}-band".format(band))
-            mfimage_parm_file = os.path.join(
-                mfimage_parm_file, f"mfimage_MKAT_narrow50mhz_{band}.yaml"
-            )
-        if band == "L" and cond_100mhz:
-            log.info("Using MFImage parameter file for narrow {}-band".format(band))
-            mfimage_parm_file = os.path.join(
-                mfimage_parm_file, f"mfimage_MKAT_narrow100mhz_{band}.yaml"
-            )
-        else:
-            log.info("Using MFImage parameter file for wide {}-band".format(band))
-            mfimage_parm_file = os.path.join(
-                mfimage_parm_file, f"mfimage_MKAT_{band}.yaml"
-            )
-    log.info("MFImage parameter file for %s-band: %s", band, mfimage_parm_file)
+    # Merge Obit parameters Obit from parameter files with command line parameters
+    uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config, online=True)
+    log.info("UVBlAvg parameter file: %s", os.path.basename(uvblavg_parm_file))
+    uvblavg_args = get_and_merge_args('uvblavg', uvblavg_parm_file, args.uvblavg)
+    mfimage_parm_file = get_parameter_file(katdata, args.mfimage_config, online=True)
+    log.info("MFImage parameter file: %s", os.path.basename(mfimage_parm_file))
+    mfimage_args = get_and_merge_args('mfimage', mfimage_parm_file, args.mfimage)
+    # Merge default Obit parameters derived from katdal
+    uvblavg_args = recursive_merge(uvblavg_args, uvblavg_defaults)
+    mfimage_args = recursive_merge(mfimage_args, mfimage_defaults)
 
-    user_uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
-    user_mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
-
-    # Merge defaults with user supplied defaults
-    recursive_merge(user_uvblavg_args, uvblavg_args)
-    recursive_merge(user_mfimage_args, mfimage_args)
+    # Get the total observed time (t_obs) currently in the
+    # data and set the MFImage:maxRealtime parameter to
+    # max(MINRUNTIME, t_obs*(1. + RUNTIME_PAD)).
+    t_obs = katdata.shape[0] * katdata.dump_period
+    maxRealtime = max(MINRUNTIME, t_obs * (1. + RUNTIME_PAD))
+    mfimage_args['maxRealtime'] = float(maxRealtime)
 
     outputname = OUTDIR_SEPARATOR.join((args.capture_block_id, args.telstate_id, START_TIME))
     outputdir = pjoin(args.outputdir, outputname)
@@ -215,13 +156,6 @@ def main():
     telstate = TelescopeState(args.telstate)
     view = telstate.join(args.capture_block_id, args.telstate_id)
     ts_view = telstate.view(view)
-
-    katdal_select = args.select
-    # Setting number of nif to 2 for narrowband
-    if cond_50mhz or cond_100mhz:
-        katdal_select['nif'] = 2
-    else:
-        katdal_select['nif'] = args.nif
 
     # Create Continuum Pipeline
     pipeline = pipeline_factory('online', katdata, ts_view,

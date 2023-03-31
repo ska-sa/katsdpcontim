@@ -2,7 +2,6 @@
 import argparse
 import logging
 import os
-from os.path import join as pjoin
 
 import katdal
 
@@ -13,9 +12,10 @@ from katacomb.util import (recursive_merge,
                            katdal_options,
                            export_options,
                            selection_options,
-                           setup_selection,
+                           setup_selection_and_parameters,
                            setup_configuration,
-                           post_process_args)
+                           post_process_args,
+                           get_parameter_file)
 
 log = logging.getLogger('katacomb')
 
@@ -68,29 +68,14 @@ def main():
     log.info("Loading katdal dataset with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
     post_process_args(args, katdata)
-    kat_select = setup_selection(katdata, args)
-    # Command line katdal selection overrides command line options
-    kat_select = recursive_merge(args.select, kat_select)
 
-    # UVBlAvg parameters
-    # TODO: Clean up this mess!
-    uvblavg_args = {}
-    if args.average:
-        sw = katdata.spectral_windows[katdata.spw]
-        uvblavg_parm_file = args.uvblavg_config
-        if os.path.isdir(uvblavg_parm_file):
-            if sw.band == "L" and sw.bandwidth < 200e6:
-                log.info("Using parameter files for narrow {}-band".format(sw.band))
-                uvblavg_parm_file = pjoin(uvblavg_parm_file,
-                                          f"uvblavg_narrow_{sw.band}.yaml")
-            else:
-                log.info("Using parameter files for wide {}-band".format(sw.band))
-                uvblavg_parm_file = pjoin(uvblavg_parm_file,
-                                          f"uvblavg_{sw.band}.yaml")
-        log.info("UVBlAvg parameter file for %s-band: %s", sw.band, uvblavg_parm_file)
+    uvblavg_defaults, _, kat_select = setup_selection_and_parameters(katdata, args)
 
-        # Get defaults for uvblavg and mfimage and merge user supplied ones
-        uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
+    # Merge parameters for Obit from parameter files with command line parameters
+    uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
+    log.info("UVBlAvg parameter file: %s", os.path.basename(uvblavg_parm_file))
+    uvblavg_args = get_and_merge_args('uvblavg', uvblavg_parm_file, args.uvblavg)
+    uvblavg_args = recursive_merge(uvblavg_args, uvblavg_defaults)
 
     # No FITS disk needed for this script
     config = setup_configuration(args, aipsdisks=args.aipsdisk, fitsdisks=[])
