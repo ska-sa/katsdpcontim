@@ -13,7 +13,9 @@ import dask.array as da
 import numpy as np
 
 import katacomb.configuration as kc
-from katacomb import obit_config_from_aips
+from katacomb import (obit_config_from_aips,
+                      parameter_dir,
+                      fits_dir)
 
 from katdal.flags import STATIC
 
@@ -47,7 +49,7 @@ OBIT_TO_LOG = {
 OBIT_LOG_PREAMBLE_LEN = 23
 TDF_URL = "https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF"
 # Default location of MFImage and UVBlavg yaml configurations
-CONFIG = os.path.join(os.sep, "obitconf")
+CONFIG = parameter_dir
 
 
 @contextlib.contextmanager
@@ -599,7 +601,7 @@ def export_options(parser):
         type=str,
         help="Either a configuration yaml file for UVBlAvg "
         "or a path to which an appropriate file can be found. "
-        "Default: Appropriate file from %s" % CONFIG
+        "Default: Appropriate file from katacomb/conf/parameters"
     )
     group.add_argument(
         "--nif",
@@ -632,7 +634,7 @@ def imaging_options(parser):
         type=str,
         help="Either a configuration yaml file for MFImage "
         "or a path to which an approriate file can be found. "
-        "Default: Appropriate file from %s" % CONFIG
+        "Default: Appropriate file from katacomb/conf/parameters"
     )
     group.add_argument(
         "--prtlv",
@@ -727,15 +729,19 @@ def setup_configuration(args, aipsdisks=None, fitsdisks=None):
         aipsdisks = [aipsdisks]
     if len(aipsdisks) > 0:
         log.info('Using AIPS data areas: %s', ', '.join(aipsdisks))
-    aipsdirs = [(None, aipsdisks) for aipsdisks in aipsdisks]
+    aipsdirs = [(None, aipsdisk) for aipsdisk in aipsdisks]
+    # First FITS disk is always static metadata dir
+    static_fitsdisk = [fits_dir]
     if fitsdisks is None:
         fitsdisks = [args.outputdir]
     if isinstance(fitsdisks, str):
         fitsdisks = [fitsdisks]
-    if len(fitsdisks) > 0:
+    fitsdisks = static_fitsdisk + fitsdisks
+    log.info('Using static data area: %s', fitsdisks[0])
+    if len(fitsdisks) > 1:
         # The scripts use the highest numbered FITS disk as their 'output' area
         log.info('Using output data area: %s', fitsdisks[-1])
-    fitsdirs = [(None, fitsdisks) for fitsdisks in fitsdisks]
+    fitsdirs = [(None, fitsdisk) for fitsdisk in fitsdisks]
 
     # Add disks, output_id and capture_block_id to configuration
     kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
