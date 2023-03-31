@@ -24,7 +24,7 @@ from katsdpservices import setup_logging
 from katsdptelstate import TelescopeState
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory, aips_ant_nr
+from katacomb import pipeline_factory, aips_ant_nr, fits_dir
 from katacomb.util import (recursive_merge,
                            get_and_merge_args,
                            post_process_args,
@@ -212,7 +212,8 @@ def main():
     log.info('Using AIPS data area: %s', aipsdirs[0][1])
 
     # Set up output configuration from args.outputdir
-    fitsdirs = dc['fitsdirs']
+    # Package FITS area is always first
+    fitsdirs = [(None, fits_dir)]
 
     outputname = args.capture_block_id + OUTDIR_SEPARATOR + args.telstate_id + \
         OUTDIR_SEPARATOR + START_TIME

@@ -99,7 +99,8 @@ def main():
     log.info('Using AIPS data area: %s', aipsdirs[0][1])
 
     # Set up configuration, AIPS disks and AIPS files for output
-    kc.set_config(aipsdirs=aipsdirs, output_id='', cb_id=capture_block_id)
+    # No FITS dir needed for uv_export.
+    kc.set_config(aipsdirs=aipsdirs, fitsdirs=[], output_id='', cb_id=capture_block_id)
     setup_aips_disks()
     # Default file name = capture_block_id
     aname = args.aname if args.aname else capture_block_id

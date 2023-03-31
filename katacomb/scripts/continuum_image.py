@@ -6,7 +6,7 @@ import os
 import katdal
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory, aips_ant_nr
+from katacomb import pipeline_factory, aips_ant_nr, fits_dir
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
@@ -135,9 +135,6 @@ def main():
             uvblavg_args['avgFreq'] = 1
             uvblavg_args['chAvg'] = factor
 
-    # Get the default config.
-    dc = kc.get_config()
-
     # capture_block_id is used to generate AIPS disk filenames
     capture_block_id = katdata.name[0:10]
 
@@ -158,7 +155,8 @@ def main():
         reuse = False
 
     # Set up output configuration from args.outputdir
-    fitsdirs = dc['fitsdirs']
+    # Package FITS area is always first.
+    fitsdirs = [(None, fits_dir)]
 
     # Append outputdir to fitsdirs
     fitsdirs += [(None, args.outputdir)]
