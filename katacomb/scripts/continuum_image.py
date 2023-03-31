@@ -135,9 +135,6 @@ def main():
             uvblavg_args['avgFreq'] = 1
             uvblavg_args['chAvg'] = factor
 
-    # Get the default config.
-    dc = kc.get_config()
-
     # capture_block_id is used to generate AIPS disk filenames
     capture_block_id = katdata.name[0:10]
 

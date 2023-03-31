@@ -7,7 +7,7 @@ from os.path import join as pjoin
 import katdal
 
 import katacomb.configuration as kc
-from katacomb import pipeline_factory, AIPSPath, fits_dir
+from katacomb import pipeline_factory, AIPSPath
 from katacomb.util import (recursive_merge,
                            get_and_merge_args,
                            setup_aips_disks,
