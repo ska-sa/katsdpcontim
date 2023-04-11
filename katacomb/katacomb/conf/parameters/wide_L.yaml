@@ -1,6 +1,6 @@
-# Default L-band MFImage configuration options for 'offline' mode
+# Default L-band configuration options for wideband 'offline' mode
 #
-# These parameters are the defaults used by the `continuum_image.py` script for
+# These parameters are the defaults used by the scripts for
 # offline re-processing. The offline parameters are optimised to produce the
 # best continuum image possible, without consideration for runtime or the
 # quality of CLEAN components for continuum subtraction.
@@ -8,8 +8,8 @@
 # Further details of the parameter selection can be found in JIRA ticket
 # SPR1-879: https://skaafrica.atlassian.net/browse/SPR1-879
 #
-# Detailed descriptions of MFImage parameters can be found at
-# https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF/MFImage.TDF
+# Detailed descriptions of Obit task parameters can be found at
+# https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF
 #
 mfimage:
   Stokes: 'I'                 # Stokes to process
@@ -51,8 +51,8 @@ mfimage:
   minFList: [0.0005, 0.00008] # Minimum flux density to CLEAN per Self-cal cycle after first
 
 uvblavg:
-  FOV: 1.25        # Field of view (deg)
-  maxInt: 0.5      # Maximum integration (min)
-  maxFact: 1.01    # Maximum time smearing factor
-  avgFreq: 1       # Averaging channels?
-  chAvg: 4         # Assume 4K -> 1K for offline.
+  FOV: 1.25                   # Field of view (deg)
+  maxInt: 0.5                 # Maximum integration (min)
+  maxFact: 1.01               # Maximum time smearing factor
+  avgFreq: 1                  # Averaging channels?
+  chAvg: 4                    # Assume 4K -> 1K for offline.

@@ -1,4 +1,4 @@
-# Default UHF-band MFImage configuration options for 'online' mode
+# Default UHF-bandconfiguration options for wideband 'online' mode
 #
 # These parameters are used by the `continuum_pipeline.py` script for online
 # processing in the SDP pipeline. The online parameters are optimised to
@@ -8,7 +8,7 @@
 # Further details of the parameter selection can be found in JIRA ticket
 # SPR1-879: https://skaafrica.atlassian.net/browse/SPR1-879
 #
-# Detailed descriptions of MFImage parameters can be found at
+# Detailed descriptions of Obit task parameters can be found at
 # https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF/MFImage.TDF
 #
 mfimage:
@@ -51,8 +51,8 @@ mfimage:
   minFList: [0.001, 0.00009]  # Minimum flux density to CLEAN per Self-cal cycle after first
 
 uvblavg:
-  FOV: 1.6         # Field of view (deg)
-  maxInt: 1.0      # Maximum integration (min)
-                   # (Should always be less than the self calibration
-                   # interval (solPInt and solAInt) in MFImage parameters)
-  maxFact: 1.01    # Maximum time smearing factor
+  FOV: 1.6                    # Field of view (deg)
+  maxInt: 1.0                 # Maximum integration (min)
+                              # (Should always be less than the self calibration
+                              # interval (solPInt and solAInt) in MFImage parameters)
+  maxFact: 1.01               # Maximum time smearing factor
