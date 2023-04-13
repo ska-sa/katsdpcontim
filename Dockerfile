@@ -143,9 +143,6 @@ USER kat
 # Install system packages
 COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
 
-# Add task configuration files
-COPY --chown=kat:kat katacomb/katacomb/conf /obitconf
-
 # Install Python ve
 COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
@@ -164,11 +161,21 @@ ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
 ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
 
-# Set the work directory to /obitconf
-WORKDIR /obitconf
+# Set the work directory to /home/kat
+WORKDIR /home/kat
 
 # Configure Obit/AIPS disks
 RUN cfg_aips_disks.py
 
 # Execute test cases
-RUN nosetests katacomb
+# The test_continuum_pipeline classes are run separately
+# since Obit cannot handle multiple pipeline runs (>24) 
+# in the same python thread.
+RUN nosetests katacomb.tests.test_utils \
+	      katacomb.tests.test_qa \
+              katacomb.tests.test_aips_facades \
+              katacomb.tests.test_aips_path \
+              katacomb.tests.test_uv_export
+RUN nosetests katacomb.tests.test_continuum_pipeline.TestOnlinePipeline
+RUN nosetests katacomb.tests.test_continuum_pipeline.TestOfflinePipeline
+RUN nosetests katacomb.tests.test_continuum_pipeline.TestUVExportPipeline

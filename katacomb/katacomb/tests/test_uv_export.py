@@ -107,7 +107,8 @@ class TestUVExport(unittest.TestCase):
         with obit_context():
             pipeline = pipeline_factory('offline', ds)
             pipeline._select_and_infer_files()
-            pipeline._export_and_merge_scans()
+            md = pipeline._get_merge_default()
+            pipeline._export_and_merge_scans(md)
 
     def _test_export_implementation(self, export_type="uv_export", nif=1):
         """
@@ -216,9 +217,8 @@ class TestUVExport(unittest.TestCase):
                                             katdal_select=select,
                                             merge_scans=True)
                 pipeline._select_and_infer_files()
-                pipeline._export_and_merge_scans()
-
-                uv_file_path = pipeline.uv_merge_path
+                uv_file_path = pipeline._get_merge_default()
+                pipeline._export_and_merge_scans(uv_file_path)
 
                 newselect = select.copy()
                 newselect['reset'] = 'TFB'
