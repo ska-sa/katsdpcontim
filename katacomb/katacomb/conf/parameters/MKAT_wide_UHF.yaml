@@ -1,4 +1,4 @@
-# Default UHF-bandconfiguration options for wideband 'online' mode
+# Default UHF-band configuration options for wideband 'online' mode
 #
 # These parameters are used by the `continuum_pipeline.py` script for online
 # processing in the SDP pipeline. The online parameters are optimised to

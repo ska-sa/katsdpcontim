@@ -5,8 +5,10 @@
 # optimised to produce images within twice the observing time and CLEAN
 # components suitable for continuum subtraction by the spectral imager.
 #
-# Further details of the parameter selection can be found in JIRA ticket
+# Further details of the parameter selection can be found in JIRA tickets.
 # SPR1-1332: https://skaafrica.atlassian.net/browse/SPR1-1332
+# SPR1-2202: https://skaafrica.atlassian.net/browse/SPR1-2202
+# SPR1-2274: https://skaafrica.atlassian.net/browse/SPR1-2774
 #
 # Detailed descriptions of Obit task parameters can be found at:
 # https://github.com/bill-cotton/Obit/blob/master/ObitSystem/Obit/TDF
