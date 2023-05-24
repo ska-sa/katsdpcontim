@@ -116,7 +116,7 @@ class PipelineImplementation(Pipeline):
             Defaults to :code:`{}`.
         nvispio : integer
             Number of AIPS visibilities per IO operation.
-            Defaults to 10240.
+            Defaults to 1024.
         prtlv : integer
             Chattiness of Obit tasks (between 1=Quiet and  5=Verbose)
             Defaults to 1.
@@ -126,7 +126,7 @@ class PipelineImplementation(Pipeline):
             FITS disk number to use for export
         """
 
-        self.nvispio = 10240
+        self.nvispio = 1024
         self.uvblavg_params = {}
         self.mfimage_params = {}
         self.prtlv = 1
@@ -758,7 +758,7 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
 class OnlinePipeline(KatdalPipelineImplementation):
 
     def __init__(self, katdata, telstate, uvblavg_params={}, mfimage_params={},
-                 katdal_select={}, nvispio=10240):
+                 katdal_select={}, nvispio=1024):
         """
         Initialise the Continuum Pipeline for MeerKAT system processing.
 
@@ -860,7 +860,7 @@ def build_offline_pipeline(data, **kwargs):
 
 class KatdalOfflinePipeline(KatdalPipelineImplementation):
     def __init__(self, katdata, uvblavg_params={}, mfimage_params={},
-                 katdal_select={}, nvispio=10240, prtlv=2,
+                 katdal_select={}, nvispio=1024, prtlv=2,
                  clobber=set(['scans', 'avgscans']), time_step=20, reuse=False):
         """
         Initialise the Continuum Pipeline for offline imaging

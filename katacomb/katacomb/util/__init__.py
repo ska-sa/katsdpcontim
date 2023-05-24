@@ -14,7 +14,8 @@ import numpy as np
 
 import katacomb.configuration as kc
 from katacomb import (obit_config_from_aips,
-                      parameter_dir)
+                      parameter_dir,
+                      fits_dir)
 
 from katdal.flags import STATIC
 
@@ -105,9 +106,9 @@ def post_process_args(args, kat_ds):
     Perform post-processing on command line arguments.
 
     1. Capture Block ID set to katdal experiment ID if not present or
-    found in kat_ds.obs_params.
-
+    found in kat_ds.name.
     2. Telstate ID set to value of output-id if not present.
+    3. Set workdir to the current working directory if not present.
 
     Parameters
     ----------
@@ -122,19 +123,22 @@ def post_process_args(args, kat_ds):
         Modified arguments
     """
 
-    # Set capture block ID to experiment ID if not set or found in obs_params
-    if args.capture_block_id is None:
+    # Set capture block ID to experiment ID if not set or name doesn't exist
+    capture_block_id = getattr(args, 'capture_block_id', None)
+    if capture_block_id is None:
         try:
-            args.capture_block_id = kat_ds.obs_params['capture_block_id']
-        except KeyError:
+            args.capture_block_id = kat_ds.name[0:10]
+        except AttributeError:
             args.capture_block_id = kat_ds.experiment_id
-
             log.warn("No capture block ID was specified or "
                      "found in katdal. "
                      "Using experiment_id '%s' instead.",
                      kat_ds.experiment_id)
-    if args.telstate_id is None:
+    telstate_id = getattr(args, 'telstate_id', None)
+    args.output_id = getattr(args, 'output_id', '')
+    if telstate_id is None:
         args.telstate_id = args.output_id
+    args.workdir = getattr(args, 'workdir', os.path.curdir)
     return args
 
 
@@ -156,13 +160,15 @@ def recursive_merge(source, destination):
     return destination
 
 
-def get_and_merge_args(config_file, args):
+def get_and_merge_args(collection, config_file, args):
     """
     Make a dictionary out of a '.yaml' config file
     and merge it with user supplied dictionary in args.
 
     Parameters
     ----------
+    collection: str
+        Collection name in YAML file.
     config_file: str
         Path to configuration YAML file.
     args: dict
@@ -179,7 +185,7 @@ def get_and_merge_args(config_file, args):
                  "Using Obit default parameters.", config_file)
         out_args = {}
     else:
-        out_args = yaml.safe_load(open(config_file))
+        out_args = yaml.safe_load(open(config_file))[collection]
     recursive_merge(args, out_args)
     return out_args
 
@@ -580,14 +586,14 @@ def export_options(parser):
     group.add_argument(
         "-ba",
         "--uvblavg",
-        default="avgFreq=1; chAvg=4",
+        default="",
         type=log_exception(log)(parse_python_assigns),
         help="UVBlAvg task parameter assignment statement. "
         "Should only contain python "
         "assignment statements to python "
         "literals, separated by semi-colons. "
         "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
-        "Default: %(default)s"
+        "Default: None"
     )
     group.add_argument(
         "--uvblavg-config",
@@ -599,11 +605,11 @@ def export_options(parser):
     )
     group.add_argument(
         "--nif",
-        default=8,
+        default=None,
         type=int,
         help="Number of AIPS 'IFs' to equally subdivide the band. "
         "NOTE: Must divide the number of channels after any "
-        "katdal selection. Default: %(default)s"
+        "katdal selection. Default: 8 for wideband, 4 for narrowband"
     )
 
 
@@ -678,23 +684,117 @@ def selection_options(parser):
                             "Default: No mask")
 
 
-def setup_selection(katdata, args):
-    """Return a Dict of katdal select options based on selection args"""
+def setup_selection_and_parameters(katdata, args):
+    """Return 3 Dictionaries based on a katdal object and selection args:
+        1. uvblavg defaults
+        2. mfimage defaults
+        3. katdal selection
+    """
     # Apply the supplied mask to the flags
-    if args.mask:
+    if getattr(args, 'mask', None):
         apply_user_mask(katdata, args.mask)
     # Set up katdal selection based on arguments
-    kat_select = {'pol': args.pols}
-    sw = katdata.spectral_windows[katdata.spw]
-    # Set number of nif to 2 for narrowband
-    if sw.band == 'L' and sw.bandwidth < 200e6:
-        kat_select['nif'] = 2
-    else:
-        kat_select['nif'] = args.nif
-
-    if args.targets:
+    kat_select = {}
+    if getattr(args, 'pol', None):
+        kat_select['pol'] = args.pols
+    if getattr(args, 'targets', None):
         kat_select['targets'] = args.targets
-    if args.channels:
+    if getattr(args, 'channels', None):
         start_chan, end_chan = args.channels
         kat_select['channels'] = slice(start_chan, end_chan)
-    return kat_select
+    if getattr(args, 'nif', None):
+        kat_select['nif'] = args.nif
+    # Get defaults from katdal object
+    uvblavg_defaults, mfimage_defaults, select_defaults = infer_defaults_from_katdal(katdata)
+    # Command line katdal selection overrides command line options
+    kat_select = recursive_merge(args.select, kat_select)
+    # Anything at the command line overrides the katdal defaults
+    kat_select = recursive_merge(kat_select, select_defaults)
+
+    return uvblavg_defaults, mfimage_defaults, kat_select
+
+
+def setup_configuration(args, aipsdisks=None, fitsdisks=None):
+    """Setup configuration and AIPS and FITS disk locations.
+
+       aipsdisks and fitsdisks are a string or list of strings of paths to
+       disk locations. Setting either of them overrides the defaults derived
+       from args.
+    """
+    if aipsdisks is None:
+        # Set up aipsdisk configuration from args.workdir
+        aipsdisks = [os.path.join(args.workdir, args.capture_block_id + '_aipsdisk')]
+    # Ensure aipsdirs is a list of strings
+    if isinstance(aipsdisks, str):
+        aipsdisks = [aipsdisks]
+    if len(aipsdisks) > 0:
+        log.info('Using AIPS data areas: %s', ', '.join(aipsdisks))
+    aipsdirs = [(None, aipsdisk) for aipsdisk in aipsdisks]
+    # First FITS disk is always static metadata dir
+    static_fitsdisk = [fits_dir]
+    if fitsdisks is None:
+        fitsdisks = [args.outputdir]
+    if isinstance(fitsdisks, str):
+        fitsdisks = [fitsdisks]
+    fitsdisks = static_fitsdisk + fitsdisks
+    log.info('Using static data area: %s', fitsdisks[0])
+    if len(fitsdisks) > 1:
+        # The scripts use the highest numbered FITS disk as their 'output' area
+        log.info('Using output data area: %s', fitsdisks[-1])
+    fitsdirs = [(None, fitsdisk) for fitsdisk in fitsdisks]
+
+    # Add disks, output_id and capture_block_id to configuration
+    kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
+                  output_id=args.output_id, cb_id=args.capture_block_id)
+    return kc.get_config()
+
+
+def infer_defaults_from_katdal(katds):
+    """
+    Infer some default Obit and katdal selection parameters based
+    upon what we know from the katdal object.
+    """
+    from katacomb import aips_ant_nr
+
+    uvblavg_params = {}
+    mfimage_params = {}
+    katdal_select = {}
+
+    # Try and always average down to ~1024 channels if necessary
+    num_chans = len(katds.channels)
+    factor = num_chans // 1024
+    if factor > 1:
+        uvblavg_params['avgFreq'] = 1
+        uvblavg_params['chAvg'] = factor
+
+    # Get the reference antenna used by cal
+    # and use the same one for self-cal
+    ts = katds.source.telstate
+    refant = ts.get('cal_refant')
+    if refant is not None:
+        mfimage_params['refAnt'] = aips_ant_nr(refant)
+
+    katdal_select['nif'] = 8
+    if katds.spectral_windows[katds.spw].bandwidth < 200.e6:
+        katdal_select['nif'] = 4
+
+    return uvblavg_params, mfimage_params, katdal_select
+
+
+def _infer_default_parameter_file(katds, online):
+    """Work out default parameter filenames based on band and bandwidth."""
+    sw = katds.spectral_windows[katds.spw]
+    mode = 'narrow' if sw.bandwidth < 200.e6 else 'wide'
+    parm_file = f"{mode}_{sw.band}.yaml"
+    if online:
+        parm_file = "MKAT_" + parm_file
+    return parm_file
+
+
+def get_parameter_file(katds, parm_file, online=False):
+
+    default_file = _infer_default_parameter_file(katds, online)
+    # uvblavg parameters
+    if os.path.isdir(parm_file):
+        parm_file = os.path.join(parm_file, default_file)
+    return parm_file

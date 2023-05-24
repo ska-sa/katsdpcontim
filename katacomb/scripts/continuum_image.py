@@ -5,8 +5,7 @@ import os
 
 import katdal
 
-import katacomb.configuration as kc
-from katacomb import pipeline_factory, aips_ant_nr, fits_dir
+from katacomb import pipeline_factory
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
@@ -14,7 +13,10 @@ from katacomb.util import (get_and_merge_args,
                            export_options,
                            selection_options,
                            imaging_options,
-                           setup_selection)
+                           setup_selection_and_parameters,
+                           setup_configuration,
+                           post_process_args,
+                           get_parameter_file)
 
 
 log = logging.getLogger('katacomb')
@@ -74,97 +76,33 @@ def main():
     configure_logging(args)
     log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
+    post_process_args(args, katdata)
 
-    kat_select = setup_selection(katdata, args)
-    # Command line katdal selection overrides command line options
-    kat_select = recursive_merge(args.select, kat_select)
+    # Get defaults and katdal selection
+    (uvblavg_defaults,
+     mfimage_defaults,
+     kat_select) = setup_selection_and_parameters(katdata, args)
 
-    band = katdata.spectral_windows[katdata.spw].band
-    # Get frequencies and convert them to MHz
-    freqs = katdata.freqs/1e6
-    # Condition to check if the observation is narrow based on the bandwidth
-    bandwidth = freqs[-1] - freqs[0]
-    cond_50mhz = 0 < bandwidth < 100  # 50MHz
-    cond_100mhz = 100 < bandwidth < 200  # 100MHz
+    # Merge parameters for Obit from parameter files with command line parameters
+    uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
+    log.info("UVBlAvg parameter file: %s", os.path.basename(uvblavg_parm_file))
+    uvblavg_args = get_and_merge_args('uvblavg', uvblavg_parm_file, args.uvblavg)
+    mfimage_parm_file = get_parameter_file(katdata, args.mfimage_config)
+    log.info("MFImage parameter file: %s", os.path.basename(mfimage_parm_file))
+    mfimage_args = get_and_merge_args('mfimage', mfimage_parm_file, args.mfimage)
+    # Merge default Obit parameters derived from katdal
+    uvblavg_args = recursive_merge(uvblavg_args, uvblavg_defaults)
+    mfimage_args = recursive_merge(mfimage_args, mfimage_defaults)
 
-    # Determine default .yaml files
-    uvblavg_parm_file = args.uvblavg_config
-    if os.path.isdir(uvblavg_parm_file):
-        if band == "L" and cond_50mhz or cond_100mhz:
-            log.info("Using parameter files for narrow {}-band".format(band))
-            uvblavg_parm_file = os.path.join(
-                uvblavg_parm_file, f"uvblavg_narrow_{band}.yaml"
-            )
-        else:
-            log.info("Using parameter files for wide {}-band".format(band))
-            uvblavg_parm_file = os.path.join(uvblavg_parm_file, f"uvblavg_{band}.yaml")
-    log.info("UVBlAvg parameter file for %s-band: %s", band, uvblavg_parm_file)
-    mfimage_parm_file = args.mfimage_config
-    if os.path.isdir(mfimage_parm_file):
-        if band == "L" and cond_50mhz:
-            log.info("Using parameter files for narrow {}-band".format(band))
-            mfimage_parm_file = os.path.join(
-                mfimage_parm_file, f"mfimage_narrow50mhz_{band}.yaml"
-            )
-        if band == "L" and cond_100mhz:
-            log.info("Using parameter files for narrow {}-band".format(band))
-            mfimage_parm_file = os.path.join(
-                mfimage_parm_file, f"mfimage_narrow100mhz_{band}.yaml"
-            )
-        else:
-            log.info("Using parameter files for wide {}-band".format(band))
-            mfimage_parm_file = os.path.join(mfimage_parm_file, f"mfimage_{band}.yaml")
-    log.info("MFImage parameter file for %s-band: %s", band, mfimage_parm_file)
-    # Get defaults for uvblavg and mfimage and merge user supplied ones
-    uvblavg_args = get_and_merge_args(uvblavg_parm_file, args.uvblavg)
-    mfimage_args = get_and_merge_args(mfimage_parm_file, args.mfimage)
-
-    # Grab the cal refant from the katdal dataset and default to
-    # it if it is available and hasn't been set by the user.
-    ts = katdata.source.telstate
-    refant = ts.get('cal_refant')
-    if refant is not None and 'refAnt' not in mfimage_args:
-        mfimage_args['refAnt'] = aips_ant_nr(refant)
-
-    # Try and always average down to 1024 channels if the user
-    # hasn't specified something else
-    num_chans = len(katdata.channels)
-    factor = num_chans // 1024
-    if 'avgFreq' not in uvblavg_args:
-        if factor > 1:
-            uvblavg_args['avgFreq'] = 1
-            uvblavg_args['chAvg'] = factor
-
-    # capture_block_id is used to generate AIPS disk filenames
-    capture_block_id = katdata.name[0:10]
-
+    aipsdir = None
+    # Set up AIPS disk from specified reuse directory
     if args.reuse:
-        # Set up AIPS disk from specified directory
-        if os.path.exists(args.reuse):
-            aipsdirs = [(None, args.reuse)]
-            log.info('Re-using AIPS data area: %s', aipsdirs[0][1])
-            reuse = True
-        else:
+        aipsdir = args.reuse
+        if not os.path.exists(aipsdir):
             msg = "AIPS disk at '%s' does not exist." % (args.reuse)
             log.exception(msg)
             raise IOError(msg)
-    else:
-        # Set up aipsdisk configuration from args.workdir
-        aipsdirs = [(None, os.path.join(args.workdir, capture_block_id + '_aipsdisk'))]
-        log.info('Using AIPS data area: %s', aipsdirs[0][1])
-        reuse = False
-
-    # Set up output configuration from args.outputdir
-    # Package FITS area is always first.
-    fitsdirs = [(None, fits_dir)]
-
-    # Append outputdir to fitsdirs
-    fitsdirs += [(None, args.outputdir)]
-    log.info('Using output data area: %s', args.outputdir)
-
-    kc.set_config(aipsdirs=aipsdirs, fitsdirs=fitsdirs,
-                  output_id='', cb_id=capture_block_id)
-
+    setup_configuration(args, aipsdisks=aipsdir)
     setup_aips_disks()
 
     pipeline = pipeline_factory('offline', katdata,
@@ -174,7 +112,7 @@ def main():
                                 nvispio=args.nvispio,
                                 clobber=args.clobber,
                                 prtlv=args.prtlv,
-                                reuse=reuse)
+                                reuse=bool(args.reuse))
 
     # Execute it
     pipeline.execute()
