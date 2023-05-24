@@ -18,9 +18,7 @@ ENV PACKAGES \
     libcurl4-openssl-dev \
     libfftw3-dev \
     libglib2.0-dev \
-    # Needs GSL 1.x but focal has 2.x
-    # Manually download and install below
-    # libgsl0-dev \
+    libgsl0-dev \
     liblapacke-dev \
     libmotif-dev \
     libncurses5-dev \
@@ -48,22 +46,12 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /u
 ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
 
 # Get CUDA samples- Obit needs some headers from there
-RUN CUDA_RUN_FILE=cuda_10.0.130_410.48_linux && \
-    mirror_wget --progress=dot:mega "https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/$CUDA_RUN_FILE" && \
+RUN CUDA_RUN_FILE=cuda_11.4.1_470.57.02_linux.run && \
+    mirror_wget --progress=dot:mega "http://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/$CUDA_RUN_FILE" && \
     sh ./$CUDA_RUN_FILE --samples --silent && \
-    mv /root/NVIDIA_CUDA-10.0_Samples /usr/local/cuda/samples
+    mv /root/NVIDIA_CUDA-11.4_Samples /usr/local/cuda/samples
 
 ENV KATHOME=/home/kat
-
-# Install gsl 1.16
-RUN mkdir -p $KATHOME/src && \
-    cd $KATHOME/src && \
-    curl ftp://ftp.gnu.org/gnu/gsl/gsl-1.16.tar.gz | tar xzf - && \
-    cd gsl-1.16 && \
-    ./configure --prefix=/usr && \
-    make -j 8 all && \
-    make -j 8 install && \
-    make DESTDIR=/installs install-strip
 
 # Now downgrade to kat
 USER kat
@@ -72,9 +60,9 @@ ENV OBIT_REPO https://github.com/bill-cotton/Obit/trunk/ObitSystem
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
-# Retrieve Obit r636
+# Retrieve Obit r651
 RUN mkdir -p $OBIT_BASE_PATH && \
-    svn co -q -r 636 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
+    svn co -q -r 651 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
 
 WORKDIR $OBIT_BASE_PATH
 
@@ -88,6 +76,7 @@ RUN patch -p1 -N -s < /tmp/obit.patch
 RUN cd ObitSystem/Obit && \
     ./configure --prefix=/usr --without-plplot --without-wvr && \
     make clean && \
+    make versionupdate && \
     make -j 8
 
 # Add python package requirements
@@ -128,6 +117,7 @@ ENV PACKAGES \
     libcurl4 \
     libfftw3-3 \
     libglib2.0-0 \
+    libgsl0-dev \
     libncurses5 \
     libreadline8 \
     libxm4 \
@@ -151,7 +141,6 @@ VOLUME ["/scratch"]
 USER kat
 
 # Install system packages
-COPY --from=build /installs /
 COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
 
 # Install Python ve
