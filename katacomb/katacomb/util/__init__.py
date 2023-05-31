@@ -776,7 +776,7 @@ def infer_defaults_from_katdal(katds):
 
     katdal_select['nif'] = 8
     if katds.spectral_windows[katds.spw].bandwidth < 200.e6:
-        katdal_select['nif'] = 4
+        katdal_select['nif'] = 2
 
     return uvblavg_params, mfimage_params, katdal_select
 
