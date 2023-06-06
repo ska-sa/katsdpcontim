@@ -535,123 +535,102 @@ def apply_user_mask(kat_ds, mask_file):
 def katdal_options(parser):
     """Add options to :class:ArgumentParser for katdal."""
     group = parser.add_argument_group("katdal options")
-    group.add_argument(
-        "-a",
-        "--applycal",
-        default="l1",
-        type=str,
-        help="Apply calibration solutions to visibilities "
-        "before imaging. The list of desired solutions "
-        "is comma separated and each takes the form "
-        "'stream'.'product' where 'stream' is either of "
-        "'l1' (cal) or 'l2' (self-cal) and product is "
-        "one of 'K','G','B' for l1 and 'GPHASE', 'GAMP_PHASE' "
-        "for l2. You can also select 'default' (Apply l1.K, l1.G, l1.B "
-        "and l2.GPHASE) or 'all' (Apply all available solutions). "
-        "Default: %(default)s"
-    )
-    group.add_argument(
-        "-ks",
-        "--select",
-        default="scans='track'; corrprods='cross'",
-        type=log_exception(log)(parse_python_assigns),
-        help="katdal select statement "
-        "Should only contain python "
-        "assignment statements to python "
-        "literals, separated by semi-colons. "
-        "Default: %(default)s"
-    )
-    group.add_argument(
-        "--open-kwargs",
-        default="",
-        type=log_exception(log)(parse_python_assigns),
-        help="kwargs to pass to katdal.open() "
-        "Should only contain python "
-        "assignment statements to python "
-        "literals, separated by semi-colons. "
-        "Default: None"
-    )
+    group.add_argument("-a",
+                       "--applycal",
+                       default="l1",
+                       type=str,
+                       help="Apply calibration solutions to visibilities "
+                            "before imaging. The list of desired solutions "
+                            "is comma separated and each takes the form "
+                            "'stream'.'product' where 'stream' is either of "
+                            "'l1' (cal) or 'l2' (self-cal) and product is "
+                            "one of 'K','G','B' for l1 and 'GPHASE', 'GAMP_PHASE' "
+                            "for l2. You can also select 'default' (Apply l1.K, l1.G, l1.B "
+                            "and l2.GPHASE) or 'all' (Apply all available solutions). "
+                            "Default: %(default)s")
+    group.add_argument("-ks",
+                       "--select",
+                       default="scans='track'; corrprods='cross'",
+                       type=log_exception(log)(parse_python_assigns),
+                       help="katdal select statement "
+                            "Should only contain python "
+                            "assignment statements to python "
+                            "literals, separated by semi-colons. "
+                            "Default: %(default)s")
+    group.add_argument("--open-kwargs",
+                       default="",
+                       type=log_exception(log)(parse_python_assigns),
+                       help="kwargs to pass to katdal.open() "
+                            "Should only contain python "
+                            "assignment statements to python "
+                            "literals, separated by semi-colons. "
+                            "Default: None")
 
 
 def export_options(parser):
     """Add options to :class:ArgumentParser for data export to AIPS UV format."""
     group = parser.add_argument_group("Data export options")
-    group.add_argument(
-        "--nvispio",
-        default=1024,
-        type=int,
-        help="Number of visibilities per write when copying data from archive. "
-        "Default: %(default)s"
-    )
-    group.add_argument(
-        "-ba",
-        "--uvblavg",
-        default="",
-        type=log_exception(log)(parse_python_assigns),
-        help="UVBlAvg task parameter assignment statement. "
-        "Should only contain python "
-        "assignment statements to python "
-        "literals, separated by semi-colons. "
-        "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
-        "Default: None"
-    )
-    group.add_argument(
-        "--uvblavg-config",
-        default=CONFIG,
-        type=str,
-        help="Either a configuration yaml file for UVBlAvg "
-        "or a path to which an appropriate file can be found. "
-        "Default: Appropriate file from katacomb/conf/parameters"
-    )
-    group.add_argument(
-        "--nif",
-        default=None,
-        type=int,
-        help="Number of AIPS 'IFs' to equally subdivide the band. "
-        "NOTE: Must divide the number of channels after any "
-        "katdal selection. Default: 8 for wideband, 4 for narrowband"
-    )
+    group.add_argument("--nvispio",
+                       default=1024,
+                       type=int,
+                       help="Number of visibilities per write when copying data "
+                            "from archive. Default: %(default)s")
+    group.add_argument("-ba",
+                       "--uvblavg",
+                       default="",
+                       type=log_exception(log)(parse_python_assigns),
+                       help="UVBlAvg task parameter assignment statement. "
+                            "Should only contain python "
+                            "assignment statements to python "
+                            "literals, separated by semi-colons. "
+                            "See " + TDF_URL + "/UVBlAvg.TDF for valid parameters. "
+                            "Default: None")
+    group.add_argument("--uvblavg-config",
+                       default=CONFIG,
+                       type=str,
+                       help="Either a configuration yaml file for UVBlAvg "
+                            "or a path to which an appropriate file can be found. "
+                            "Default: Appropriate file from katacomb/conf/parameters")
+    group.add_argument("--nif",
+                       default=None,
+                       type=int,
+                       help="Number of AIPS 'IFs' to equally subdivide the band. "
+                            "NOTE: Must divide the number of channels after any "
+                            "katdal selection. Default: 8 for wideband, 4 for n107M, "
+                            "2 for n54M")
 
 
 def imaging_options(parser):
     """Add options to :class:ArgumentParser for katsdpcontim imaging scripts."""
     group = parser.add_argument_group("Imaging options")
-    group.add_argument(
-        "-mf",
-        "--mfimage",
-        default="",
-        type=log_exception(log)(parse_python_assigns),
-        help="MFImage task parameter assignment statement. "
-        "Should only contain python "
-        "assignment statements to python "
-        "literals, separated by semi-colons. "
-        "See " + TDF_URL + "/MFImage.TDF for valid parameters. "
-        "Default: None"
-    )
-    group.add_argument(
-        "--mfimage-config",
-        default=CONFIG,
-        type=str,
-        help="Either a configuration yaml file for MFImage "
-        "or a path to which an approriate file can be found. "
-        "Default: Appropriate file from katacomb/conf/parameters"
-    )
-    group.add_argument(
-        "--prtlv",
-        default=2,
-        type=int,
-        help="Integer between 0 and 5 indicating the desired "
-        "verbosity of MFImage. 0=None 5=Maximum. "
-        "Default: %(default)s"
-    )
-    group.add_argument(
-        "-o",
-        "--outputdir",
-        default=os.path.join(os.sep, "scratch"),
-        type=str,
-        help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
-        "will be placed here for each target. Default: %(default)s"
-    )
+    group.add_argument("-mf",
+                       "--mfimage",
+                       default="",
+                       type=log_exception(log)(parse_python_assigns),
+                       help="MFImage task parameter assignment statement. "
+                            "Should only contain python "
+                            "assignment statements to python "
+                            "literals, separated by semi-colons. "
+                            "See " + TDF_URL + "/MFImage.TDF for valid parameters. "
+                            "Default: None")
+    group.add_argument("--mfimage-config",
+                       default=CONFIG,
+                       type=str,
+                       help="Either a configuration yaml file for MFImage "
+                            "or a path to which an approriate file can be found. "
+                            "Default: Appropriate file from katacomb/conf/parameters")
+    group.add_argument("--prtlv",
+                       default=2,
+                       type=int,
+                       help="Integer between 0 and 5 indicating the desired "
+                            "verbosity of MFImage. 0=None 5=Maximum. "
+                            "Default: %(default)s")
+    group.add_argument("-o",
+                       "--outputdir",
+                       default=os.path.join(os.sep, "scratch"),
+                       type=str,
+                       help="Output directory. FITS image files named <cb_id>_<target_name>.fits "
+                            "will be placed here for each target. Default: %(default)s")
 
 
 def selection_options(parser):
@@ -776,8 +755,8 @@ def infer_defaults_from_katdal(katds):
 
     katdal_select['nif'] = 8
     if katds.spectral_windows[katds.spw].bandwidth < 200.e6:
-        katdal_select['nif'] = 4
-
+        # Narrow
+        katdal_select['nif'] = 2
     return uvblavg_params, mfimage_params, katdal_select
 
 

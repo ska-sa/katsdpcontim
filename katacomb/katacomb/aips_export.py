@@ -478,6 +478,10 @@ def cc_to_katpoint(img, order=2):
     planerms = planerms[fitmask]
     planefreqs = planefreqs[fitmask]
     katpoint_rows = []
+    # Override the given fitting order if there are too few frequency planes
+    order = min(order, len(planefreqs) - 1)
+    log.info("Fitting flux model of order %d to %d CCs in %d frequency planes.",
+             order, len(ccrows), len(planefreqs))
     for ccnum, cc in enumerate(ccrows):
         # PARMS[3] must be 20. for tabulated CCs
         if cc["PARMS"][3] != 20.:
