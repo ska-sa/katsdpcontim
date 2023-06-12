@@ -171,11 +171,11 @@ RUN cfg_aips_disks.py
 # The test_continuum_pipeline classes are run separately
 # since Obit cannot handle multiple pipeline runs (>24) 
 # in the same python thread.
-RUN nosetests katacomb.tests.test_utils \
-	      katacomb.tests.test_qa \
-              katacomb.tests.test_aips_facades \
-              katacomb.tests.test_aips_path \
-              katacomb.tests.test_uv_export
-RUN nosetests katacomb.tests.test_continuum_pipeline.TestOnlinePipeline
-RUN nosetests katacomb.tests.test_continuum_pipeline.TestOfflinePipeline
-RUN nosetests katacomb.tests.test_continuum_pipeline.TestUVExportPipeline
+RUN pytest -s --pyargs katacomb.tests.test_utils \
+                       katacomb.tests.test_qa \
+                       katacomb.tests.test_aips_facades \
+                       katacomb.tests.test_aips_path \
+                       katacomb.tests.test_uv_export
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline

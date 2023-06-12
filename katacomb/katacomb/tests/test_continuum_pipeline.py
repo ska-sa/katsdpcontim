@@ -5,7 +5,6 @@ from functools import partial
 
 
 import astropy.io.fits as fits
-from nose.tools import assert_equal, assert_in
 import numpy as np
 from scipy import constants
 
@@ -74,14 +73,14 @@ def _check_fits_headers(filepath):
     with fits.open(filepath) as ff:
         fh = ff[0].header
         # Ensure BUNIT is in correct format
-        assert_equal('Jy/beam', fh['BUNIT'])
+        assert 'Jy/beam' == fh['BUNIT']
         # Its overkill to check the actual values of
         # BMAJ, BMIN, BPA so just check they are there
-        assert_in('BMAJ', fh)
-        assert_in('BMIN', fh)
-        assert_in('BPA', fh)
+        assert 'BMAJ' in fh
+        assert 'BMIN' in fh
+        assert 'BPA' in fh
         # Ensure output images have a BAND keyword
-        assert_in('BANDCODE', fh)
+        assert 'BANDCODE' in fh
 
 
 def construct_SN_desc(nif, rows, version=1):
@@ -202,7 +201,7 @@ class TestOfflinePipeline(unittest.TestCase):
                                     clobber=CLOBBER)
 
         metadata = pipeline.execute()
-        assert_in(filename, metadata['FITSImageFilename'])
+        assert filename in metadata['FITSImageFilename']
         assert os.path.isfile(filepath)
         _check_fits_headers(filepath)
 
@@ -235,7 +234,7 @@ class TestOfflinePipeline(unittest.TestCase):
 
         metadata = pipeline.execute()
         # Check metadata is empty and no exceptions are thrown
-        assert_equal(metadata, {})
+        assert metadata == {}
 
         # Get the output FITS dir
         cfg = kc.get_config()
@@ -438,7 +437,7 @@ class TestOnlinePipeline(unittest.TestCase):
         for otarg in self.sanitised_target_names:
             out_strings = [cb_id, out_id, otarg, IMG_CLASS]
             filename = '_'.join(filter(None, out_strings)) + '.fits'
-            assert_in(filename, metadata['FITSImageFilename'])
+            assert filename in metadata['FITSImageFilename']
             filepath = os.path.join(fits_area, filename)
             assert os.path.isfile(filepath)
             _check_fits_headers(filepath)
@@ -471,7 +470,7 @@ class TestOnlinePipeline(unittest.TestCase):
 
         metadata = pipeline.execute()
         # Check metadata is empty and no exceptions are thrown
-        assert_equal(metadata, {})
+        assert metadata == {}
 
         # Get fits area
         cfg = kc.get_config()

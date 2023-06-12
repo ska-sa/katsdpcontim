@@ -11,11 +11,11 @@ Jinja2                 # for MeerKAT-continuum-validation
 lmfit == 1.0.1         # for MeerKAT-continuum-validation
 matplotlib             # for MeerKAT-continuum-validation
 mpld3 == 0.5.2         # for MeerKAT-continuum-validation
-nose
 numba
 numpy
 pandas                 # for MeerKAT-continuum-validation
 pretty-py3 == 0.2.4
+pytest
 pytz                   # for MeerKAT-continuum-validation
 pyyaml
 scipy
