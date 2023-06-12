@@ -45,11 +45,19 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /u
 
 ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
 
-# Get CUDA samples- Obit needs some headers from there
-RUN CUDA_RUN_FILE=cuda_11.4.1_470.57.02_linux.run && \
-    mirror_wget --progress=dot:mega "http://developer.download.nvidia.com/compute/cuda/11.4.1/local_installers/$CUDA_RUN_FILE" && \
-    sh ./$CUDA_RUN_FILE --samples --silent && \
-    mv /root/NVIDIA_CUDA-11.4_Samples /usr/local/cuda/samples
+# Get CUDA samples- Obit needs some headers from there.
+# As of CUDA 11.6 the samples are no longer available in the toolkit
+# so retrieve them from NVIDIA's github repo instead. The headers are
+# placed in /usr/local/cuda/samples/inc which is where the GPU Obit
+# build modified by 'obit.patch' looks for them.
+WORKDIR /root
+RUN CUDA_SAMPLES_VER="11.4.1" && \
+    CUDA_SAMPLES_URL="https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v${CUDA_SAMPLES_VER}.tar.gz" && \
+    wget --progress=dot:mega ${CUDA_SAMPLES_URL} && \
+    tar -xvf v${CUDA_SAMPLES_VER}.tar.gz && \
+    mkdir -p /usr/local/cuda/samples/common/inc && \
+    mv cuda-samples-${CUDA_SAMPLES_VER}/Common/* /usr/local/cuda/samples/common/inc && \
+    rm -rf v${CUDA_SAMPLES_VER}.tar.gz
 
 ENV KATHOME=/home/kat
 
