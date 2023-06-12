@@ -172,6 +172,7 @@ RUN cfg_aips_disks.py
 # since Obit cannot handle multiple pipeline runs (>24) 
 # in the same python thread.
 RUN pytest -s --pyargs katacomb.tests.test_utils \
+                       katacomb.tests.test_qa \
                        katacomb.tests.test_aips_facades \
                        katacomb.tests.test_aips_path \
                        katacomb.tests.test_uv_export
