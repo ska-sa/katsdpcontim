@@ -43,8 +43,6 @@ RUN apt-get update && \
 # Make gcc-8 the default gcc.
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 
-ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
-
 # Get CUDA samples- Obit needs some headers from there.
 # As of CUDA 11.6 the samples are no longer available in the toolkit
 # so retrieve them from NVIDIA's github repo instead. The headers are
