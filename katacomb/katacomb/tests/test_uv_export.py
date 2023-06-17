@@ -245,9 +245,9 @@ class TestUVExport(unittest.TestCase):
 
                 # Check that the subset of keywords generated
                 # by the katdal adapter match those read from the AIPS table
-                self.assertDictContainsSubset(KA.uv_spw_keywords, fq_kw)
-                self.assertDictContainsSubset(KA.uv_source_keywords, src_kw)
-                self.assertDictContainsSubset(KA.uv_antenna_keywords, ant_kw)
+                self.assertEqual(fq_kw, {**fq_kw, **KA.uv_spw_keywords})
+                self.assertEqual(src_kw, {**src_kw, **KA.uv_source_keywords})
+                self.assertEqual(ant_kw, {**ant_kw, **KA.uv_antenna_keywords})
 
                 def _strip_metadata(aips_table_rows):
                     """

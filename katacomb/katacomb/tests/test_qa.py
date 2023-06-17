@@ -100,7 +100,7 @@ def _check_keys(meta_file, meta_in, suffix, i, name):
 
 
 class TestMakePBImages:
-    def setup(self):
+    def setup_method(self):
         # Create temporary directory
         self.tmpdir_in = tempfile.TemporaryDirectory()
         in_array = np.ones([1, 3, 100, 100])
@@ -117,7 +117,7 @@ class TestMakePBImages:
             inFileName = os.path.join(self.tmpdir_in.name, '1234.writing', f)
             hdu.writeto(inFileName)
 
-    def teardown(self):
+    def teardown_method(self):
         self.tmpdir_in.cleanup()
 
     def test_make_pb_images(self):
@@ -135,7 +135,7 @@ class TestMakePBImages:
 
 
 class TestMakeQAReport:
-    def setup(self):
+    def setup_method(self):
         # create temporary directory
         self.tmpdir_in = tempfile.TemporaryDirectory()
 
@@ -175,7 +175,7 @@ class TestMakeQAReport:
             inFileName = os.path.join(outDirName + '_PB.writing', file_base + '_PB' + FITS_EXT)
             hdu.writeto(inFileName)
 
-    def teardown(self):
+    def teardown_method(self):
         self.tmpdir_in.cleanup()
 
     def test_organise_qa_output(self):
