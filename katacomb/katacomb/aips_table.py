@@ -141,7 +141,7 @@ class AIPSTableKeywords(object):
             key values to set.
         """
         if other is not None:
-            is_map = isinstance(other, collections.Mapping)
+            is_map = isinstance(other, collections.abc.Mapping)
             for k, v in other.items() if is_map else other:
                 self.__setitem__(k, v)
 
