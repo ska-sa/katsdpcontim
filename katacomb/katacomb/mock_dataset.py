@@ -65,7 +65,7 @@ DEFAULT_SPWS = [{
 # Pick 10 random ephem stars as katpoint targets
 _NR_OF_DEFAULT_TARGETS = 10
 DEFAULT_TARGETS = [katpoint.Target("%s, star" % t) for t in
-                   random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)]
+                   random.sample(list(stars.keys()), _NR_OF_DEFAULT_TARGETS)]
 
 # Slew for 1 dumps then track for 4 on random targets
 _SLEW_TRACK_DUMPS = (('slew', 1), ('track', 4))

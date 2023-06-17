@@ -139,7 +139,7 @@ class TestUVExport(unittest.TestCase):
             'band': 'L',
         }]
 
-        target_names = random.sample(stars.keys(), 5)
+        target_names = random.sample(list(stars.keys()), 5)
 
         # Pick 5 random stars as targets
         targets = [katpoint.Target("%s, star" % t) for t in target_names]
