@@ -335,7 +335,7 @@ def aips_catalogue(katdata, nif):
             # (say for a mosaic).# "SOURCE" plus "QUAL" uniquely define
             # an entry in the table. The MeerKAT field of view is SO HUGE
             # I can't see this being needed.
-            'QUAL': [0.0],      # Source Qualifier Number
+            'QUAL': [0],      # Source Qualifier Number
         }
 
         used.append(source_name)
