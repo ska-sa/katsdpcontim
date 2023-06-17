@@ -104,7 +104,7 @@ def DEFAULT_WEIGHTS(dataset):
 
 
 def DEFAULT_FLAGS(dataset):
-    flags = np.zeros(dataset.shape, dtype=np.bool)
+    flags = np.zeros(dataset.shape, dtype=bool)
     # Flag 10% of visibilities
     nflagged = int(0.1*flags.size)
     flags.ravel()[-nflagged:] = True
@@ -246,9 +246,9 @@ class MockDataSet(DataSet):
         nchan = self.channels.shape[0]
 
         # Select everything upfront (weights + flags already set to all in superclass)
-        self._time_keep = np.ones(self._ndumps, dtype=np.bool)
-        self._corrprod_keep = np.ones(ncorrproducts, dtype=np.bool)
-        self._freq_keep = np.ones(nchan, dtype=np.bool)
+        self._time_keep = np.ones(self._ndumps, dtype=bool)
+        self._corrprod_keep = np.ones(ncorrproducts, dtype=bool)
+        self._freq_keep = np.ones(nchan, dtype=bool)
         self._create_azel_sensors()
         ants = [ant.name for ant in self.ants]
         self.select(ants=ants, spw=0, subarray=0)
@@ -426,8 +426,8 @@ class MockDataSet(DataSet):
 
     def _create_azel_sensors(self):
         """Generate azimuth and elevation sensors."""
-        az = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
-        el = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
+        az = np.recarray((self._ndumps), dtype=[('timestamp', float), ('value', float)])
+        el = np.recarray((self._ndumps), dtype=[('timestamp', float), ('value', float)])
         az['timestamp'] = self._timestamps
         el['timestamp'] = self._timestamps
         for ant in self.ants:

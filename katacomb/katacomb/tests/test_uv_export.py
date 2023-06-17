@@ -95,7 +95,7 @@ class TestUVExport(unittest.TestCase):
 
         # Flag the data
         def mock_flags(dataset):
-            return np.ones(dataset.shape, dtype=np.bool)
+            return np.ones(dataset.shape, dtype=bool)
 
         # Create Mock dataset and wrap it in a KatdalAdapter
         ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
