@@ -1,26 +1,26 @@
 -c https://raw.githubusercontent.com/ska-sa/katsdpdockerbase/master/docker-base-build/base-requirements.txt
 AegeanTools == 2.2.0   # for MeerKAT-continuum-validation
-asteval == 0.9.21      # for MeerKAT-continuum-validation
+asteval == 0.9.29      # for MeerKAT-continuum-validation
 astropy
 attrs
-cerberus == 1.1
+cerberus == 1.3.4
 dask
 docopt == 0.6.2        # for MeerKAT-continuum-validation
-healpy == 1.14.0       # for MeerKAT-continuum-validation
+healpy == 1.16.2       # for MeerKAT-continuum-validation
 Jinja2                 # for MeerKAT-continuum-validation
-lmfit == 1.0.1         # for MeerKAT-continuum-validation
+lmfit == 1.2.1         # for MeerKAT-continuum-validation
 matplotlib             # for MeerKAT-continuum-validation
-mpld3 == 0.5.2         # for MeerKAT-continuum-validation
-nose
+mpld3 == 0.5.9         # for MeerKAT-continuum-validation
 numba
 numpy
 pandas                 # for MeerKAT-continuum-validation
 pretty-py3 == 0.2.4
+pytest
 pytz                   # for MeerKAT-continuum-validation
 pyyaml
 scipy
-seaborn == 0.10.1      # for MeerKAT-continuum-validation
-uncertainties == 3.1.4 # for MeerKAT-continuum-validation
+seaborn == 0.12.2      # for MeerKAT-continuum-validation
+uncertainties == 3.1.7 # for MeerKAT-continuum-validation
 
 katpoint == 1.0a2
 sgp4 == 2.20

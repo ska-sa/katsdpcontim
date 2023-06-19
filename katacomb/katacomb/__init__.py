@@ -1,4 +1,9 @@
 # flake8: noqa F401
+from pkg_resources import resource_filename
+
+parameter_dir = resource_filename(__name__, 'conf/parameters')
+fits_dir = resource_filename(__name__, 'conf/FITS')
+
 from .obit_context import (obit_context,
                            obit_err,
                            obit_sys,
@@ -35,10 +40,6 @@ from .uv_export import (uv_export,
 from .aips_export import (export_calibration_solutions,
                           export_clean_components,
                           export_images)
-
-from .qa_report import (make_pbeam_images,
-                        make_qa_report,
-                        organise_qa_output)
 
 from .continuum_pipeline import pipeline_factory
 

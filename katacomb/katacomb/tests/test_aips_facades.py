@@ -47,17 +47,15 @@ class TestAipsFacades(unittest.TestCase):
         # Pick 5 random stars as targets
         #targets = [katpoint.Target("%s, star" % t) for t in
         #           random.sample(stars.keys(), 5)]
-        target_names = random.sample(stars.keys(), 5)
+        target_names = random.sample(list(stars.keys()), 5)
 
         # Pick 5 random stars as targets
         #targets = [katpoint.Target("%s, star" % t) for t in target_names]
         ephem_targets = [stars[name] for name in target_names]
         targets = []
-        for name, t in zip(target_names,ephem_targets):
+        for name, t in zip(target_names, ephem_targets):
             t.compute()
             targets.append(katpoint.Target(f'{name}, radec, {str(t.ra)}, {str(t.dec)}'))
-
-
 
         # track for 5 on each target
         slew_track_dumps = (('track', 5),)

@@ -35,7 +35,7 @@ def config_validator():
         'da00': {'type': 'string', 'default': pjoin(aipsroot, 'DA00')},
         'userno': {'type': 'integer', 'default': 105},
         'output_id': {'type': 'string', 'default': ''},
-        'cb_id': {'type': 'string', 'default': ''}
+        'cb_id': {'type': 'string', 'default': '0000000000'}
     }
 
     return Validator(schema)

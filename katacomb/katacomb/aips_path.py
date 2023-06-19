@@ -70,6 +70,21 @@ def _check_disk_type(dtype, check=True):
                              dtype, _VALID_DISK_TYPES))
 
 
+def path_exists(aips_path):
+    """Check if a given AIPS path exists on disk"""
+    from AIPSDir import PTestCNO
+    from OSystem import PGetAIPSuser
+
+    err = obit_err()
+    aips_user = PGetAIPSuser()
+    cno = PTestCNO(disk=aips_path.disk, user=aips_user,
+                   Aname=aips_path.name, Aclass=aips_path.aclass,
+                   Atype=aips_path.atype, seq=aips_path.seq, err=err)
+
+    exists = cno > 0
+    return exists
+
+
 class AIPSPath(object):
     """
     A class representing the path properties of
@@ -221,7 +236,7 @@ class AIPSPath(object):
             _check_disk_type(dtype, False)
 
 
-_AIPS_PATH_TUPLE_ARGS = [a for a in inspect.getargspec(AIPSPath.__init__).args
+_AIPS_PATH_TUPLE_ARGS = [a for a in inspect.getfullargspec(AIPSPath.__init__).args
                          if not a == "self"]
 _AIPS_PATH_TUPLE_FORMAT = "(%s)" % ",".join(_AIPS_PATH_TUPLE_ARGS)
 _AIPS_PATH_HELP = ("AIPS path should be a tuple of "

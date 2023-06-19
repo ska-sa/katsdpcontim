@@ -95,7 +95,7 @@ class TestUVExport(unittest.TestCase):
 
         # Flag the data
         def mock_flags(dataset):
-            return np.ones(dataset.shape, dtype=np.bool)
+            return np.ones(dataset.shape, dtype=bool)
 
         # Create Mock dataset and wrap it in a KatdalAdapter
         ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
@@ -107,7 +107,8 @@ class TestUVExport(unittest.TestCase):
         with obit_context():
             pipeline = pipeline_factory('offline', ds)
             pipeline._select_and_infer_files()
-            pipeline._export_and_merge_scans()
+            md = pipeline._get_merge_default()
+            pipeline._export_and_merge_scans(md)
 
     def _test_export_implementation(self, export_type="uv_export", nif=1):
         """
@@ -138,7 +139,7 @@ class TestUVExport(unittest.TestCase):
             'band': 'L',
         }]
 
-        target_names = random.sample(stars.keys(), 5)
+        target_names = random.sample(list(stars.keys()), 5)
 
 
 
@@ -222,9 +223,8 @@ class TestUVExport(unittest.TestCase):
                                             katdal_select=select,
                                             merge_scans=True)
                 pipeline._select_and_infer_files()
-                pipeline._export_and_merge_scans()
-
-                uv_file_path = pipeline.uv_merge_path
+                uv_file_path = pipeline._get_merge_default()
+                pipeline._export_and_merge_scans(uv_file_path)
 
                 newselect = select.copy()
                 newselect['reset'] = 'TFB'
@@ -251,9 +251,9 @@ class TestUVExport(unittest.TestCase):
 
                 # Check that the subset of keywords generated
                 # by the katdal adapter match those read from the AIPS table
-                self.assertDictContainsSubset(KA.uv_spw_keywords, fq_kw)
-                self.assertDictContainsSubset(KA.uv_source_keywords, src_kw)
-                self.assertDictContainsSubset(KA.uv_antenna_keywords, ant_kw)
+                self.assertEqual(fq_kw, {**fq_kw, **KA.uv_spw_keywords})
+                self.assertEqual(src_kw, {**src_kw, **KA.uv_source_keywords})
+                self.assertEqual(ant_kw, {**ant_kw, **KA.uv_antenna_keywords})
 
                 def _strip_metadata(aips_table_rows):
                     """

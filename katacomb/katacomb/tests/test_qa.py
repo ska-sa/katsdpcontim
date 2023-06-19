@@ -9,14 +9,16 @@ from astropy.io import fits
 from astropy.modeling import models
 from unittest import mock
 
-from katacomb import (make_pbeam_images, make_qa_report,
-                      normalise_target_name, organise_qa_output)
+from katacomb import normalise_target_name
 from katacomb.aips_export import (_update_target_metadata,
                                   _metadata,
                                   FITS_EXT,
                                   PNG_EXT,
                                   METADATA_JSON)
 from katacomb.mock_dataset import MockDataSet
+from katacomb.qa_report import (make_pbeam_images,
+                                make_qa_report,
+                                organise_qa_output)
 
 HDR_KEYS = {'NAXIS': 4,
             'NAXIS1': 100,
@@ -98,7 +100,7 @@ def _check_keys(meta_file, meta_in, suffix, i, name):
 
 
 class TestMakePBImages:
-    def setup(self):
+    def setup_method(self):
         # Create temporary directory
         self.tmpdir_in = tempfile.TemporaryDirectory()
         in_array = np.ones([1, 3, 100, 100])
@@ -115,7 +117,7 @@ class TestMakePBImages:
             inFileName = os.path.join(self.tmpdir_in.name, '1234.writing', f)
             hdu.writeto(inFileName)
 
-    def teardown(self):
+    def teardown_method(self):
         self.tmpdir_in.cleanup()
 
     def test_make_pb_images(self):
@@ -133,7 +135,7 @@ class TestMakePBImages:
 
 
 class TestMakeQAReport:
-    def setup(self):
+    def setup_method(self):
         # create temporary directory
         self.tmpdir_in = tempfile.TemporaryDirectory()
 
@@ -173,7 +175,7 @@ class TestMakeQAReport:
             inFileName = os.path.join(outDirName + '_PB.writing', file_base + '_PB' + FITS_EXT)
             hdu.writeto(inFileName)
 
-    def teardown(self):
+    def teardown_method(self):
         self.tmpdir_in.cleanup()
 
     def test_organise_qa_output(self):

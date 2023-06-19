@@ -18,9 +18,7 @@ ENV PACKAGES \
     libcurl4-openssl-dev \
     libfftw3-dev \
     libglib2.0-dev \
-    # Needs GSL 1.x but focal has 2.x
-    # Manually download and install below
-    # libgsl0-dev \
+    libgsl0-dev \
     liblapacke-dev \
     libmotif-dev \
     libncurses5-dev \
@@ -45,25 +43,21 @@ RUN apt-get update && \
 # Make gcc-8 the default gcc.
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
 
-ARG KATSDPDOCKERBASE_MIRROR=http://sdp-services.kat.ac.za/mirror
-
-# Get CUDA samples- Obit needs some headers from there
-RUN CUDA_RUN_FILE=cuda_10.0.130_410.48_linux && \
-    mirror_wget --progress=dot:mega "https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/$CUDA_RUN_FILE" && \
-    sh ./$CUDA_RUN_FILE --samples --silent && \
-    mv /root/NVIDIA_CUDA-10.0_Samples /usr/local/cuda/samples
+# Get CUDA samples- Obit needs some headers from there.
+# As of CUDA 11.6 the samples are no longer available in the toolkit
+# so retrieve them from NVIDIA's github repo instead. The headers are
+# placed in /usr/local/cuda/samples/inc which is where the GPU Obit
+# build modified by 'obit.patch' looks for them.
+WORKDIR /root
+RUN CUDA_SAMPLES_VER="11.4.1" && \
+    CUDA_SAMPLES_URL="https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v${CUDA_SAMPLES_VER}.tar.gz" && \
+    wget --progress=dot:mega ${CUDA_SAMPLES_URL} && \
+    tar -xvf v${CUDA_SAMPLES_VER}.tar.gz && \
+    mkdir -p /usr/local/cuda/samples/common/inc && \
+    mv cuda-samples-${CUDA_SAMPLES_VER}/Common/* /usr/local/cuda/samples/common/inc && \
+    rm -rf v${CUDA_SAMPLES_VER}.tar.gz
 
 ENV KATHOME=/home/kat
-
-# Install gsl 1.16
-RUN mkdir -p $KATHOME/src && \
-    cd $KATHOME/src && \
-    curl ftp://ftp.gnu.org/gnu/gsl/gsl-1.16.tar.gz | tar xzf - && \
-    cd gsl-1.16 && \
-    ./configure --prefix=/usr && \
-    make -j 8 all && \
-    make -j 8 install && \
-    make DESTDIR=/installs install-strip
 
 # Now downgrade to kat
 USER kat
@@ -72,9 +66,9 @@ ENV OBIT_REPO https://github.com/bill-cotton/Obit/trunk/ObitSystem
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
-# Retrieve Obit r632
+# Retrieve Obit r651
 RUN mkdir -p $OBIT_BASE_PATH && \
-    svn co -q -r 632 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
+    svn co -q -r 651 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
 
 WORKDIR $OBIT_BASE_PATH
 
@@ -88,6 +82,7 @@ RUN patch -p1 -N -s < /tmp/obit.patch
 RUN cd ObitSystem/Obit && \
     ./configure --prefix=/usr --without-plplot --without-wvr && \
     make clean && \
+    make versionupdate && \
     make -j 8
 
 # Add python package requirements
@@ -128,6 +123,7 @@ ENV PACKAGES \
     libcurl4 \
     libfftw3-3 \
     libglib2.0-0 \
+    libgsl0-dev \
     libncurses5 \
     libreadline8 \
     libxm4 \
@@ -141,21 +137,17 @@ RUN apt-get update && \
 # Set up areas for image/metadata output
 RUN mkdir -p /var/kat/data
 RUN chown -R kat:kat /var/kat
-VOLUME ['/var/kat/data/']
+VOLUME ["/var/kat/data/"]
 
 RUN mkdir /scratch
 RUN chown kat:kat /scratch
-VOLUME ['/scratch']
+VOLUME ["/scratch"]
 
 # Now downgrade to kat
 USER kat
 
 # Install system packages
-COPY --from=build /installs /
 COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
-
-# Add task configuration files
-COPY --chown=kat:kat katacomb/katacomb/conf /obitconf
 
 # Install Python ve
 COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
@@ -175,11 +167,21 @@ ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
 ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
 
-# Set the work directory to /obitconf
-WORKDIR /obitconf
+# Set the work directory to /home/kat
+WORKDIR /home/kat
 
 # Configure Obit/AIPS disks
 RUN cfg_aips_disks.py
 
 # Execute test cases
-RUN nosetests katacomb
+# The test_continuum_pipeline classes are run separately
+# since Obit cannot handle multiple pipeline runs (>24) 
+# in the same python thread.
+RUN pytest -s --pyargs katacomb.tests.test_utils \
+                       katacomb.tests.test_qa \
+                       katacomb.tests.test_aips_facades \
+                       katacomb.tests.test_aips_path \
+                       katacomb.tests.test_uv_export
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline

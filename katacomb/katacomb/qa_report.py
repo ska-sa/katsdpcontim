@@ -17,6 +17,9 @@ from katacomb.aips_export import _make_pngs, FITS_EXT, PNG_EXT, METADATA_JSON
 
 log = logging.getLogger('katacomb')
 
+# Contrast in zscale for PB image PNG
+PB_CONTRAST = 0.3
+
 
 def _productdir(metadata, base_dir, i, suffix, write_tag):
     target_name = metadata['Targets'][i]
@@ -24,12 +27,12 @@ def _productdir(metadata, base_dir, i, suffix, write_tag):
     return base_dir + f'_{target_name}_{run}{suffix}' + write_tag
 
 
-def _caption_pngs(in_dir, fits_file, target, label):
+def _caption_pngs(in_dir, fits_file, target, label, contrast=0.02):
     """Caption and make PNG files"""
     imghdr = fits.open(os.path.join(in_dir, fits_file + FITS_EXT))[0].header
     center_freq = imghdr['CRVAL3'] / 1e6
     caption = f'{target.name} Continuum ({center_freq:.0f} MHz) ({label})'
-    _make_pngs(in_dir, fits_file, caption)
+    _make_pngs(in_dir, fits_file, caption, contrast=contrast)
 
 
 def _update_metadata_imagedata(metadata, out_filebase, i):
@@ -52,7 +55,7 @@ def write_metadata(metadata, out_dir):
         with open(metadata_file, 'w') as meta:
             json.dump(metadata, meta)
     except Exception as e:
-        log.warn("Creation of %s failed.\n%s", metadata_file, str(e))
+        log.warning("Creation of %s failed.\n%s", metadata_file, str(e))
 
 
 def make_image_metadata(metadata, suffix, outdir, i, rname, desc, rmsnoise):
@@ -116,15 +119,15 @@ def make_pbeam_images(metadata, in_dir, write_tag):
 
         os.mkdir(pb_dir)
         pbc_path = os.path.join(pb_dir, out_filebase_pb + FITS_EXT)
-        bp = pbc.beam_pattern(in_path)
         raw_image = pbc.read_fits(in_path)
-        pbc_image = pbc.primary_beam_correction(bp, raw_image, px_cut=0.1)
+        beam_model = pbc.get_beam_model(raw_image.header)
+        pbc_image = pbc.primary_beam_correction(beam_model, raw_image, px_cut=0.1)
         pbc.write_new_fits(pbc_image, in_path, outputFilename=pbc_path)
 
         log.info('Write primary beam corrected PNG output: %s',
                  out_filebase_pb + PNG_EXT)
         _caption_pngs(pb_dir, out_filebase_pb,
-                      kat_target, 'PB Corrected')
+                      kat_target, 'PB Corrected', contrast=PB_CONTRAST)
 
 
 class StreamToLogger:

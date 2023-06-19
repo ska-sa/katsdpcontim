@@ -1,104 +1,100 @@
 #!/usr/bin/env python
 import argparse
-import os.path
 import logging
-
-import numpy as np
-from pretty import pretty
+import os
 
 import katdal
-from katsdpservices import setup_logging
 
-import katacomb
-from katacomb import (KatdalAdapter, obit_context, AIPSPath,
-                        uv_factory, uv_export,
-                        uv_history_obs_description,
-                        uv_history_selection)
-
-from katacomb.aips_path import next_seq_nr
-from katacomb.util import parse_python_assigns, log_exception
+from katacomb import pipeline_factory, AIPSPath
+from katacomb.util import (recursive_merge,
+                           get_and_merge_args,
+                           setup_aips_disks,
+                           katdal_options,
+                           export_options,
+                           selection_options,
+                           setup_selection_and_parameters,
+                           setup_configuration,
+                           post_process_args,
+                           get_parameter_file)
 
 log = logging.getLogger('katacomb')
 
-# uv_export.py -n pks1934 /var/kat/archive2/data/MeerKATAR1/telescope_products/2017/07/15/1500148809.h5
+
+def configure_logging(args):
+    log_handler = logging.StreamHandler()
+    fmt = "[%(levelname)s] %(message)s"
+    log_handler.setFormatter(logging.Formatter(fmt))
+    log.addHandler(log_handler)
+    log.setLevel(args.log_level.upper())
+
 
 def create_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("katdata", help="hdf5 observation file", type=str)
-    parser.add_argument("-l", "--label", default="MeerKAT", type=str)
-    parser.add_argument("-n", "--name", help="AIPS name", type=str)
-    parser.add_argument("-c", "--class",
-                        default="raw",
-                        type=str,
-                        dest="aclass",
-                        help="AIPS class")
-    parser.add_argument("-d", "--disk",
-                        default=1,
-                        type=int,
-                        help="AIPS disk")
-    parser.add_argument("-s", "--seq",
+    parser = argparse.ArgumentParser(description='Export MVF data to AIPS UV')
+    parser.add_argument("katdata",
+                        help="katdal observation reference",
+                        type=str)
+    parser.add_argument("--aname",
+                        help="AIPS UV Name. Default: CBID",
+                        type=str)
+    parser.add_argument("--aclass",
+                        default="merge",
+                        help="AIPS UV Class. Default: %(default)s",
+                        type=str)
+    parser.add_argument("--aseq",
+                        default=0,
+                        help="AIPS UV seq. Default is next available on disk",
+                        type=int)
+    parser.add_argument("--aipsdisk",
                         default=None,
-                        type=int,
-                        help="AIPS sequence")
-    parser.add_argument("--nvispio",
-                        default=1024,
-                        type=int,
-                        help="Number of visibilities "
-                             "read/written per IO call")
-    parser.add_argument("-ks", "--select",
-                        default="scans='track'; spw=0; corrprods='cross'",
-                        type=log_exception(log)(parse_python_assigns),
-                        help="katdal select statement "
-                             "Should only contain python "
-                             "assignment statements to python "
-                             "literals, separated by semi-colons")
-    parser.add_argument("--blavg",
-                        default=False, action="store_true",
-                        help="Apply baseline dependent averaging")
+                        help="Path to AIPS disk to store the AIPS UV file. "
+                             "Default: $PWD/CBID_aipsdisk")
+    parser.add_argument("--average",
+                        action='store_true',
+                        help="Switch on BL dependent averaging and channel averaging")
+    parser.add_argument("--log-level",
+                        type=str,
+                        default="INFO",
+                        help="Logging level. Default: %(default)s")
+    katdal_options(parser)
+    selection_options(parser)
+    export_options(parser)
     return parser
 
 
-setup_logging()
+def main():
+    parser = create_parser()
+    args = parser.parse_args()
+    configure_logging(args)
+    log.info("Loading katdal dataset with applycal=%s", args.applycal)
+    katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
+    post_process_args(args, katdata)
 
-args = create_parser().parse_args()
+    uvblavg_defaults, _, kat_select = setup_selection_and_parameters(katdata, args)
 
-KA = KatdalAdapter(katdal.open(args.katdata))
+    # Merge parameters for Obit from parameter files with command line parameters
+    uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
+    log.info("UVBlAvg parameter file: %s", os.path.basename(uvblavg_parm_file))
+    uvblavg_args = get_and_merge_args('uvblavg', uvblavg_parm_file, args.uvblavg)
+    uvblavg_args = recursive_merge(uvblavg_args, uvblavg_defaults)
 
-with obit_context():
-    # Construct file object
-    aips_path = KA.aips_path(name=args.name, disk=args.disk,
-                            aclass=args.aclass, seq=args.seq, dtype="AIPS")
+    # No FITS disk needed for this script
+    config = setup_configuration(args, aipsdisks=args.aipsdisk, fitsdisks=[])
+    setup_aips_disks()
+    # Default file name = capture_block_id
+    aname = args.aname if args.aname else config['cb_id']
+    # AIPS disk is always disk 1 in this script, default seq will be next available
+    out_file = AIPSPath(aname, disk=1, aclass=args.aclass,
+                        seq=args.aseq, atype='UV', dtype='AIPS')
 
-    # Handle invalid sequence numbers
-    if args.seq is None or args.seq < 1:
-        aips_path.seq = next_seq_nr(aips_path)
-
-    # Apply the katdal selection
-    KA.select(**args.select)
-
-    # Fall over on empty selections
-    if not KA.size > 0:
-        raise ValueError("The katdal selection produced an empty dataset"
-                        "\n'%s'\n" % pretty(args.select))
+    # Set up a pipeline and run it
+    pipeline = pipeline_factory('continuum_export', katdata,
+                                katdal_select=kat_select,
+                                uvblavg_params=uvblavg_args,
+                                merge_scans=not args.average,
+                                nvispio=args.nvispio,
+                                out_path=out_file)
+    pipeline.execute()
 
 
-    # UV file location variables
-    with uv_factory(aips_path=aips_path, mode="w",
-                        nvispio=args.nvispio,
-                        table_cmds=KA.default_table_cmds(),
-                        desc=KA.uv_descriptor()) as uvf:
-
-        # Write history
-        uv_history_obs_description(KA, uvf)
-        uv_history_selection(args.select, uvf)
-
-        # Perform export to the file
-        uv_export(KA, uvf)
-
-    # Possibly perform baseline dependent averaging
-    if args.blavg == True:
-        task_kwargs = aips_path.task_input_kwargs()
-        task_kwargs.update(aips_path.task_output_kwargs(aclass='uvav'))
-        blavg = task_factory("UVBlAvg", **task_kwargs)
-
-        blavg.go()
+if __name__ == "__main__":
+    main()
