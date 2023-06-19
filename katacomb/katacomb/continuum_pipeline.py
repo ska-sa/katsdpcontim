@@ -659,7 +659,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
                                                           merge_uvf, blavg_uvf,
                                                           nx_row)
             else:
-                log.warn("No visibilities to merge for scan %d", si)
+                log.warning("No visibilities to merge for scan %d", si)
 
             # Remove scan once merged
             if 'scans' in self.clobber:

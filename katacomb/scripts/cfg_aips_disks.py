@@ -110,8 +110,8 @@ def link_obit_data():
             try:
                 os.symlink(data_file, link_name)
             except OSError as e:
-                log.warn("Unable to link '{}' to '{}'\n"
-                         "{}".format(link_name, data_file, e))
+                log.warning("Unable to link '{}' to '{}'\n"
+                            "{}".format(link_name, data_file, e))
 
 
 def create_parser():

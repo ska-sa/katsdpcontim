@@ -65,7 +65,7 @@ DEFAULT_SPWS = [{
 # Pick 10 random ephem stars as katpoint targets
 _NR_OF_DEFAULT_TARGETS = 10
 DEFAULT_TARGETS = [katpoint.Target("%s, star" % t) for t in
-                   random.sample(stars.keys(), _NR_OF_DEFAULT_TARGETS)]
+                   random.sample(list(stars.keys()), _NR_OF_DEFAULT_TARGETS)]
 
 # Slew for 1 dumps then track for 4 on random targets
 _SLEW_TRACK_DUMPS = (('slew', 1), ('track', 4))
@@ -104,7 +104,7 @@ def DEFAULT_WEIGHTS(dataset):
 
 
 def DEFAULT_FLAGS(dataset):
-    flags = np.zeros(dataset.shape, dtype=np.bool)
+    flags = np.zeros(dataset.shape, dtype=bool)
     # Flag 10% of visibilities
     nflagged = int(0.1*flags.size)
     flags.ravel()[-nflagged:] = True
@@ -246,9 +246,9 @@ class MockDataSet(DataSet):
         nchan = self.channels.shape[0]
 
         # Select everything upfront (weights + flags already set to all in superclass)
-        self._time_keep = np.ones(self._ndumps, dtype=np.bool)
-        self._corrprod_keep = np.ones(ncorrproducts, dtype=np.bool)
-        self._freq_keep = np.ones(nchan, dtype=np.bool)
+        self._time_keep = np.ones(self._ndumps, dtype=bool)
+        self._corrprod_keep = np.ones(ncorrproducts, dtype=bool)
+        self._freq_keep = np.ones(nchan, dtype=bool)
         self._create_azel_sensors()
         ants = [ant.name for ant in self.ants]
         self.select(ants=ants, spw=0, subarray=0)
@@ -426,8 +426,8 @@ class MockDataSet(DataSet):
 
     def _create_azel_sensors(self):
         """Generate azimuth and elevation sensors."""
-        az = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
-        el = np.recarray((self._ndumps), dtype=[('timestamp', np.float), ('value', np.float)])
+        az = np.recarray((self._ndumps), dtype=[('timestamp', float), ('value', float)])
+        el = np.recarray((self._ndumps), dtype=[('timestamp', float), ('value', float)])
         az['timestamp'] = self._timestamps
         el['timestamp'] = self._timestamps
         for ant in self.ants:

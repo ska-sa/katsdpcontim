@@ -335,7 +335,7 @@ def aips_catalogue(katdata, nif):
             # (say for a mosaic).# "SOURCE" plus "QUAL" uniquely define
             # an entry in the table. The MeerKAT field of view is SO HUGE
             # I can't see this being needed.
-            'QUAL': [0.0],      # Source Qualifier Number
+            'QUAL': [0],      # Source Qualifier Number
         }
 
         used.append(source_name)
@@ -1174,9 +1174,9 @@ def time_chunked_scans(kat_adapter, time_step=4):
     EIGHT_GB = 8*1024**3
 
     if vis_size_estimate > EIGHT_GB:
-        log.warn("Visibility chunk '%s' is greater than '%s'. "
-                 "Check that sufficient memory is available",
-                 fmt_bytes(vis_size_estimate), fmt_bytes(EIGHT_GB))
+        log.warning("Visibility chunk '%s' is greater than '%s'. "
+                    "Check that sufficient memory is available",
+                    fmt_bytes(vis_size_estimate), fmt_bytes(EIGHT_GB))
 
     # Get some memory to hold reorganised visibilities
     out_vis = np.empty(out_vis_shape, dtype=kat_adapter.uv_vis.dtype)

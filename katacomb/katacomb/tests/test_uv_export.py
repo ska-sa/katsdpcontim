@@ -95,7 +95,7 @@ class TestUVExport(unittest.TestCase):
 
         # Flag the data
         def mock_flags(dataset):
-            return np.ones(dataset.shape, dtype=np.bool)
+            return np.ones(dataset.shape, dtype=bool)
 
         # Create Mock dataset and wrap it in a KatdalAdapter
         ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
@@ -139,7 +139,7 @@ class TestUVExport(unittest.TestCase):
             'band': 'L',
         }]
 
-        target_names = random.sample(stars.keys(), 5)
+        target_names = random.sample(list(stars.keys()), 5)
 
         # Pick 5 random stars as targets
         targets = [katpoint.Target("%s, star" % t) for t in target_names]
@@ -245,9 +245,9 @@ class TestUVExport(unittest.TestCase):
 
                 # Check that the subset of keywords generated
                 # by the katdal adapter match those read from the AIPS table
-                self.assertDictContainsSubset(KA.uv_spw_keywords, fq_kw)
-                self.assertDictContainsSubset(KA.uv_source_keywords, src_kw)
-                self.assertDictContainsSubset(KA.uv_antenna_keywords, ant_kw)
+                self.assertEqual(fq_kw, {**fq_kw, **KA.uv_spw_keywords})
+                self.assertEqual(src_kw, {**src_kw, **KA.uv_source_keywords})
+                self.assertEqual(ant_kw, {**ant_kw, **KA.uv_antenna_keywords})
 
                 def _strip_metadata(aips_table_rows):
                     """

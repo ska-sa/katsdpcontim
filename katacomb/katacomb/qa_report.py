@@ -55,7 +55,7 @@ def write_metadata(metadata, out_dir):
         with open(metadata_file, 'w') as meta:
             json.dump(metadata, meta)
     except Exception as e:
-        log.warn("Creation of %s failed.\n%s", metadata_file, str(e))
+        log.warning("Creation of %s failed.\n%s", metadata_file, str(e))
 
 
 def make_image_metadata(metadata, suffix, outdir, i, rname, desc, rmsnoise):

@@ -210,8 +210,8 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
                                         kat_adapter.katdal, out_filebase)
 
         except Exception as e:
-            log.warn("Export of FITS and PNG images from %s failed.\n%s",
-                     clean_file, str(e))
+            log.warning("Export of FITS and PNG images from %s failed.\n%s",
+                        clean_file, str(e))
 
     # Export metadata json
     try:
@@ -221,7 +221,7 @@ def export_images(clean_files, target_indices, disk, kat_adapter):
         with open(metadata_file, 'w') as meta:
             json.dump(metadata, meta)
     except Exception as e:
-        log.warn("Creation of %s failed.\n%s", METADATA_JSON, str(e))
+        log.warning("Creation of %s failed.\n%s", METADATA_JSON, str(e))
 
     return metadata
 
@@ -250,7 +250,7 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
     pSN = mfimage_params.get('maxPSCLoop', mfimage_defaults['maxPSCLoop'])
     # If maxPSCLoop is 0 or less then there was no self-calibration
     if pSN < 1:
-        log.warn('No self-calibration solutions available for export')
+        log.warning('No self-calibration solutions available for export')
         return
     # Amp+phase gains are in SN version maxPSCLoop + maxASCLoop (if maxASCLoop > 0)
     apSN = mfimage_params.get('maxASCLoop', mfimage_defaults['maxASCLoop'])
@@ -318,8 +318,8 @@ def export_calibration_solutions(uv_files, kat_adapter, mfimage_params, telstate
                     ts.add('product_GAMP_PHASE', gain,
                            ts=katdal_timestamps(timestamp, kat_adapter.midnight))
         except Exception as e:
-            log.warn("Export of calibration solutions from '%s' failed.\n%s",
-                     uv_file, str(e))
+            log.warning("Export of calibration solutions from '%s' failed.\n%s",
+                        uv_file, str(e))
 
 
 AIPS_NAN = np.float32(np.array(b'INDE').view(np.float32))
@@ -402,7 +402,7 @@ def export_clean_components(clean_files, target_indices, kat_adapter, telstate):
         try:
             with img_factory(aips_path=clean_file, mode='r') as cf:
                 if "AIPS CC" not in cf.tables:
-                    log.warn("No clean components in '%s'", clean_file)
+                    log.warning("No clean components in '%s'", clean_file)
                 else:
                     target = "target%d" % si
 
@@ -420,8 +420,8 @@ def export_clean_components(clean_files, target_indices, kat_adapter, telstate):
                     telstate[key] = data
 
         except Exception as e:
-            log.warn("Export of clean components from '%s' failed.\n%s",
-                     clean_file, str(e))
+            log.warning("Export of clean components from '%s' failed.\n%s",
+                        clean_file, str(e))
 
 
 def cc_to_katpoint(img, order=2):
@@ -542,8 +542,8 @@ def fit_flux_model(nu, s, nu0, sigma, sref, stokes=1, order=2):
         try:
             popt, _ = curve_fit(obit_flux_model, lnunu0, s, p0=init[:fitorder + 1], sigma=sigma)
         except RuntimeError:
-            log.warn("Fitting flux model of order %d to CC failed. Trying lower order fit." %
-                     (fitorder,))
+            log.warning("Fitting flux model of order %d to CC failed. Trying lower order fit." %
+                        (fitorder,))
         else:
             coeffs = np.pad(popt, ((0, order - fitorder),), "constant")
             return obit_flux_model_to_katpoint(nu0, stokes, *coeffs)

@@ -236,7 +236,7 @@ class AIPSPath(object):
             _check_disk_type(dtype, False)
 
 
-_AIPS_PATH_TUPLE_ARGS = [a for a in inspect.getargspec(AIPSPath.__init__).args
+_AIPS_PATH_TUPLE_ARGS = [a for a in inspect.getfullargspec(AIPSPath.__init__).args
                          if not a == "self"]
 _AIPS_PATH_TUPLE_FORMAT = "(%s)" % ",".join(_AIPS_PATH_TUPLE_ARGS)
 _AIPS_PATH_HELP = ("AIPS path should be a tuple of "

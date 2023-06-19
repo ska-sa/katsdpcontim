@@ -64,9 +64,9 @@ def weights(dataset):
 
 def flags(dataset, flagged=False):
     if not flagged:
-        return np.zeros(dataset.shape, dtype=np.bool)
+        return np.zeros(dataset.shape, dtype=bool)
     else:
-        return np.ones(dataset.shape, dtype=np.bool)
+        return np.ones(dataset.shape, dtype=bool)
 
 
 def _check_fits_headers(filepath):
@@ -484,12 +484,12 @@ class TestOnlinePipeline(unittest.TestCase):
         """
         input_freqs = np.linspace(100.e6, 500.e6, 10)
         lnunu0 = np.log(input_freqs / input_freqs[5])
-        input_cc_tab = np.ones((4, 10), dtype=np.float)
+        input_cc_tab = np.ones((4, 10), dtype=float)
         input_cc_tab[0] = obit_flux_model(lnunu0, 10.)
         input_cc_tab[1] = obit_flux_model(lnunu0, -10., -0.7)
         input_cc_tab[2] = obit_flux_model(lnunu0, 2., 0.1, 0.01)
         input_cc_tab[3] = obit_flux_model(lnunu0, -0.5, -0.5, 0.01, 0.05)
-        input_sigma = np.ones(10, dtype=np.float) * 0.1
+        input_sigma = np.ones(10, dtype=float) * 0.1
         for order in range(4):
             cc_tab = input_cc_tab[order]
             kp_model = fit_flux_model(input_freqs, cc_tab, input_freqs[0],

@@ -130,10 +130,10 @@ def post_process_args(args, kat_ds):
             args.capture_block_id = kat_ds.name[0:10]
         except AttributeError:
             args.capture_block_id = kat_ds.experiment_id
-            log.warn("No capture block ID was specified or "
-                     "found in katdal. "
-                     "Using experiment_id '%s' instead.",
-                     kat_ds.experiment_id)
+            log.warning("No capture block ID was specified or "
+                        "found in katdal. "
+                        "Using experiment_id '%s' instead.",
+                        kat_ds.experiment_id)
     telstate_id = getattr(args, 'telstate_id', None)
     args.output_id = getattr(args, 'output_id', '')
     if telstate_id is None:
@@ -181,8 +181,8 @@ def get_and_merge_args(collection, config_file, args):
     """
 
     if not os.path.exists(config_file):
-        log.warn("Specified configuration file %s not found. "
-                 "Using Obit default parameters.", config_file)
+        log.warning("Specified configuration file %s not found. "
+                    "Using Obit default parameters.", config_file)
         out_args = {}
     else:
         out_args = yaml.safe_load(open(config_file))[collection]
@@ -484,7 +484,7 @@ def normalise_target_name(name, used=[], max_length=None):
         # If the length of i_name is greater than ml
         # just warn and revert to straight append
         if len(i_name) >= ml:
-            log.warn('Too many repetitions of name %s.', name)
+            log.warning('Too many repetitions of name %s.', name)
             t_name = name
         o_name = ''.join(filter(None, [t_name, i_name]))
         return '{:{ml}.{ml}}'.format(o_name, ml=ml)
