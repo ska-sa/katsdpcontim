@@ -5,6 +5,7 @@ from functools import partial
 
 
 import astropy.io.fits as fits
+from astropy import units as u
 from nose.tools import assert_equal, assert_in
 import numpy as np
 from scipy import constants
@@ -48,7 +49,7 @@ def vis(dataset, sources):
     uvw = np.array([dataset.u, dataset.v, dataset.w])
     uvw_wl = uvw[:, :, np.newaxis, :] / wl[np.newaxis, np.newaxis, :, np.newaxis]
     for target in sources:
-        flux_freq = target.flux_density(dataset.freqs/1.e6)
+        flux_freq = target.flux_density(dataset.freqs * u.Hz).value
         lmn = np.array(pc.lmn(target.radec().ra.rad, target.radec().dec.rad))
         n = lmn[2]
         lmn[2] -= 1.
@@ -330,14 +331,16 @@ class TestOnlinePipeline(unittest.TestCase):
             kp_model = fit_flux_model(input_freqs, cc_tab, input_freqs[0],
                                       input_sigma, cc_tab[0], order=order)
             # Check the flux densities of the input and fitted models
-            kp_flux_model = katpoint.FluxDensityModel(100., 500., kp_model)
-            np.testing.assert_allclose(kp_flux_model.flux_density(input_freqs/1.e6), cc_tab)
+            kp_flux_model = katpoint.FluxDensityModel(100. * u.MHz, 500. * u.MHz, kp_model)
+            np.testing.assert_allclose(kp_flux_model.flux_density(input_freqs * u.Hz).value,
+                                       cc_tab)
         # Check a target with zero flux
         cc_tab = np.zeros(10)
         kp_model = fit_flux_model(input_freqs, cc_tab, input_freqs[0],
                                   input_sigma, cc_tab[0], order=0)
-        kp_flux_model = katpoint.FluxDensityModel(100., 500., kp_model)
-        np.testing.assert_array_equal(kp_flux_model.flux_density(input_freqs/1.e6), cc_tab)
+        kp_flux_model = katpoint.FluxDensityModel(100. * u.MHz, 500. * u.MHz, kp_model)
+        np.testing.assert_array_equal(kp_flux_model.flux_density(input_freqs * u.Hz).value,
+                                      cc_tab)
 
     def test_cc_export(self):
         """Check CC models returned by MFImage
@@ -403,7 +406,8 @@ class TestOnlinePipeline(unittest.TestCase):
             in_fluxmodel = targ.flux_model
 
             # Check the flux densities of the flux model in the fitted CC's
-            test_freqs = np.linspace(out_fluxmodel.min_freq_MHz, out_fluxmodel.max_freq_MHz, 5)
+            test_freqs = np.linspace(out_fluxmodel.min_frequency << u.MHz,
+                                     out_fluxmodel.max_frequency << u.MHz, 5)
             in_flux = in_fluxmodel.flux_density(test_freqs)
             out_flux = out_fluxmodel.flux_density(test_freqs)
             np.testing.assert_allclose(out_flux, in_flux, rtol=1.e-3)
