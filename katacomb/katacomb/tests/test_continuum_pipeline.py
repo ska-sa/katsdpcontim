@@ -696,7 +696,7 @@ class TestOnlinePipeline(unittest.TestCase):
             spw = [{'centre_freq': 1200.e6,
                     'num_chans': 1,
                     'channel_width': 1.e6}]
-            targ = katpoint.construct_radec_target(0., 0.)
+            targ = katpoint.Target.from_radec(0., 0.)
             scan = [('track', 1, targ)]
             suba = {}
             # Only need 1 antenna
