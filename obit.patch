@@ -190,7 +190,7 @@ Index: trunk/ObitSystem/Obit/src/Makefile.in
  
 +#CUDA
 +CUDA_CFLAGS = -g -O3 --compiler-options -fPIC -I$(top_srcdir)/include -I$(OTHER)/include -lstdc++ -DIS_CUDA
-+CUDA_FLAGS := -I/usr/local/cuda/samples/common/inc/ -I/usr/local/cuda/include/ -DHAVE_GPU=1 @GLIB_CFLAGS@
++CUDA_FLAGS := -I/usr/local/cuda/samples/common/inc/ -I/usr/local/cuda/include/ -DHAVE_GPU=1
 +
  # teach how to compile
 -.c.o:	
