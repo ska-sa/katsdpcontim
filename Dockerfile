@@ -68,7 +68,7 @@ ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
 # Retrieve Obit r651
 RUN mkdir -p $OBIT_BASE_PATH && \
-    svn co -q -r 651 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
+    svn co -q -r 654 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
 
 WORKDIR $OBIT_BASE_PATH
 
