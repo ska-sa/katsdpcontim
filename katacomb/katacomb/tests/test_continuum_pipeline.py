@@ -523,7 +523,8 @@ class TestOnlinePipeline(unittest.TestCase):
         cat = katpoint.Catalogue()
         cat.add(katpoint.Target("Amfortas, radec, 0.0, -90.0, (856. 1712. 1. 0. 0.)"))
         cat.add(katpoint.Target("Klingsor, radec, 0.0, 0.0, (856. 1712. 2. -0.7 0.1)"))
-        cat.add(katpoint.Target("Kundry, radec, 100.0, -35.0, (856. 1712. -1.0 1. -0.1)"))
+        cat.add(katpoint.Target("Kundry, radec, 100.0, -35.0, (856. 1712. -1.0 0. 0.)"))
+        cat.add(katpoint.Target("Gurnemanz, radec, 10.0, 10.0, (856. 1712. 0.34 -0.15 0.0 0.0 2.3 -1.0 1.0 0.2 -0.1 0.0)"))
 
         ts = TelescopeState()
 

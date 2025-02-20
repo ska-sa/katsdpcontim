@@ -84,8 +84,8 @@ class TestAipsFacades(unittest.TestCase):
                     times = np.arange(firstVis, firstVis+numVisBuff, dtype=np.float32)
 
                     buf = uvf.np_visbuf
-                    buf[iloct:lrec*numVisBuff:lrec] = times
-                    uvf.Write(firstVis=firstVis)
+                    buf[iloct:iloct + lrec*numVisBuff:lrec] = times
+                    uvf.Write()
 
             # Now re-open in readonly mode and test
             # that we get the same sequential values out
@@ -112,7 +112,7 @@ class TestAipsFacades(unittest.TestCase):
                     buf = uvf.np_visbuf
 
                     times = np.arange(firstVis, firstVis+numVisBuff, dtype=np.float32)
-                    buf_times = buf[iloct:lrec*numVisBuff:lrec]
+                    buf_times = buf[iloct:iloct + lrec*numVisBuff:lrec]
                     self.assertTrue(np.all(times == buf_times))
 
 

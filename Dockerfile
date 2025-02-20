@@ -1,4 +1,4 @@
-ARG KATSDPDOCKERBASE_REGISTRY=sdp-docker-registry.kat.ac.za:5000
+ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
 FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
 
@@ -62,13 +62,15 @@ ENV KATHOME=/home/kat
 # Now downgrade to kat
 USER kat
 
-ENV OBIT_REPO https://github.com/bill-cotton/Obit/trunk/ObitSystem
+ENV OBIT_REPO https://github.com/bill-cotton/Obit
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
-# Retrieve Obit r651
-RUN mkdir -p $OBIT_BASE_PATH && \
-    svn co -q -r 651 $OBIT_REPO ${OBIT_BASE_PATH}/ObitSystem
+WORKDIR $KATHOME
+RUN git clone -n --depth=1 --filter=tree:0 $OBIT_REPO && \
+    cd $OBIT_BASE_PATH && \
+    git sparse-checkout set --no-cone ObitSystem && \
+    git checkout
 
 WORKDIR $OBIT_BASE_PATH
 
