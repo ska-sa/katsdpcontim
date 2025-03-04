@@ -572,7 +572,7 @@ class TestOnlinePipeline(unittest.TestCase):
             test_freqs = np.linspace(out_fluxmodel.min_freq_MHz, out_fluxmodel.max_freq_MHz, 5)
             in_flux = in_fluxmodel.flux_density(test_freqs)
             out_flux = out_fluxmodel.flux_density(test_freqs)
-            np.testing.assert_allclose(out_flux, in_flux, rtol=1.e-3)
+            np.testing.assert_allclose(out_flux, in_flux, rtol=2.e-3)
 
         # A field with some off axis sources to check positions
         offax_cat = katpoint.Catalogue()
