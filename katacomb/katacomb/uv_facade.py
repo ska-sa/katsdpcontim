@@ -472,7 +472,7 @@ class UVFacade(object):
 
         handle_obit_err(err_msg, self._err)
 
-    def Write(self, firstVis=None):
+    def Write(self):
         err_msg = "Error writing UV file '%s'" % self.name
 
         try:
