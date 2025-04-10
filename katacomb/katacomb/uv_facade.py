@@ -476,7 +476,7 @@ class UVFacade(object):
         err_msg = "Error writing UV file '%s'" % self.name
 
         try:
-            self.uv.Write(self._err, firstVis=firstVis)
+            self.uv.Write(self._err)
         except Exception:
             raise Exception(err_msg)
 
