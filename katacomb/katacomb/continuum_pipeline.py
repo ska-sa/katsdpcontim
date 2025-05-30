@@ -219,7 +219,7 @@ class PipelineImplementation(Pipeline):
 
         log.info("MFImage arguments %s", pretty(mfimage_kwargs))
 
-        mfimage = task_factory("MFImage", **mfimage_kwargs)
+        mfimage = task_factory("MFBeam", **mfimage_kwargs)
         # Send stdout from the task to the log
         with log_obit_err(log):
             mfimage.go()
