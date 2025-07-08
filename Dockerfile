@@ -87,6 +87,36 @@ RUN cd ObitSystem/Obit && \
     make versionupdate && \
     make -j 8
 
+# Set up Obit environment
+ENV OBIT_BASE_PATH=/home/kat/Obit
+ENV OBIT="$OBIT_BASE_PATH"/ObitSystem/Obit \
+    OBITINSTALL="$OBIT_BASE_PATH" \
+    OBIT_EXEC="$OBIT" \
+    OBITSD="$OBIT_BASE_PATH"/ObitSystem/ObitSD
+ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
+ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
+ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
+
+USER root
+RUN cd /home/kat/Obit/ObitSystem/ObitTalk && \
+    ./configure --prefix=/usr && \
+    sed -i 's/$(TARGETS)/ /g' doc/Makefile && \
+    make clean && \
+    make && \
+    make install 
+
+COPY --chown=kat:kat configure_obitview /home/kat/Obit/ObitSystem/ObitView/configure
+
+RUN cd /home/kat/Obit/ObitSystem/ObitView && \
+    ./configure &&\
+    make
+
+
+RUN apt-get update && \
+    apt-get install -y saods9
+
+USER kat
+
 # Add python package requirements
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
@@ -111,79 +141,3 @@ RUN pip install katversion
 RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
 
 RUN pip install --no-deps . && pip check
-
-#######################################################################
-
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
-LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
-
-# Switch to root for package install
-USER root
-
-ENV PACKAGES \
-    libcfitsio8 \
-    libcurl4 \
-    libfftw3-3 \
-    libglib2.0-0 \
-    libgsl0-dev \
-    libncurses5 \
-    libreadline8 \
-    libxm4 \
-    libxmlrpc-core-c3 \
-    libxmlrpc-c++8v5
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends $PACKAGES && \
-    rm -rf /var/lib/apt/lists/*
-
-# Set up areas for image/metadata output
-RUN mkdir -p /var/kat/data
-RUN chown -R kat:kat /var/kat
-VOLUME ["/var/kat/data/"]
-
-RUN mkdir /scratch
-RUN chown kat:kat /scratch
-VOLUME ["/scratch"]
-
-# Now downgrade to kat
-USER kat
-
-# Install system packages
-COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
-
-# Install Python ve
-COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
-ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-
-# Install validation package
-COPY --from=build --chown=kat:kat /home/kat/valid /home/kat/valid
-ENV PYTHONPATH=/home/kat/valid:$PYTHONPATH
-
-# Set up Obit environment
-ENV OBIT_BASE_PATH=/home/kat/Obit
-ENV OBIT="$OBIT_BASE_PATH"/ObitSystem/Obit \
-    OBITINSTALL="$OBIT_BASE_PATH" \
-    OBIT_EXEC="$OBIT" \
-    OBITSD="$OBIT_BASE_PATH"/ObitSystem/ObitSD
-ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
-ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
-ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
-
-# Set the work directory to /home/kat
-WORKDIR /home/kat
-
-# Configure Obit/AIPS disks
-RUN cfg_aips_disks.py
-
-# Execute test cases
-# The test_continuum_pipeline classes are run separately
-# since Obit cannot handle multiple pipeline runs (>24) 
-# in the same python thread.
-RUN pytest -s --pyargs katacomb.tests.test_utils \
-                       katacomb.tests.test_qa \
-                       katacomb.tests.test_aips_facades \
-                       katacomb.tests.test_aips_path \
-                       katacomb.tests.test_uv_export
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline

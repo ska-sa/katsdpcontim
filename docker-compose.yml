@@ -10,8 +10,13 @@ services:
     network_mode: host
     restart: "no"
     hostname: katacomb
+    environment:
+      - DISPLAY=${DISPLAY}
+      - NUMBA_CACHE_DIR=/tmp
     volumes:
-      - /var/kat/archive2:/var/kat/archive2:ro
+      - /scratch2/kmcalpine/test_contim:/scratch
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /scratch2/kmcalpine/tmp:/tmp
 
   katacomb-dev:
     build:
