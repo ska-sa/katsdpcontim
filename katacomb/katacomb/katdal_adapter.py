@@ -93,7 +93,7 @@ def katdal_ant_nr(ant_name):
         antenna number in antenna name
     """
     try:
-        if ant_name[0] == 'm':
+        if ant_name[0] in ['m', 'e']:
             nr = int(ant_name[1:4])
         elif ant_name[0] == 's':
             nr = int(ant_name[1:5]) + 64
