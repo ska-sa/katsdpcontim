@@ -351,7 +351,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
         self.katdal_select = {}
         self.clobber = ['scans', 'avgscans']
         self.merge_scans = False
-        self.time_step = 20
+        self.time_step = 4
 
     def _sanity_check_merge_blavg_descriptors(self, merge_uvf, blavg_uvf):
         """
