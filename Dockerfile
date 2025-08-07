@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
-
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
+ARG TAG=use-uv
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:$TAG as build
 
 # Switch to root for package install
 USER root
@@ -92,7 +92,12 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-RUN install_pinned.py -r /tmp/requirements.txt
+RUN uv pip compile ~/docker-base/base-requirements.txt -o ~/lock.txt && \
+    uv pip compile /tmp/requirements.txt -o ~/lock.txt && \
+    uv pip sync ~/lock.txt --strict && \
+    python -m pip check
+
+RUN pip freeze
 
 # Install validation package
 ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
@@ -110,11 +115,11 @@ WORKDIR $KATHOME/src/katsdpcontim/katacomb
 RUN pip install katversion
 RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
 
-RUN pip install --no-deps . && pip check
-
+#RUN pip install --no-deps . && pip check
+RUN uv pip install --no-deps .
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:$TAG
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
