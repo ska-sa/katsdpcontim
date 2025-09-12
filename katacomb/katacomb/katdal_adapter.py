@@ -73,14 +73,15 @@ def katdal_timestamps(timestamps, midnight):
 def katdal_ant_nr(ant_name):
     """Get a unique integer corresponding to an antenna name.
 
-    Given an antenna name of the form either 'mnnnp' or 'snnnnp'
-    where 'm' or 's' is a character constant denoting 'MeerKAT'
+    Given an antenna name of the form either 'mnnnp', 'ennnp' or  'snnnnp'
+    where 'm', 'e' or 's' are characters denoting 'MeerKAT', 'MeerKAT extension'
     and 'SKA' dishes respectively, 'nnn' (or 'nnnn') is the
     antenna number and 'p' is the (optional) polarisation, returns
     an ordered antenna number as an integer.
 
     The ordered antenna number is defined as 'nnn' for MeerKAT
-    dishes and 'nnnn + 64' for SKA dishes.
+    dishes, 'nnn + 64' for MeerKAT extension dishes and 'nnn + 64 + 122' 
+    for SKA dishes (121 is the highest number MeerKAT extension dish)'
 
     Parameters
     ----------
@@ -95,8 +96,10 @@ def katdal_ant_nr(ant_name):
     try:
         if ant_name[0] == 'm':
             nr = int(ant_name[1:4])
+        elif ant_name[0] = 'e':
+            nr = int(ant_name[1:4] + 64
         elif ant_name[0] == 's':
-            nr = int(ant_name[1:5]) + 64
+            nr = int(ant_name[1:5]) + 64 + 122 
         else:
             raise ValueError
     except (ValueError, IndexError):
@@ -127,8 +130,10 @@ def katdal_ant_name(aips_ant_nr):
     """Return antenna name, given the AIPS antenna number"""
     if aips_ant_nr < 65:
         res = f'm{(aips_ant_nr-1):03d}'
-    else:
-        res = f's{(aips_ant_nr-65):04d}'
+    elif 65 <= aips_ant_nr < (122 + 65) :
+        res = f'e{(aips_ant_nr-65):03d}'
+    elif aips_ant_nr >= (122 + 65):
+        res = f's{(aips_ant_nr-(65 + 122)):04d}'
     return res
 
 
