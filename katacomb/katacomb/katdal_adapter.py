@@ -80,7 +80,7 @@ def katdal_ant_nr(ant_name):
     an ordered antenna number as an integer.
 
     The ordered antenna number is defined as 'nnn' for MeerKAT
-    dishes, 'nnn + 64' for MeerKAT extension dishes and 'nnn + 64 + 122' 
+    dishes, 'nnn + 64' for MeerKAT extension dishes and 'nnn + 64 + 122'
     for SKA dishes (121 is the highest number MeerKAT extension dish)'
 
     Parameters
@@ -96,10 +96,10 @@ def katdal_ant_nr(ant_name):
     try:
         if ant_name[0] == 'm':
             nr = int(ant_name[1:4])
-        elif ant_name[0] = 'e':
-            nr = int(ant_name[1:4] + 64
+        elif ant_name[0] == 'e':
+            nr = int(ant_name[1:4]) + 64
         elif ant_name[0] == 's':
-            nr = int(ant_name[1:5]) + 64 + 122 
+            nr = int(ant_name[1:5]) + (64 + 122)
         else:
             raise ValueError
     except (ValueError, IndexError):
@@ -130,7 +130,7 @@ def katdal_ant_name(aips_ant_nr):
     """Return antenna name, given the AIPS antenna number"""
     if aips_ant_nr < 65:
         res = f'm{(aips_ant_nr-1):03d}'
-    elif 65 <= aips_ant_nr < (122 + 65) :
+    elif 65 <= aips_ant_nr < (122 + 65):
         res = f'e{(aips_ant_nr-65):03d}'
     elif aips_ant_nr >= (122 + 65):
         res = f's{(aips_ant_nr-(65 + 122)):04d}'
