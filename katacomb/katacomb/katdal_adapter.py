@@ -70,44 +70,25 @@ def katdal_timestamps(timestamps, midnight):
     return midnight + (timestamps * ONE_DAY_IN_SECONDS)
 
 
-def katdal_ant_nr(ant_name):
-    """Get a unique integer corresponding to an antenna name.
-
-    Given an antenna name of the form either 'mnnnp', 'ennnp' or  'snnnnp'
-    where 'm', 'e' or 's' are characters denoting 'MeerKAT', 'MeerKAT extension'
-    and 'SKA' dishes respectively, 'nnn' (or 'nnnn') is the
-    antenna number and 'p' is the (optional) polarisation, returns
-    an ordered antenna number as an integer.
-
-    The ordered antenna number is defined as 'nnn' for MeerKAT
-    dishes, 'nnn + 64' for MeerKAT extension dishes and 'nnn + 64 + 122'
-    for SKA dishes (121 is the highest number MeerKAT extension dish)'
+def katdal_ant_nr(ants, ant_name):
+    """Get a unique integer corresponding to an antenna name
 
     Parameters
     ----------
+    ants : list of :class:`katpoint.Antenna`
+        Antennas in a given dataset
     ant_name : str
-        Antenna Name
+        Antenna name, must be in the provided list of ants
 
     Returns
-    ------
+    -------
     integer
-        antenna number in antenna name
+        katdal antenna number from antenna name
     """
-    try:
-        if ant_name[0] == 'm':
-            nr = int(ant_name[1:4])
-        elif ant_name[0] == 'e':
-            nr = int(ant_name[1:4]) + 64
-        elif ant_name[0] == 's':
-            nr = int(ant_name[1:5]) + (64 + 122)
-        else:
-            raise ValueError
-    except (ValueError, IndexError):
-        raise ValueError("Invalid antenna name '%s'" % ant_name)
-    return nr
+    return [a.name for a in ants].index(ant_name)
 
 
-def aips_ant_nr(ant_name):
+def aips_ant_nr(ants, ant_name):
     """Given antenna name get its AIPS antenna number.
 
     This is done by adding one to the result of
@@ -115,25 +96,35 @@ def aips_ant_nr(ant_name):
 
     Parameters
     ----------
+    ants : list of :class:`katpoint.Antenna`
+        Antennas in a given dataset
     ant_name : str
-        Antenna Name
+        Antenna name, must be in the provided list of ants
 
     Returns
     ------
     integer
         AIPS antenna number from antenna name
     """
-    return katdal_ant_nr(ant_name) + 1
+    return katdal_ant_nr(ants, ant_name) + 1
 
 
-def katdal_ant_name(aips_ant_nr):
-    """Return antenna name, given the AIPS antenna number"""
-    if aips_ant_nr < 65:
-        res = f'm{(aips_ant_nr-1):03d}'
-    elif 65 <= aips_ant_nr < (122 + 65):
-        res = f'e{(aips_ant_nr-65):03d}'
-    elif aips_ant_nr >= (122 + 65):
-        res = f's{(aips_ant_nr-(65 + 122)):04d}'
+def katdal_ant_name(ant_names, aips_ant_nr):
+    """Return antenna name, given the AIPS antenna number
+
+    Parameters
+    ----------
+    ants : list of str
+        Antenna names for a given observation
+    aips_ant_nr : integer
+        AIPS antenna number
+
+    Returns
+    -------
+    string
+        Antenna name
+    """
+    res = ant_names[aips_ant_nr - 1]
     return res
 
 
@@ -675,26 +666,27 @@ class KatdalAdapter(object):
                   ('v','h'): 3 }
         """
         class CorrelatorProduct(object):
-            def __init__(self, ant1, ant2, cid):
+            def __init__(self, ant1, ant2, cid, ants):
                 self.ant1 = ant1
                 self.ant2 = ant2
                 self.cid = cid
+                self.ants = ants
 
             @property
             def ant1_ix(self):
-                return katdal_ant_nr(self.ant1.name)
+                return katdal_ant_nr(self.ants, self.ant1.name)
 
             @property
             def ant2_ix(self):
-                return katdal_ant_nr(self.ant2.name)
+                return katdal_ant_nr(self.ants, self.ant2.name)
 
             @property
             def aips_ant1_ix(self):
-                return aips_ant_nr(self.ant1.name)
+                return aips_ant_nr(self.ants, self.ant1.name)
 
             @property
             def aips_ant2_ix(self):
-                return aips_ant_nr(self.ant2.name)
+                return aips_ant_nr(self.ants, self.ant2.name)
 
             @property
             def aips_bl_ix(self):
@@ -726,7 +718,7 @@ class KatdalAdapter(object):
             a1 = antenna_map[a1_name]
             a2 = antenna_map[a2_name]
 
-            products.append(CorrelatorProduct(a1, a2, cid))
+            products.append(CorrelatorProduct(a1, a2, cid, self._katds.ants))
 
         return products
 
@@ -872,7 +864,7 @@ class KatdalAdapter(object):
 
         return [{
             # MeerKAT antenna information
-            'NOSTA': [aips_ant_nr(a.name)],
+            'NOSTA': [aips_ant_nr(self._katds.ants, a.name)],
             'ANNAME': [a.name],
             'STABXYZ': list(a.position_ecef),
             'DIAMETER': [a.diameter],

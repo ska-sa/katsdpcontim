@@ -365,7 +365,7 @@ def _massage_gains(sntab, ant_ordering):
         for row in sntable[start:stop]:
             # Convert from AIPS FORTRAN indexing to katdal C indexing
             aips_ant = row["ANTENNA NO."]
-            antindex = ant_ordering.index(katdal_ant_name(aips_ant))
+            antindex = ant_ordering.index(katdal_ant_name(ant_ordering, aips_ant))
             thisgain[..., antindex] = _extract_gains(row)
         allgains.append(thisgain)
     return alltimes, allgains
