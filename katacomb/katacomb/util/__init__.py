@@ -751,7 +751,7 @@ def infer_defaults_from_katdal(katds):
     ts = katds.source.telstate
     refant = ts.get('cal_refant')
     if refant is not None:
-        mfimage_params['refAnt'] = aips_ant_nr(refant)
+        mfimage_params['refAnt'] = aips_ant_nr(katds.ants, refant)
 
     katdal_select['nif'] = 8
     if katds.spectral_windows[katds.spw].bandwidth < 200.e6:
