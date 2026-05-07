@@ -677,7 +677,7 @@ def setup_selection_and_parameters(katdata, args):
     if getattr(args, 'pol', None):
         kat_select['pol'] = args.pols
     if getattr(args, 'targets', None):
-        kat_select['targets'] = args.targets
+        kat_select['targets'] = args.targets.split(',')
     if getattr(args, 'channels', None):
         start_chan, end_chan = args.channels
         kat_select['channels'] = slice(start_chan, end_chan)
