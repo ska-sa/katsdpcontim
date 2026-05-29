@@ -699,7 +699,7 @@ class KatdalPipelineImplementation(PipelineImplementation):
 class KatdalExportPipeline(KatdalPipelineImplementation):
 
     def __init__(self, katdata, uvblavg_params={}, katdal_select={},
-                 nvispio=1024, merge_scans=False, out_path=None):
+                 nvispio=1024, merge_scans=False, out_path=None, time_step=20):
         """Initialise a pipeline for UV export from katdal to AIPS UV.
 
         Parameters
@@ -716,6 +716,8 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
             Don't do BL dependant averaging if True.
         out_path : :class:AIPSPath
             Output file path on AIPS disk.
+        time_step : int
+            Size of time chunks to read vis, weights & flags from katdata
         """
 
         super(KatdalExportPipeline, self).__init__(katdata)
@@ -726,6 +728,7 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         self.out_path = out_path
         # Always get rid of scan and avgscan files
         self.clobber = ['scans', 'avgscans']
+        self.time_step = time_step
 
     def __enter__(self):
         return self
@@ -758,7 +761,7 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
 class OnlinePipeline(KatdalPipelineImplementation):
 
     def __init__(self, katdata, telstate, uvblavg_params={}, mfimage_params={},
-                 katdal_select={}, nvispio=1024):
+                 katdal_select={}, nvispio=1024, time_step=20):
         """
         Initialise the Continuum Pipeline for MeerKAT system processing.
 
@@ -776,6 +779,8 @@ class OnlinePipeline(KatdalPipelineImplementation):
             Dictionary of katdal selection statements.
         nvispio : integer
             Number of AIPS visibilities per IO operation.
+        time_step : int
+            Size of time chunks to read vis, weights & flags from katdata
         """
 
         super(OnlinePipeline, self).__init__(katdata)
@@ -784,6 +789,7 @@ class OnlinePipeline(KatdalPipelineImplementation):
         self.mfimage_params.update(mfimage_params)
         self.katdal_select = katdal_select
         self.nvispio = nvispio
+        self.time_step = time_step
 
         # Use highest numbered FITS disk for FITS output.
         self.odisk = len(kc.get_config()['fitsdirs'])
