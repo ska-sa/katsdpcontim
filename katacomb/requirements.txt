@@ -1,4 +1,4 @@
--c https://raw.githubusercontent.com/ska-sa/katsdpdockerbase/master/docker-base-build/base-requirements.txt
+-r https://raw.githubusercontent.com/ska-sa/katsdpdockerbase/master/docker-base-build/base-requirements.txt
 AegeanTools == 2.2.0   # for MeerKAT-continuum-validation
 asteval == 0.9.29      # for MeerKAT-continuum-validation
 astropy

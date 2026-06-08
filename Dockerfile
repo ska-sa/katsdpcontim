@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
+FROM $KATSDPDOCKERBASE_REGISTRY/base-gpu-build:focaluvpip AS build
 
 # Switch to root for package install
 USER root
@@ -62,7 +62,7 @@ ENV KATHOME=/home/kat
 # Now downgrade to kat
 USER kat
 
-ENV OBIT_REPO https://github.com/bill-cotton/Obit
+ENV OBIT_REPO=https://github.com/bill-cotton/Obit
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
@@ -92,10 +92,14 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-RUN install_pinned.py -r /tmp/requirements.txt
+#RUN install_pinned.py -r /tmp/requirements.txt
+RUN uv pip compile /tmp/requirements.txt \
+    -o /tmp/install/requirements.lock && \
+    uv pip sync /tmp/install/requirements.lock --strict
+
 
 # Install validation package
-ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
+ENV VALIDATION_REPO=https://github.com/ska-sa/MeerKAT-continuum-validation.git
 ENV VALIDATION_BASE_PATH=/home/kat/valid
 
 # Retrieve validation package
@@ -114,7 +118,7 @@ RUN pip install --no-deps . && pip check
 
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
+FROM $KATSDPDOCKERBASE_REGISTRY/base-gpu-runtime:focaluvpip
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
