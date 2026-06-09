@@ -108,13 +108,19 @@ RUN mkdir -p $VALIDATION_BASE_PATH && \
 
 # Install katacomb
 COPY --chown=kat:kat . $KATHOME/src/katsdpcontim
-WORKDIR $KATHOME/src/katsdpcontim/katacomb
+#WORKDIR $KATHOME/src/katsdpcontim/katacomb
 # Workaround to get katversion working for katacomb:
 # create a '___version___' file and put it in the katacomb install dir
-RUN pip install katversion
-RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
+#RUN pip install katversion
+#RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
 
-RUN pip install --no-deps . && pip check
+#RUN pip install --no-deps . && pip check
+
+RUN cd $KATHOME/src/katsdpcontim/katacomb && \
+    uv pip install katversion && \
+    python -c 'import katversion; print(katversion.get_version())' > ___version___ && \
+    uv pip install --no-deps . && \
+    uv pip check
 
 #######################################################################
 
