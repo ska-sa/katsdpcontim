@@ -81,7 +81,7 @@ def main():
     # Get defaults and katdal selection
     (uvblavg_defaults,
      mfimage_defaults,
-     kat_select) = setup_selection_and_parameters(katdata, args)
+     kat_select) = setup_selection_and_parameters(katdata, args) #check how katdata works
 
     # Merge parameters for Obit from parameter files with command line parameters
     uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
