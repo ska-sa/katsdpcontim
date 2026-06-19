@@ -15,7 +15,8 @@ import numpy as np
 import katacomb.configuration as kc
 from katacomb import (obit_config_from_aips,
                       parameter_dir,
-                      fits_dir)
+                      fits_dir, 
+                      get_static_mask)
 
 from katdal.flags import STATIC
 
@@ -681,6 +682,28 @@ def setup_selection_and_parameters(katdata, args):
     if getattr(args, 'channels', None):
         start_chan, end_chan = args.channels
         kat_select['channels'] = slice(start_chan, end_chan)
+    else:
+        # If no specific channels requested, default to all channels in the data
+        user_channel_slice = slice(0, katdata.shape[1])
+
+    # -----------------------------------
+    telstate =katdata.source.telstate  # Retrieve the static mask
+    telstate_l0=telstate.view('sdp_l0')
+    static_mask = get_static_mask(telstate_l0, katdata.freqs * u.Hz)
+
+    none_flagged_regions = np.where(static_mask == False)[0] #Identify the unflagged channel indices (where mask is False)
+    
+    # Intersect unflagged regions with any user-requested channel slice
+    # This prevents selecting channels outside of the user's requested slice bounds
+    valid_chans_in_range = [
+        ch for ch in none_flagged_regions 
+        if user_channel_slice.start <= ch < user_channel_slice.stop
+    ]
+    
+    # Add to the selection dictionary
+    kat_select['channels'] = valid_chans_in_range
+    # -----------------------------------
+
     if getattr(args, 'nif', None):
         kat_select['nif'] = args.nif
     # Get defaults from katdal object
