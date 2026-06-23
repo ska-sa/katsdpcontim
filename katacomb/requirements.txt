@@ -21,7 +21,7 @@ pyyaml
 scipy
 seaborn == 0.12.2      # for MeerKAT-continuum-validation
 uncertainties == 3.1.7 # for MeerKAT-continuum-validation
-
+katsdpmodels == 0.3.0
 katbeam @ git+https://github.com/ska-sa/katbeam  # for katsdpimageutils
 katdal[s3credentials] @ git+https://github.com/ska-sa/katdal
 katpoint @ git+https://github.com/ska-sa/katpoint
