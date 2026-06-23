@@ -15,8 +15,7 @@ import numpy as np
 import katacomb.configuration as kc
 from katacomb import (obit_config_from_aips,
                       parameter_dir,
-                      fits_dir, 
-                      get_static_mask)
+                      fits_dir)
 
 from katdal.flags import STATIC
 
@@ -25,6 +24,13 @@ from OTObit import addParam
 import OSystem
 
 import builtins
+
+
+import katsdpmodels.fetch.requests
+import katsdpmodels.band_mask
+import requests
+import astropy.units as u
+
 
 # builtin function whitelist
 _BUILTIN_WHITELIST = frozenset(['slice'])
@@ -662,6 +668,46 @@ def selection_options(parser):
                             "to flag for all times. Must have the same number "
                             "of channels as the input dataset. "
                             "Default: No mask")
+    
+
+def _get_band_mask(telstate_l0):
+    with katsdpmodels.fetch.requests.TelescopeStateFetcher(telstate_l0) as fetcher:
+        correlator_stream = telstate_l0['src_streams'][0]  
+        f_engine_stream = telstate_l0.view(correlator_stream, exclusive=True)['src_streams'][0]
+        telstate_cbf = telstate_l0.view(f_engine_stream, exclusive=True)
+        band_mask_model_key = telstate_l0.join('model', 'band_mask', 'fixed')
+        try:
+            band_mask_model = fetcher.get(band_mask_model_key,
+                                          katsdpmodels.band_mask.BandMask,
+                                          telstate=telstate_cbf)
+            return band_mask_model
+        except (requests.ConnectionError, katsdpmodels.models.ModelError) as exc:
+            logger.warning('Failed to load band_mask model:', exc)
+            return None
+
+
+def get_static_mask(telstate_l0, channel_freqs, length=100.0):
+    """Get the static mask for the given frequencies and baseline length.
+
+    Parameters:
+    -----------
+    telstate_l0 : :class:`katsdptelstate.TelescopeState`
+        Telescope state with a view of the L0 attributes
+    channel_freqs : :class:`~astropy.units.Quantity`
+        frequencies
+    length, optional : float
+        baseline length in m
+    """
+    band_mask = _get_band_mask(telstate_l0)
+
+    bandwidth = telstate_l0['bandwidth']
+    channel_width = bandwidth / telstate_l0['n_chans']
+
+    if band_mask is not None:
+        center = telstate_l0['center_freq']
+        band_spw = katsdpmodels.band_mask.SpectralWindow(bandwidth * u.Hz, center * u.Hz)
+        static_mask = band_mask.is_masked(band_spw, channel_freqs, channel_width * u.Hz)
+    return static_mask
 
 
 def setup_selection_and_parameters(katdata, args):
@@ -681,12 +727,12 @@ def setup_selection_and_parameters(katdata, args):
         kat_select['targets'] = [t.strip() for t in args.targets.split(',')]
     if getattr(args, 'channels', None):
         start_chan, end_chan = args.channels
-        kat_select['channels'] = slice(start_chan, end_chan)
+        user_channel_slice = slice(start_chan, end_chan)
     else:
         # If no specific channels requested, default to all channels in the data
         user_channel_slice = slice(0, katdata.shape[1])
 
-    # -----------------------------------
+    
     telstate =katdata.source.telstate  # Retrieve the static mask
     telstate_l0=telstate.view('sdp_l0')
     static_mask = get_static_mask(telstate_l0, katdata.freqs * u.Hz)
@@ -702,7 +748,7 @@ def setup_selection_and_parameters(katdata, args):
     
     # Add to the selection dictionary
     kat_select['channels'] = valid_chans_in_range
-    # -----------------------------------
+    
 
     if getattr(args, 'nif', None):
         kat_select['nif'] = args.nif
