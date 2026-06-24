@@ -737,7 +737,7 @@ def setup_selection_and_parameters(katdata, args):
     telstate_l0=telstate.view('sdp_l0')
     static_mask = get_static_mask(telstate_l0, katdata.freqs * u.Hz)
 
-    none_flagged_regions = np.where(static_mask == False)[0] #Identify the unflagged channel indices (where mask is False)
+    none_flagged_regions = np.where(~static_mask)[0] #Identify the unflagged channel indices
     
     # Intersect unflagged regions with any user-requested channel slice
     # This prevents selecting channels outside of the user's requested slice bounds
@@ -746,6 +746,19 @@ def setup_selection_and_parameters(katdata, args):
         if user_channel_slice.start <= ch < user_channel_slice.stop
     ]
     
+    #NIF DIVISIBILITY ENFORCEMENT
+    
+    nif_multiple = getattr(args, 'nif', None) or 8 # Determine the target 'NIF' multiple
+
+    # Calculate remainder and truncate channels from the end if necessary
+    num_chans = len(valid_chans_in_range)
+    remainder = num_chans % nif_multiple
+
+    # drop the extra channels!
+    if remainder != 0:
+        valid_chans_in_range = valid_chans_in_range[:-remainder]
+
+
     # Add to the selection dictionary
     kat_select['channels'] = valid_chans_in_range
     
