@@ -51,6 +51,12 @@ def create_parser():
     parser.add_argument("--average",
                         action='store_true',
                         help="Switch on BL dependent averaging and channel averaging")
+    parser.add_argument("--time_step",
+                        default=None,
+                        type=int,
+                        help="Size of time chunks to read vis,"
+                             "weights & flags from katdata"
+                             "Default: 20 for <=4k and 4 for >4k chans")
     parser.add_argument("--log-level",
                         type=str,
                         default="INFO",
@@ -70,6 +76,7 @@ def main():
     post_process_args(args, katdata)
 
     uvblavg_defaults, _, kat_select = setup_selection_and_parameters(katdata, args)
+    time_step = kat_select.pop('time_step')
 
     # Merge parameters for Obit from parameter files with command line parameters
     uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
@@ -92,7 +99,8 @@ def main():
                                 uvblavg_params=uvblavg_args,
                                 merge_scans=not args.average,
                                 nvispio=args.nvispio,
-                                out_path=out_file)
+                                out_path=out_file,
+                                time_step=time_step)
     pipeline.execute()
 
 

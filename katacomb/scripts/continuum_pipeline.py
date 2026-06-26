@@ -93,6 +93,13 @@ def create_parser():
                         help="Label the product of the continuum pipeline. "
                              "Used to generate FITS and PNG filenames. "
                              "Default: %(default)s")
+    parser.add_argument("--time_step",
+                        default=None,
+                        type=int,
+                        help="Size of time chunks to read vis,"
+                             "weights & flags from katdata"
+                             "Default: 20 for <=4k and 4 for >4k chans")
+
     katdal_options(parser)
     export_options(parser)
     imaging_options(parser)
@@ -124,6 +131,7 @@ def main():
     (uvblavg_defaults,
      mfimage_defaults,
      katdal_select) = setup_selection_and_parameters(katdata, args)
+    time_step = katdal_select.pop('time_step')
 
     # Merge Obit parameters Obit from parameter files with command line parameters
     uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config, online=True)
@@ -162,7 +170,8 @@ def main():
                                 katdal_select=katdal_select,
                                 uvblavg_params=uvblavg_args,
                                 mfimage_params=mfimage_args,
-                                nvispio=args.nvispio)
+                                nvispio=args.nvispio,
+                                time_step=time_step)
 
     # Execute it
     metadata = pipeline.execute()
