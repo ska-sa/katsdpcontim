@@ -1,4 +1,5 @@
 import ast
+import builtins
 import contextlib
 import functools
 import logging
@@ -7,29 +8,21 @@ import pickle
 import re
 import sys
 
-from pretty import pretty
-import yaml
+import astropy.units as u
 import dask.array as da
+import katsdpmodels.band_mask
+import katsdpmodels.fetch.requests
 import numpy as np
+import ObitTask
+import OSystem
+import requests
+import yaml
+from katdal.flags import STATIC
+from OTObit import addParam
+from pretty import pretty
 
 import katacomb.configuration as kc
-from katacomb import (obit_config_from_aips,
-                      parameter_dir,
-                      fits_dir)
-
-from katdal.flags import STATIC
-
-import ObitTask
-from OTObit import addParam
-import OSystem
-
-import builtins
-
-
-import katsdpmodels.fetch.requests
-import katsdpmodels.band_mask
-import requests
-import astropy.units as u
+from katacomb import fits_dir, obit_config_from_aips, parameter_dir
 
 
 # builtin function whitelist
@@ -747,7 +740,7 @@ def setup_selection_and_parameters(katdata, args):
     ]
     
     #NIF DIVISIBILITY ENFORCEMENT
-    
+
     nif_multiple = getattr(args, 'nif', None) or 8 # Determine the target 'NIF' multiple
 
     # Calculate remainder and truncate channels from the end if necessary
