@@ -741,7 +741,14 @@ def setup_selection_and_parameters(katdata, args):
     
     #NIF DIVISIBILITY ENFORCEMENT
 
-    nif_multiple = getattr(args, 'nif', None) or 8 # Determine the target 'NIF' multiple
+    nif_multiple = getattr(args, 'nif', None) # Determine the target 'NIF' multiple
+
+    if (
+        isinstance(nif_multiple, bool)
+        or not isinstance(nif_multiple, int)
+        or nif_multiple <= 0
+    ):
+        nif_multiple = 8
 
     # Calculate remainder and truncate channels from the end if necessary
     num_chans = len(valid_chans_in_range)
