@@ -1,4 +1,5 @@
 import ast
+import builtins
 import contextlib
 import functools
 import logging
@@ -7,23 +8,22 @@ import pickle
 import re
 import sys
 
-from pretty import pretty
-import yaml
+import astropy.units as u
 import dask.array as da
+import katsdpmodels.band_mask
+import katsdpmodels.fetch.requests
 import numpy as np
+import ObitTask
+import OSystem
+import requests
+import yaml
+from katdal.flags import STATIC
+from OTObit import addParam
+from pretty import pretty
 
 import katacomb.configuration as kc
-from katacomb import (obit_config_from_aips,
-                      parameter_dir,
-                      fits_dir)
+from katacomb import fits_dir, obit_config_from_aips, parameter_dir
 
-from katdal.flags import STATIC
-
-import ObitTask
-from OTObit import addParam
-import OSystem
-
-import builtins
 
 # builtin function whitelist
 _BUILTIN_WHITELIST = frozenset(['slice'])
@@ -661,6 +661,46 @@ def selection_options(parser):
                             "to flag for all times. Must have the same number "
                             "of channels as the input dataset. "
                             "Default: No mask")
+    
+
+def _get_band_mask(telstate_l0):
+    with katsdpmodels.fetch.requests.TelescopeStateFetcher(telstate_l0) as fetcher:
+        correlator_stream = telstate_l0['src_streams'][0]  
+        f_engine_stream = telstate_l0.view(correlator_stream, exclusive=True)['src_streams'][0]
+        telstate_cbf = telstate_l0.view(f_engine_stream, exclusive=True)
+        band_mask_model_key = telstate_l0.join('model', 'band_mask', 'fixed')
+        try:
+            band_mask_model = fetcher.get(band_mask_model_key,
+                                          katsdpmodels.band_mask.BandMask,
+                                          telstate=telstate_cbf)
+            return band_mask_model
+        except (requests.ConnectionError, katsdpmodels.models.ModelError) as exc:
+            logger.warning('Failed to load band_mask model:', exc)
+            return None
+
+
+def get_static_mask(telstate_l0, channel_freqs, length=100.0):
+    """Get the static mask for the given frequencies and baseline length.
+
+    Parameters:
+    -----------
+    telstate_l0 : :class:`katsdptelstate.TelescopeState`
+        Telescope state with a view of the L0 attributes
+    channel_freqs : :class:`~astropy.units.Quantity`
+        frequencies
+    length, optional : float
+        baseline length in m
+    """
+    band_mask = _get_band_mask(telstate_l0)
+
+    bandwidth = telstate_l0['bandwidth']
+    channel_width = bandwidth / telstate_l0['n_chans']
+
+    if band_mask is not None:
+        center = telstate_l0['center_freq']
+        band_spw = katsdpmodels.band_mask.SpectralWindow(bandwidth * u.Hz, center * u.Hz)
+        static_mask = band_mask.is_masked(band_spw, channel_freqs, channel_width * u.Hz)
+    return static_mask
 
 
 def setup_selection_and_parameters(katdata, args):
@@ -680,7 +720,49 @@ def setup_selection_and_parameters(katdata, args):
         kat_select['targets'] = [t.strip() for t in args.targets.split(',')]
     if getattr(args, 'channels', None):
         start_chan, end_chan = args.channels
-        kat_select['channels'] = slice(start_chan, end_chan)
+        user_channel_slice = slice(start_chan, end_chan)
+    else:
+        # If no specific channels requested, default to all channels in the data
+        user_channel_slice = slice(0, katdata.shape[1])
+
+    
+    telstate =katdata.source.telstate  # Retrieve the static mask
+    telstate_l0=telstate.view('sdp_l0')
+    static_mask = get_static_mask(telstate_l0, katdata.freqs * u.Hz)
+
+    none_flagged_regions = np.where(~static_mask)[0] #Identify the unflagged channel indices
+    
+    # Intersect unflagged regions with any user-requested channel slice
+    # This prevents selecting channels outside of the user's requested slice bounds
+    valid_chans_in_range = [
+        ch for ch in none_flagged_regions 
+        if user_channel_slice.start <= ch < user_channel_slice.stop
+    ]
+    
+    #NIF DIVISIBILITY ENFORCEMENT
+
+    nif_multiple = getattr(args, 'nif', None) # Determine the target 'NIF' multiple
+
+    if (
+        isinstance(nif_multiple, bool)
+        or not isinstance(nif_multiple, int)
+        or nif_multiple <= 0
+    ):
+        nif_multiple = 8
+
+    # Calculate remainder and truncate channels from the end if necessary
+    num_chans = len(valid_chans_in_range)
+    remainder = num_chans % nif_multiple
+
+    # drop the extra channels!
+    if remainder != 0:
+        valid_chans_in_range = valid_chans_in_range[:-remainder]
+
+
+    # Add to the selection dictionary
+    kat_select['channels'] = valid_chans_in_range
+    
+
     if getattr(args, 'nif', None):
         kat_select['nif'] = args.nif
     if getattr(args, 'time_step', None):
