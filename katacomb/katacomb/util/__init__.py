@@ -661,12 +661,42 @@ def selection_options(parser):
                             "to flag for all times. Must have the same number "
                             "of channels as the input dataset. "
                             "Default: No mask")
-    
+
+
+def cbf_flavour(telstate_l0):
+    """Return CBF flavour ('MK+' or 'MK') based on telstate cbf_api_version."""
+    api_version = telstate_l0['cbf_api_version']
+    return 'MK+' if api_version.startswith('data-cbfplus-proxy') else 'MK'
+
 
 def _get_band_mask(telstate_l0):
-    with katsdpmodels.fetch.requests.TelescopeStateFetcher(telstate_l0) as fetcher:
-        correlator_stream = telstate_l0['src_streams'][0]  
-        f_engine_stream = telstate_l0.view(correlator_stream, exclusive=True)['src_streams'][0]
+    """Get band mask model, but skip for narrowband with cbfplus-proxy API.
+
+    For narrowband observations (<= 107.0 MHz) using the cbfplus-proxy API,
+    the band mask is skipped. For wideband observations or narrowband with
+    other APIs, the standard band edge fetching is performed.
+    """
+    # Check if this is a narrowband observation with 'data-cbfplus-proxy'
+    # (MeerKAT+ correlator) API
+    try:
+        bandwidth = telstate_l0['bandwidth']
+        bandwidth_mhz = (bandwidth * u.Hz).to(u.MHz).value
+        if bandwidth_mhz <= 107.0 and cbf_flavour(telstate_l0) == 'MK+':
+            log.info('Skipping band mask for narrowband (%.1f MHz) '
+                     'with MK+ correlator', bandwidth_mhz)
+            return None
+    except (KeyError, AttributeError) as exc:
+        log.warning('Could not get cbf_api_version, proceeding with '
+                    'band mask fetch: %s', exc)
+
+    # Normal band mask fetching for:
+    # - Wide-band observations
+    # - Narrow-band observations with the non-MeerKAT-plus correlator
+    with katsdpmodels.fetch.requests.TelescopeStateFetcher(
+            telstate_l0) as fetcher:
+        correlator_stream = telstate_l0['src_streams'][0]
+        f_engine_stream = telstate_l0.view(
+            correlator_stream, exclusive=True)['src_streams'][0]
         telstate_cbf = telstate_l0.view(f_engine_stream, exclusive=True)
         band_mask_model_key = telstate_l0.join('model', 'band_mask', 'fixed')
         try:
@@ -674,8 +704,9 @@ def _get_band_mask(telstate_l0):
                                           katsdpmodels.band_mask.BandMask,
                                           telstate=telstate_cbf)
             return band_mask_model
-        except (requests.ConnectionError, katsdpmodels.models.ModelError) as exc:
-            logger.warning('Failed to load band_mask model:', exc)
+        except (requests.ConnectionError,
+                katsdpmodels.models.ModelError) as exc:
+            log.warning('Failed to load band_mask model: %s', exc)
             return None
 
 
