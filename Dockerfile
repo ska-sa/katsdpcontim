@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:uvpipjammy as build
 
 # Switch to root for package install
 USER root
@@ -18,10 +18,10 @@ ENV PACKAGES \
     libcurl4-openssl-dev \
     libfftw3-dev \
     libglib2.0-dev \
-    libgsl0-dev \
+    libgsl-dev \ 
     liblapacke-dev \
     libmotif-dev \
-    libncurses5-dev \
+    libncurses-dev \
     libreadline-dev \
     libxmlrpc-c++8-dev \
     libxmlrpc-core-c3-dev \
@@ -33,15 +33,15 @@ ENV PACKAGES \
     zlib1g-dev \
     # Obit seems not to optimize well with the default gcc-9 in focal
     # so use gcc-8 instead.
-    gcc-8 \
-    g++-8
+    gcc-10 \
+    g++-10
 
 # Update, upgrade and install packages
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
 # Make gcc-8 the default gcc.
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
 
 # Get CUDA samples- Obit needs some headers from there.
 # As of CUDA 11.6 the samples are no longer available in the toolkit
@@ -92,7 +92,11 @@ COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
 ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
-RUN install_pinned.py -r /tmp/requirements.txt
+
+RUN uv pip compile /tmp/requirements.txt \
+    -o /tmp/install/requirements.lock && \
+    uv pip install --no-deps -r /tmp/install/requirements.lock && \
+    uv pip check
 
 # Install validation package
 ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
@@ -100,28 +104,38 @@ ENV VALIDATION_BASE_PATH=/home/kat/valid
 
 # Retrieve validation package
 RUN mkdir -p $VALIDATION_BASE_PATH && \
-    git clone $VALIDATION_REPO ${VALIDATION_BASE_PATH}
+    git clone --branch uvpipjammy $VALIDATION_REPO ${VALIDATION_BASE_PATH}
+ENV VALIDATION_BASE_PATH=/home/kat/valid
+
 
 # Install katacomb
 COPY --chown=kat:kat . $KATHOME/src/katsdpcontim
 WORKDIR $KATHOME/src/katsdpcontim/katacomb
+
+
+# Legacy Python compatibility layer for Obit + katacomb
+# Must be pinned to avoid setuptools>=81 breaking pkg_resources
+RUN uv pip install --python /home/kat/ve3/bin/python \
+    setuptools==80.9.0 wheel katversion
+
 # Workaround to get katversion working for katacomb:
 # create a '___version___' file and put it in the katacomb install dir
-RUN pip install katversion
-RUN python -c 'import katversion; print(katversion.get_version())' > ___version___
-
-RUN pip install --no-deps . && pip check
+RUN cd $KATHOME/src/katsdpcontim/katacomb && \
+    uv pip install katversion && \
+    python -c 'import katversion; print(katversion.get_version())' > ___version___ && \
+    uv pip install --no-deps . && \
+    uv pip check
 
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:uvpipjammy
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
 USER root
 
 ENV PACKAGES \
-    libcfitsio8 \
+    libcfitsio9 \
     libcurl4 \
     libfftw3-3 \
     libglib2.0-0 \
@@ -170,20 +184,29 @@ ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
 ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
 
 # Set the work directory to /home/kat
+#WORKDIR /home/kat
+ENV HOME=/home/kat
 WORKDIR /home/kat
+# Legacy Python compatibility layer for Obit + katacomb
+# Must be pinned to avoid setuptools>=81 breaking pkg_resources
 
-# Configure Obit/AIPS disks
 RUN cfg_aips_disks.py
 
 # Execute test cases
 # The test_continuum_pipeline classes are run separately
 # since Obit cannot handle multiple pipeline runs (>24) 
 # in the same python thread.
+#RUN /home/kat/ve3/bin/python -m pip install "pytest==7.4.4"
+RUN uv pip install --python /home/kat/ve3/bin/python "pytest>=8"
 RUN pytest -s --pyargs katacomb.tests.test_utils \
                        katacomb.tests.test_qa \
                        katacomb.tests.test_aips_facades \
                        katacomb.tests.test_aips_path \
-                       katacomb.tests.test_uv_export
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline
-RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline
+                       katacomb.tests.test_uv_export \
+                       --basetemp=/tmp/pytest
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline \
+      --basetemp=/tmp/pytest
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline \
+       --basetemp=/tmp/pytest
+RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline \
+       --basetemp=/tmp/pytest
