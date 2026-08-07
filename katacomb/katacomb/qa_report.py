@@ -181,21 +181,27 @@ def make_qa_report(metadata, base_dir, write_tag):
     """
     # Change directory as QA code writes output directly to the running directory
     work_dir = os.getcwd()
-
     filenames = metadata['FITSImageFilename']
-    for i, fits_file in enumerate(filenames):
-        pb_dir = _productdir(metadata, base_dir, i, '_PB', write_tag)
-        pb_filebase = os.path.splitext(fits_file)[0] + '_PB'
 
-        log.info('Write QA report output')
-        os.chdir(pb_dir)
-        pb_fits = os.path.join(pb_dir, pb_filebase + FITS_EXT)
-        command = '/home/kat/valid/Radio_continuum_validation -I {} --telescope MeerKAT -F'\
-                  ' /home/kat/valid/filter_config_MeerKAT.txt -r'.format(pb_fits)
-        sysarg = shlex.split(command)
-        with log_qa(log):
-            rcv.main(sysarg[0], sysarg[1:])
-    os.chdir(work_dir)
+    try:
+        for i, fits_file in enumerate(filenames):
+            pb_dir = _productdir(metadata, base_dir, i, '_PB', write_tag)
+            pb_filebase = os.path.splitext(fits_file)[0] + '_PB'
+            log.info("Write QA report output")
+            os.chdir(pb_dir)
+
+            pb_fits = os.path.join(pb_dir, pb_filebase + FITS_EXT)
+
+            command = (
+                "/home/kat/valid/Radio_continuum_validation "
+                "-I {} --telescope MeerKAT "
+                "-F /home/kat/valid/filter_config_MeerKAT.txt -r"
+            ).format(pb_fits)
+            sysarg = shlex.split(command)
+            with log_qa(log):
+                rcv.main(sysarg[0], sysarg[1:])
+    finally:
+        os.chdir(work_dir)
 
 
 def make_report_metadata(metadata, out_dir):
