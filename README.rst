@@ -120,6 +120,56 @@ Any resulting images will be stored in AIPS disks described in
 See `Bill Cotton's Continuum Imaging Pipeline Parameters`_ for details
 on suitable parameters for running the pipeline.
 
+Offline MFBeam imaging
+~~~~~~~~~~~~~~~~~~~~~~
+
+``continuum_image.py`` uses MFImage by default.  MFBeam is available as an
+explicit offline alternative and requires a YAML manifest that identifies one
+or two antenna beam cohorts.  Beam roots are logical names: MFBeam replaces
+their first two characters with ``XX``, ``YY``, ``XY`` and ``YX`` to find the
+physical Jones-beam FITS files.
+
+.. code-block:: yaml
+
+    schema_version: 1
+    model_id: mk-mke-l-2026-06
+    band: L
+    antenna_types:
+      - name: MK
+        diameter_m: 13.5
+        real_root: beam-models/SS_MK_L_2026_Real.fits
+        imag_root: beam-models/SS_MK_L_2026_Imag.fits
+      - name: MKE
+        diameter_m: 15.0
+        real_root: beam-models/SS_MKE_L_2026_Real.fits
+        imag_root: beam-models/SS_MKE_L_2026_Imag.fits
+
+Relative beam roots are resolved against the manifest directory.  MFBeam
+validates the dataset band, selected frequency coverage and AIPS antenna
+diameters before imaging, and stages the physical files in temporary scratch.
+For example, to re-image an existing merged AIPS UV file:
+
+.. code-block:: bash
+
+    continuum_image.py input.rdb \
+      --reuse /path/to/aipsdisk \
+      --imager mfbeam \
+      --mfbeam-manifest /models/mk-mke-l-2026.yaml \
+      --targets target-name \
+      --channels 1792,2304 \
+      --applycal default \
+      --mfimage "maxPSCLoop=0; maxASCLoop=0"
+
+The existing ``--mfimage`` and ``--mfimage-config`` options supply the common
+Obit imaging parameters to either backend.  MFBeam is not yet selectable in
+the online ``continuum_pipeline.py`` path.
+
+The container build pins Obit to the revision in the Dockerfile's
+``OBIT_REF`` argument.  Override it deliberately with ``docker build
+--build-arg OBIT_REF=<commit> ...`` when validating a newer Obit revision.
+Beam FITS files remain external data products: mount them at runtime and keep
+their manifest alongside them rather than adding them to the container image.
+
 Inspecting , Viewing and Exporting data in ObitTalk
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

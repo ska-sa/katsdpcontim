@@ -1,16 +1,17 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
 import logging
-import multiprocessing
 from pretty import pretty
 
 import katdal
+import numpy as np
 from katdal import DataSet
 from katdal.datasources import DataSourceNotFound
 
 from katacomb import (KatdalAdapter, obit_context, AIPSPath,
                       task_factory,
                       img_factory,
+                      obit_image_mf_rms,
                       uv_factory,
                       uv_export,
                       uv_history_obs_description,
@@ -19,8 +20,8 @@ from katacomb import (KatdalAdapter, obit_context, AIPSPath,
                       export_clean_components,
                       export_images)
 from katacomb.aips_path import next_seq_nr, path_exists
-from katacomb.util import (fractional_bandwidth,
-                           log_obit_err)
+from katacomb.imager import MFImageImager
+from katacomb.util import log_obit_err
 import katacomb.configuration as kc
 
 log = logging.getLogger('katacomb')
@@ -129,6 +130,7 @@ class PipelineImplementation(Pipeline):
         self.nvispio = 1024
         self.uvblavg_params = {}
         self.mfimage_params = {}
+        self.imager = MFImageImager()
         self.prtlv = 1
         self.disk = 1
         self.odisk = 1
@@ -184,45 +186,10 @@ class PipelineImplementation(Pipeline):
 
         return blavg_path
 
-    def _run_mfimage(self, uv_path, uv_sources):
-        """
-        Run the MFImage task
-        """
-
-        with uv_factory(aips_path=uv_path, mode="r") as uvf:
-            merge_desc = uvf.Desc.Dict
-
-        # Run MFImage task on merged file,
-        out_kwargs = uv_path.task_output_kwargs(name='',
-                                                aclass=IMG_CLASS,
-                                                seq=0)
-        out2_kwargs = uv_path.task_output2_kwargs(name='',
-                                                  aclass=UV_CLASS,
-                                                  seq=0)
-
-        mfimage_kwargs = {}
-        # Setup input file
-        mfimage_kwargs.update(uv_path.task_input_kwargs())
-        # Output file 1 (clean file)
-        mfimage_kwargs.update(out_kwargs)
-        # Output file 2 (uv file)
-        mfimage_kwargs.update(out2_kwargs)
-        mfimage_kwargs.update({
-            'maxFBW': fractional_bandwidth(merge_desc)/20.0,
-            'nThreads': multiprocessing.cpu_count(),
-            'prtLv': self.prtlv,
-            'Sources': uv_sources
-        })
-
-        # Finally, override with default parameters
-        mfimage_kwargs.update(self.mfimage_params)
-
-        log.info("MFImage arguments %s", pretty(mfimage_kwargs))
-
-        mfimage = task_factory("MFImage", **mfimage_kwargs)
-        # Send stdout from the task to the log
-        with log_obit_err(log):
-            mfimage.go()
+    def _run_imager(self, uv_path, uv_sources):
+        """Validate and run the selected continuum imager."""
+        self.imager.validate_dataset(self.ka.katdal)
+        self.imager.run(uv_path, uv_sources, self.mfimage_params, self.prtlv)
 
     def _get_wavg_img(self, image_files):
         """
@@ -237,16 +204,37 @@ class PipelineImplementation(Pipeline):
             The images to process (output from MFImage task)
         """
         for img in image_files:
+            # A fully flagged coarse plane is all zero and has zero RMS.  Do
+            # not let Obit's implicit 1/RMS**2 weight turn it into an infinite
+            # weight that blanks the continuum image.  Current Obit also needs
+            # a read-only image facade for reliable per-plane RMS values.
+            with img_factory(aips_path=img, mode="r") as read_imf:
+                if not read_imf.exists:
+                    continue
+                info = read_imf.List.Dict
+                nterm = int(info["NTERM"][2][0])
+                nspec = int(info["NSPEC"][2][0])
+                rms = obit_image_mf_rms(read_imf)[nterm:nterm + nspec, 0]
+
+            valid = np.isfinite(rms) & (rms > 0.0)
+            if not np.any(valid):
+                raise ValueError("No coarse-frequency image plane has a positive RMS")
+            weights = np.zeros(rms.shape, dtype=np.float64)
+            weights[valid] = 1.0 / rms[valid] ** 2
+            ignored = [index + 1 for index, use in enumerate(valid) if not use]
+            if ignored:
+                log.warning(
+                    "Ignoring zero/invalid-RMS coarse image planes %s when "
+                    "forming the continuum image", ignored
+                )
+
             with img_factory(aips_path=img, mode="rw") as imf:
-                if imf.exists:
-                    tmp_img = img.copy(seq=next_seq_nr(img))
-                    # nterm=1 does weighted average of planes
-                    imf.FitMF(tmp_img, nterm=1)
-                    tmp_imf = img_factory(aips_path=tmp_img, mode="r")
-                    # Get the first (weighted average) plane of tmp_imf.
-                    img_plane = tmp_imf.GetPlane()
-                    # Stick it into the first plane of imf.
-                    imf.PutPlane(img_plane)
+                tmp_img = img.copy(seq=next_seq_nr(img))
+                imf.FitMF(tmp_img, nterm=1, Weights=weights.tolist())
+                tmp_imf = img_factory(aips_path=tmp_img, mode="r")
+                try:
+                    imf.PutPlane(tmp_imf.GetPlane())
+                finally:
                     tmp_imf.Zap()
 
     def _attach_SN_tables_to_image(self, uv_file, image_file):
@@ -263,25 +251,30 @@ class PipelineImplementation(Pipeline):
             Image (MA) file output from MFImage
         """
 
-        uvf = uv_factory(aips_path=uv_file, mode='r')
-        if uvf.exists:
-            # Get all SN tables in UV file
-            tables = uvf.tablelist
+        with uv_factory(aips_path=uv_file, mode='r') as uvf:
+            if not uvf.exists:
+                return
+            tables = list(uvf.tablelist)
+
+        table_versions = [table[0] for table in tables if table[1] == 'AIPS SN']
+        table_names = ['AIPS SN'] * len(table_versions)
+        if self.imager.copy_an_table:
+            table_versions.append(1)
+            table_names.append('AIPS AN')
+
+        for table_name, version in zip(table_names, table_versions):
             taco_kwargs = {}
             taco_kwargs.update(uv_file.task_input_kwargs())
             taco_kwargs.update(image_file.task_output_kwargs())
-            taco_kwargs['inTab'] = 'AIPS SN'
-            taco_kwargs['nCopy'] = 1
-            # Copy all SN tables
-            SN_ver = [table[0] for table in tables if table[1] == 'AIPS SN']
-            for ver in SN_ver:
-                taco_kwargs.update({
-                    'inVer': ver,
-                    'outVer': ver
-                    })
-                taco = task_factory("TabCopy", **taco_kwargs)
-                with log_obit_err(log):
-                    taco.go()
+            taco_kwargs.update({
+                'inTab': table_name,
+                'nCopy': 1,
+                'inVer': version,
+                'outVer': version
+            })
+            taco = task_factory("TabCopy", **taco_kwargs)
+            with log_obit_err(log):
+                taco.go()
 
     def _cleanup(self):
         """
@@ -816,7 +809,7 @@ class OnlinePipeline(KatdalPipelineImplementation):
         if merge_nvis < 1:
             return {}
         else:
-            self._run_mfimage(merge_path, uv_sources)
+            self._run_imager(merge_path, uv_sources)
             self.cleanup_uv_files += uv_files
             self.cleanup_img_files += clean_files
 
@@ -867,7 +860,8 @@ def build_offline_pipeline(data, **kwargs):
 class KatdalOfflinePipeline(KatdalPipelineImplementation):
     def __init__(self, katdata, uvblavg_params={}, mfimage_params={},
                  katdal_select={}, nvispio=1024, prtlv=2,
-                 clobber=set(['scans', 'avgscans']), time_step=20, reuse=False):
+                 clobber=set(['scans', 'avgscans']), time_step=20, reuse=False,
+                 imager=None):
         """
         Initialise the Continuum Pipeline for offline imaging
         using a katdal dataset.
@@ -911,6 +905,8 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         self.clobber = clobber
         self.reuse = reuse
         self.time_step = time_step
+        if imager is not None:
+            self.imager = imager
         self.odisk = len(kc.get_config()['fitsdirs'])
 
     def __enter__(self):
@@ -957,7 +953,7 @@ class KatdalOfflinePipeline(KatdalPipelineImplementation):
         if merge_nvis < 1:
             return {}
         else:
-            self._run_mfimage(merge_path, uv_sources)
+            self._run_imager(merge_path, uv_sources)
 
             self._get_wavg_img(clean_files)
             for uv, clean in zip(uv_files, clean_files):

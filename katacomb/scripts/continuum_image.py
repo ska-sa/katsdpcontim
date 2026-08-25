@@ -6,6 +6,7 @@ import os
 import katdal
 
 from katacomb import pipeline_factory
+from katacomb.imager import MFBeamImager, MFImageImager, load_beam_manifest
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
@@ -69,6 +70,13 @@ def create_parser():
                         type=str,
                         default="INFO",
                         help="Logging level. Default: %(default)s")
+    parser.add_argument("--imager",
+                        choices=("mfimage", "mfbeam"),
+                        default="mfimage",
+                        help="Obit continuum imager. Default: %(default)s")
+    parser.add_argument("--mfbeam-manifest",
+                        type=str,
+                        help="YAML beam manifest required by --imager mfbeam")
     katdal_options(parser)
     selection_options(parser)
     export_options(parser)
@@ -79,6 +87,10 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
+    if args.imager == "mfbeam" and not args.mfbeam_manifest:
+        parser.error("--mfbeam-manifest is required with --imager mfbeam")
+    if args.imager == "mfimage" and args.mfbeam_manifest:
+        parser.error("--mfbeam-manifest requires --imager mfbeam")
     configure_logging(args)
     log.info("Reading data with applycal=%s", args.applycal)
     katdata = katdal.open(args.katdata, applycal=args.applycal, **args.open_kwargs)
@@ -112,6 +124,11 @@ def main():
     setup_configuration(args, aipsdisks=aipsdir)
     setup_aips_disks()
 
+    if args.imager == "mfbeam":
+        imager = MFBeamImager(load_beam_manifest(args.mfbeam_manifest))
+    else:
+        imager = MFImageImager()
+
     pipeline = pipeline_factory('offline', katdata,
                                 katdal_select=kat_select,
                                 uvblavg_params=uvblavg_args,
@@ -120,7 +137,8 @@ def main():
                                 clobber=args.clobber,
                                 time_step=time_step,
                                 prtlv=args.prtlv,
-                                reuse=bool(args.reuse))
+                                reuse=bool(args.reuse),
+                                imager=imager)
 
     # Execute it
     pipeline.execute()

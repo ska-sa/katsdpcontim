@@ -65,12 +65,16 @@ USER kat
 ENV OBIT_REPO https://github.com/bill-cotton/Obit
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
+ARG OBIT_REF=79b540352ee5e46d5664cb8a21521861c0ff7220
 
 WORKDIR $KATHOME
-RUN git clone -n --depth=1 --filter=tree:0 $OBIT_REPO && \
+RUN mkdir $OBIT_BASE_PATH && \
     cd $OBIT_BASE_PATH && \
+    git init && \
+    git remote add origin $OBIT_REPO && \
     git sparse-checkout set --no-cone ObitSystem && \
-    git checkout
+    git fetch --depth=1 origin $OBIT_REF && \
+    git checkout FETCH_HEAD
 
 WORKDIR $OBIT_BASE_PATH
 
@@ -180,6 +184,7 @@ RUN cfg_aips_disks.py
 # since Obit cannot handle multiple pipeline runs (>24) 
 # in the same python thread.
 RUN pytest -s --pyargs katacomb.tests.test_utils \
+                       katacomb.tests.test_imager \
                        katacomb.tests.test_qa \
                        katacomb.tests.test_aips_facades \
                        katacomb.tests.test_aips_path \
