@@ -40,5 +40,5 @@ setup(name=PKG,
                         'scipy'],
       scripts=glob(pjoin('scripts', '*.py')),
       packages=find_packages(),
-      package_data={'': ['conf/*/*']},
+      package_data={'': ['conf/*/*', 'conf/beam-models/*/*']},
       use_katversion=True)

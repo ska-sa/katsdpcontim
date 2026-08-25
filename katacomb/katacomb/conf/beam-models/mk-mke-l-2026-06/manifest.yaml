@@ -1,0 +1,12 @@
+schema_version: 1
+model_id: mk-mke-l-2026-06
+band: L
+antenna_types:
+  - name: MK
+    diameter_m: 13.5
+    real_root: XX_MK_L_2026_Real.fits
+    imag_root: XX_MK_L_2026_Imag.fits
+  - name: MKE
+    diameter_m: 15.0
+    real_root: XX_MKE_L_2026_Real.fits
+    imag_root: XX_MKE_L_2026_Imag.fits

@@ -1,7 +1,7 @@
 """Selectable Obit continuum-imaging backends.
 
-MFImage remains the default backend.  MFBeam is an opt-in backend that takes
-one or two externally supplied, manifest-described primary-beam sets.
+MFImage remains the default backend.  MFBeam is an opt-in backend with a
+packaged MK/MKE L-band beam model and an optional external manifest override.
 """
 
 from contextlib import contextmanager
@@ -27,6 +27,10 @@ log = logging.getLogger("katacomb")
 POLARISATIONS = ("XX", "YY", "XY", "YX")
 UV_CLASS = "MFImag"
 IMG_CLASS = "IClean"
+DEFAULT_BEAM_MANIFEST = (
+    Path(__file__).parent / "conf" / "beam-models" / "mk-mke-l-2026-06"
+    / "manifest.yaml"
+)
 
 
 @dataclass(frozen=True)
@@ -150,6 +154,11 @@ def load_beam_manifest(filename: str) -> BeamManifest:
         raise ValueError("All MFBeam antenna types must consistently include imag_root")
     validate_beam_files(beam_sets)
     return BeamManifest(model_id, band, tuple(beam_sets))
+
+
+def default_beam_manifest_path() -> str:
+    """Return the path to the packaged MK/MKE L-band beam manifest."""
+    return str(DEFAULT_BEAM_MANIFEST)
 
 
 def validate_beam_files(beam_sets: Iterable[BeamSet]) -> None:
@@ -308,7 +317,12 @@ class MFBeamImager(ObitImager):
 
     def run(self, uv_path, uv_sources, parameters, prtlv):
         arguments = self._arguments(uv_path, uv_sources, parameters, prtlv)
-        arguments["doPhase"] = False
+        arguments.update(
+            doPhase=False,
+            doGPU=True,
+            doGPUGrid=True,
+            GPU_no=[0, -1],
+        )
         # User-supplied parameters intentionally remain the final override.
         arguments.update(parameters)
         with staged_beam_arguments(self.manifest.beam_sets) as beam_arguments:

@@ -1,5 +1,6 @@
 katacomb/katacomb.egg-info
 katacomb/build
 **/*.fits
+!katacomb/katacomb/conf/beam-models/mk-mke-l-2026-06/*.fits
 **/*.ms
 **/*.pyc

@@ -7,6 +7,7 @@ import pytest
 from katacomb.imager import (
     MFBeamImager,
     MFImageImager,
+    default_beam_manifest_path,
     load_beam_manifest,
     polarisation_path,
     stage_beam_sets,
@@ -70,6 +71,12 @@ def test_load_and_stage_two_complex_beams(tmp_path):
     assert len(list(workdir.glob("*.fits"))) == 16
 
 
+def test_packaged_manifest():
+    manifest = load_beam_manifest(default_beam_manifest_path())
+    assert manifest.model_id == "mk-mke-l-2026-06"
+    assert [beam.name for beam in manifest.beam_sets] == ["MK", "MKE"]
+
+
 def test_manifest_validates_selected_dataset(tmp_path):
     manifest = load_beam_manifest(str(_write_manifest(tmp_path)))
     dataset = SimpleNamespace(
@@ -100,3 +107,19 @@ def test_imager_selection_is_explicit(tmp_path):
     assert MFImageImager().task_name == "MFImage"
     assert MFBeamImager(manifest).task_name == "MFBeam"
     assert MFBeamImager(manifest).copy_an_table is True
+
+
+def test_mfbeam_gpu_defaults_can_be_overridden(tmp_path, monkeypatch):
+    imager = MFBeamImager(load_beam_manifest(str(_write_manifest(tmp_path))))
+    captured = {}
+    monkeypatch.setattr(imager, "_arguments", lambda *args: {})
+    monkeypatch.setattr(imager, "_run_task", captured.update)
+
+    imager.run(None, None, {}, 2)
+    assert captured["doGPU"] is True
+    assert captured["doGPUGrid"] is True
+    assert captured["GPU_no"] == [0, -1]
+
+    imager.run(None, None, {"doGPUGrid": False, "GPU_no": [1, -1]}, 2)
+    assert captured["doGPUGrid"] is False
+    assert captured["GPU_no"] == [1, -1]

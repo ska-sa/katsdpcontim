@@ -127,7 +127,10 @@ Offline MFBeam imaging
 explicit offline alternative and requires a YAML manifest that identifies one
 or two antenna beam cohorts.  Beam roots are logical names: MFBeam replaces
 their first two characters with ``XX``, ``YY``, ``XY`` and ``YX`` to find the
-physical Jones-beam FITS files.
+physical Jones-beam FITS files.  The container includes the
+``mk-mke-l-2026-06`` L-band model (MK 13.5 m and MKE 15.0 m) and selects it by
+default when ``--imager mfbeam`` is used.  An external schema-version-1
+manifest can still be supplied as an explicit override.
 
 .. code-block:: yaml
 
@@ -154,21 +157,23 @@ For example, to re-image an existing merged AIPS UV file:
     continuum_image.py input.rdb \
       --reuse /path/to/aipsdisk \
       --imager mfbeam \
-      --mfbeam-manifest /models/mk-mke-l-2026.yaml \
       --targets target-name \
       --channels 1792,2304 \
       --applycal default \
       --mfimage "maxPSCLoop=0; maxASCLoop=0"
 
 The existing ``--mfimage`` and ``--mfimage-config`` options supply the common
-Obit imaging parameters to either backend.  MFBeam is not yet selectable in
-the online ``continuum_pipeline.py`` path.
+Obit imaging parameters to either backend.  MFBeam defaults to GPU prediction
+and GPU gridding on device 0; all three values can be overridden with
+``--mfimage`` (``doGPU``, ``doGPUGrid`` and ``GPU_no``).  MFBeam is not yet
+selectable in the online ``continuum_pipeline.py`` path.
 
 The container build pins Obit to the revision in the Dockerfile's
 ``OBIT_REF`` argument.  Override it deliberately with ``docker build
 --build-arg OBIT_REF=<commit> ...`` when validating a newer Obit revision.
-Beam FITS files remain external data products: mount them at runtime and keep
-their manifest alongside them rather than adding them to the container image.
+The packaged model is intentionally a small, fixed bootstrap model rather than
+part of the katsdpmodels manifest.  Use ``--mfbeam-manifest`` to test another
+model without rebuilding the container.
 
 Inspecting , Viewing and Exporting data in ObitTalk
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

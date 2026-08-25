@@ -6,7 +6,12 @@ import os
 import katdal
 
 from katacomb import pipeline_factory
-from katacomb.imager import MFBeamImager, MFImageImager, load_beam_manifest
+from katacomb.imager import (
+    MFBeamImager,
+    MFImageImager,
+    default_beam_manifest_path,
+    load_beam_manifest,
+)
 from katacomb.util import (get_and_merge_args,
                            setup_aips_disks,
                            recursive_merge,
@@ -76,7 +81,8 @@ def create_parser():
                         help="Obit continuum imager. Default: %(default)s")
     parser.add_argument("--mfbeam-manifest",
                         type=str,
-                        help="YAML beam manifest required by --imager mfbeam")
+                        help="Override the packaged MK/MKE L-band YAML beam "
+                             "manifest used by --imager mfbeam")
     katdal_options(parser)
     selection_options(parser)
     export_options(parser)
@@ -87,8 +93,6 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    if args.imager == "mfbeam" and not args.mfbeam_manifest:
-        parser.error("--mfbeam-manifest is required with --imager mfbeam")
     if args.imager == "mfimage" and args.mfbeam_manifest:
         parser.error("--mfbeam-manifest requires --imager mfbeam")
     configure_logging(args)
@@ -125,7 +129,9 @@ def main():
     setup_aips_disks()
 
     if args.imager == "mfbeam":
-        imager = MFBeamImager(load_beam_manifest(args.mfbeam_manifest))
+        manifest_path = args.mfbeam_manifest or default_beam_manifest_path()
+        log.info("MFBeam manifest: %s", manifest_path)
+        imager = MFBeamImager(load_beam_manifest(manifest_path))
     else:
         imager = MFImageImager()
 
