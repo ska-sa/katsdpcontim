@@ -489,7 +489,7 @@ def normalise_target_name(name, used=[], max_length=None):
         o_name = ''.join(filter(None, [t_name, i_name]))
         return '{:{ml}.{ml}}'.format(o_name, ml=ml)
 
-    name = re.sub(r'[^-A-Za-z0-9_]', '_', name)
+    name = re.sub(r'[^-+A-Za-z0-9_]', '_', name)
     i = 0
     test_name = generate_name(name, i, max_length)
     while test_name in used:
