@@ -93,11 +93,17 @@ def main():
     out_file = AIPSPath(aname, disk=1, aclass=args.aclass,
                         seq=args.aseq, atype='UV', dtype='AIPS')
 
+    # Automatically average if --average was specified OR if frequency averaging
+    # was inferred/configured
+    should_average = args.average or (
+        uvblavg_args.get('avgFreq') == 1 and uvblavg_args.get('chAvg', 1) > 1
+    )
+
     # Set up a pipeline and run it
     pipeline = pipeline_factory('continuum_export', katdata,
                                 katdal_select=kat_select,
                                 uvblavg_params=uvblavg_args,
-                                merge_scans=not args.average,
+                                merge_scans=not should_average,
                                 nvispio=args.nvispio,
                                 out_path=out_file,
                                 time_step=time_step)
