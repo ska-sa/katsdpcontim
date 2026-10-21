@@ -1,7 +1,8 @@
 Obit Docker build
 =================
 
-Docker files for building ``AIPS`` and ``Obit`` on Ubuntu ``xenial``.
+Docker files for the continuum pipeline and its Obit runtime. The production
+GPU base currently provides Ubuntu 20.04, CUDA 11.4 and Python 3.8.
 Both production (Dockerfile) and development (Dockerfile.dev) containers
 are available.
 The production container contains Obit installed under the
@@ -168,9 +169,13 @@ and GPU gridding on device 0; all three values can be overridden with
 ``--mfimage`` (``doGPU``, ``doGPUGrid`` and ``GPU_no``).  MFBeam is not yet
 selectable in the online ``continuum_pipeline.py`` path.
 
-The container build pins Obit to the revision in the Dockerfile's
-``OBIT_REF`` argument.  Override it deliberately with ``docker build
---build-arg OBIT_REF=<commit> ...`` when validating a newer Obit revision.
+The container builds the portable MFBeam source from ``richarms/Obit``, pinned
+to the full commit in ``OBIT_REF``. It applies no local Obit source patches.
+The CPU/GPU targets belong to this Docker build: AVX2 CPUs and native
+compute-capability 6.1 CUDA code are the defaults for the current production
+imaging servers. The portable Obit branch does not choose these targets.
+See ``BUILDING.rst`` for build arguments, provenance and runtime validation.
+
 The packaged model is intentionally a small, fixed bootstrap model rather than
 part of the katsdpmodels manifest.  Use ``--mfbeam-manifest`` to test another
 model without rebuilding the container.

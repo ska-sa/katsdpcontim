@@ -2,70 +2,42 @@ ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
 FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build as build
 
-# Switch to root for package install
+# Build only the core/tasks and Python bindings; WVR and plotting are disabled.
 USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates curl git gfortran gcc-8 g++-8 pkg-config \
+        libcfitsio-dev libcurl4-openssl-dev libfftw3-dev libglib2.0-dev \
+        libgsl-dev libxmlrpc-core-c3-dev python3-dev python3-distutils zlib1g-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV PACKAGES \
-    bison \
-    build-essential \
-    curl \
-    flex \
-    gfortran \
-    libblas-dev \
-    libboost-all-dev \
-    libcfitsio-dev \
-    # Without libcurl Obit pretends it can't find an external xmlrpc
-    libcurl4-openssl-dev \
-    libfftw3-dev \
-    libglib2.0-dev \
-    libgsl0-dev \
-    liblapacke-dev \
-    libmotif-dev \
-    libncurses5-dev \
-    libreadline-dev \
-    libxmlrpc-c++8-dev \
-    libxmlrpc-core-c3-dev \
-    python-is-python3 \
-    subversion \
-    # Required by bnmin1
-    swig \
-    wget \
-    zlib1g-dev \
-    # Obit seems not to optimize well with the default gcc-9 in focal
-    # so use gcc-8 instead.
-    gcc-8 \
-    g++-8
-
-# Update, upgrade and install packages
-RUN apt-get update && \
-    apt-get install -y $PACKAGES
-
-# Make gcc-8 the default gcc.
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 100 --slave /usr/bin/g++ g++ /usr/bin/g++-8
-
-# Get CUDA samples- Obit needs some headers from there.
-# As of CUDA 11.6 the samples are no longer available in the toolkit
-# so retrieve them from NVIDIA's github repo instead. The headers are
-# placed in /usr/local/cuda/samples/inc which is where the GPU Obit
-# build modified by 'obit.patch' looks for them.
-WORKDIR /root
-RUN CUDA_SAMPLES_VER="11.4.1" && \
-    CUDA_SAMPLES_URL="https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v${CUDA_SAMPLES_VER}.tar.gz" && \
-    wget --progress=dot:mega ${CUDA_SAMPLES_URL} && \
-    tar -xvf v${CUDA_SAMPLES_VER}.tar.gz && \
-    mkdir -p /usr/local/cuda/samples/common/inc && \
-    mv cuda-samples-${CUDA_SAMPLES_VER}/Common/* /usr/local/cuda/samples/common/inc && \
-    rm -rf v${CUDA_SAMPLES_VER}.tar.gz
+# Samples supply helper headers only. Keep them outside the CUDA toolkit tree.
+ARG CUDA_SAMPLES_VERSION=11.4.1
+RUN mkdir -p /opt/cuda-samples && \
+    curl -fL "https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v${CUDA_SAMPLES_VERSION}.tar.gz" \
+        -o /tmp/cuda-samples.tar.gz && \
+    tar -xzf /tmp/cuda-samples.tar.gz -C /opt/cuda-samples --strip-components=1 \
+        "cuda-samples-${CUDA_SAMPLES_VERSION}/Common" && \
+    rm /tmp/cuda-samples.tar.gz
 
 ENV KATHOME=/home/kat
 
 # Now downgrade to kat
 USER kat
 
-ENV OBIT_REPO https://github.com/bill-cotton/Obit
+ARG OBIT_REPO=https://github.com/richarms/Obit.git
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
-ARG OBIT_REF=79b540352ee5e46d5664cb8a21521861c0ff7220
+# Pin the portable source branch by immutable commit when updating Obit.
+ARG OBIT_REF=d34dc1e763c69352c4f61b0f6766c0afa55f3899
+# Production target: AVX2 CPUs and Pascal compute-capability 6.1 GPUs.
+# Do not use -march=native or detect the build machine's GPU.
+ARG OBIT_CC=gcc-8
+ARG OBIT_CFLAGS="-g -O3 -mavx2"
+ARG OBIT_NVCCFLAGS="-g -O3 -lineinfo -gencode=arch=compute_61,code=sm_61"
+ARG OBIT_BUILD_JOBS=8
+
+# Compile the extension for the interpreter used by katacomb at runtime.
+ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 
 WORKDIR $KATHOME
 RUN mkdir $OBIT_BASE_PATH && \
@@ -74,28 +46,28 @@ RUN mkdir $OBIT_BASE_PATH && \
     git remote add origin $OBIT_REPO && \
     git sparse-checkout set --no-cone ObitSystem && \
     git fetch --depth=1 origin $OBIT_REF && \
-    git checkout FETCH_HEAD
+    git checkout --detach FETCH_HEAD && \
+    test "$(git rev-parse HEAD)" = "$OBIT_REF"
 
 WORKDIR $OBIT_BASE_PATH
 
-# Add OBIT patch
-COPY --chown=kat:kat obit.patch /tmp/obit.patch
+# Configure owns feature detection and linking; no source patches are applied.
+RUN cd "$OBIT" && \
+    CC="$OBIT_CC" CFLAGS="$OBIT_CFLAGS" \
+    NVCCFLAGS="$OBIT_NVCCFLAGS" PYTHON="$VIRTUAL_ENV/bin/python" \
+    ./configure --prefix=/usr --without-plplot --without-pgplot --without-wvr \
+        --with-cuda=/usr/local/cuda --with-cuda-samples=/opt/cuda-samples/Common && \
+    make -j"$OBIT_BUILD_JOBS" && \
+    make check-python check-simd && \
+    CUDA_TEST_BUILD_ONLY=1 CUDA_TEST_OUTPUT="$OBIT/test/testGPUContextCUDA" make check-gpu
 
-# Apply OBIT patch
-RUN patch -p1 -N -s < /tmp/obit.patch
-
-# Compile Obit
-RUN cd ObitSystem/Obit && \
-    ./configure --prefix=/usr --without-plplot --without-wvr && \
-    make clean && \
-    make versionupdate && \
-    make -j 8
+COPY --chown=kat:kat scripts/record_obit_build.py /tmp/record_obit_build.py
+RUN PYTHONPATH="$OBIT/python" python /tmp/record_obit_build.py "$OBIT_BASE_PATH"
 
 # Add python package requirements
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
 # Install required python packages
-ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 RUN install_pinned.py -r /tmp/requirements.txt
 
 # Install validation package
@@ -124,20 +96,9 @@ LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 # Switch to root for package install
 USER root
 
-ENV PACKAGES \
-    libcfitsio8 \
-    libcurl4 \
-    libfftw3-3 \
-    libglib2.0-0 \
-    libgsl0-dev \
-    libncurses5 \
-    libreadline8 \
-    libxm4 \
-    libxmlrpc-core-c3 \
-    libxmlrpc-c++8v5
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends $PACKAGES && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libcfitsio8 libcurl4 libfftw3-single3 libglib2.0-0 libgsl23 libgslcblas0 \
+        libgfortran5 libstdc++6 libxmlrpc-core-c3 zlib1g && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up areas for image/metadata output
