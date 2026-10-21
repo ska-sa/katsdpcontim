@@ -1,5 +1,5 @@
 Building the MFBeam production image
-===================================
+====================================
 
 The new ``feat/mfbeam-production`` branch follows the existing offline
 ``mfbeam-imager`` integration. Its Obit source comes from ``richarms/Obit``'s
@@ -97,3 +97,18 @@ reference. The lifecycle test alone does not validate image quality.
 The existing backend remains opt-in: MFImage is still the default, and
 MFBeam's default device list remains device 0. Build optimisation targets do
 not determine which devices an imaging task uses.
+
+Validated build
+---------------
+
+On 2026-10-21, imgr20 built image ``00c8fc7b361f`` tagged
+``katsdpcontim:mfbeam-production`` from contim commit
+``4c746ac5fa5c0ec4eddfdcb9f98b6c0f32b5d9e4`` and Obit commit
+``2f879587546f4049327b535fd5c2f79de96149df``. The defaults above produced
+an AVX2/native ``sm_61`` build with GCC 8.4, CUDA 11.4 and Python 3.8.10.
+
+Obit's Python, SIMD and GPU dispatch checks passed. All 32 existing runtime
+regression tests passed (22 general, 7 online, 2 offline and 1 UV-export).
+The retained CUDA executable then passed against all four host GPUs, completing
+ten predict/grid allocation and teardown cycles. MFBeam imaging and image
+quality validation remain separate from these checks.
