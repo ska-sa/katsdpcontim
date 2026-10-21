@@ -1,6 +1,6 @@
 # Add local commissioning beams to the already tested MFBeam runtime.
 # This avoids rebuilding Obit. The normal Dockerfile also packages these files.
-ARG BASE_IMAGE=harbor.sdp.kat.ac.za/dpp/katsdpcontim:mfbeam-imager-baked
+ARG BASE_IMAGE=katsdpcontim:mfbeam-production
 FROM ${BASE_IMAGE}
 COPY --chown=kat:kat katacomb/katacomb/conf/beam-models/s-commissioning-2026-09-29/ /home/kat/ve3/lib/python3.8/site-packages/katacomb/conf/beam-models/s-commissioning-2026-09-29/
 COPY --chown=kat:kat scripts/validate_sband_beams.py /home/kat/validate_sband_beams.py
