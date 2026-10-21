@@ -1,0 +1,19 @@
+# S-band commissioning beams, 2026-09-29
+
+Local, non-public commissioning assets. Do not publish or push. Speak to Mattieu
+
+MK (13.5 m): beam_mavg_S04.fits from commissioning-2026-09-29,
+split with the existing beam_conversion.py. Coverage 1.763671875--3.486328125 GHz.
+MKE (15 m): derived MK+S04_sym_LM.fits, generated from MK+S0_sym.fits
+and MK+S4_sym.fits.
+
+The combined cube uses katbeam's direct axis1=L, axis2=M interpretation,
+retains VV/HH/VH/HV ordering, and linearly interpolates complex values.
+One output frequency plane at 2.625 GHz bridges a gap between observations.
+
+HV phase correction is outstanding (Mattieu 2026-09-29).
+
+Spatial coverage differs: MK is -0.5 to +0.484375 deg per axis; MK+
+is -2 to +1.96875 deg. Do not use standard L-band FOV=1.0/OutlierDist=1.75
+without addressing the MK beam spatial limit -- advised to use FOV=0.4 and 
+OutlierDist=0.48.

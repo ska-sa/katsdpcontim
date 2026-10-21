@@ -1,0 +1,13 @@
+# MK+ identity is inferred from beam widths and profiles
+schema_version: 1
+model_id: s-commissioning-2026-09-29
+band: S
+antenna_types:
+  - name: MK
+    diameter_m: 13.5
+    real_root: XX_MK_S04_2026_Real.fits
+    imag_root: XX_MK_S04_2026_Imag.fits
+  - name: MKE-inferred-MKplus
+    diameter_m: 15.0
+    real_root: XX_MKPLUS_S04_SYM_Real.fits
+    imag_root: XX_MKPLUS_S04_SYM_Imag.fits

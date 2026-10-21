@@ -523,3 +523,19 @@ A test suite exists, but must be executed inside the container:
   $ nosetests /home/kat/src/katacomb
 
 .. _Phoenix: /var/kat/archive2/data/MeerKATAR1/telescope_products/2017/09/14/1505426738.h5
+
+S-band commissioning image (local)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``s-commissioning-2026-09-29`` beam package pairs the measured MeerKAT
+S04 model with a combined MK+ S0/S4 model assigned to extension antennas
+by inference from beam widths. This identity is not supplier-confirmed.
+See its ``PROVENANCE.md`` for the comparison, spatial limits and outstanding
+HV phase caveat. These commissioning assets and images are not public.
+
+Build locally with ``docker build -f Dockerfile.sband -t
+katsdpcontim:mfbeam-sband-20260929 .``. The S-band manifest must be selected
+explicitly with ``--mfbeam-manifest``; the L-band default is unchanged.
+``scripts/run_s1_deep2_reuse.sh`` prepares a new output directory and reuses
+the existing averaged data for CBID 1790362887. It uses FOV and OutlierDist
+of 0.4 degrees because the MK beam footprint is limited to about +/-0.5 deg.

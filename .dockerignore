@@ -4,3 +4,5 @@ katacomb/build
 !katacomb/katacomb/conf/beam-models/mk-mke-l-2026-06/*.fits
 **/*.ms
 **/*.pyc
+
+!katacomb/katacomb/conf/beam-models/s-commissioning-2026-09-29/*.fits

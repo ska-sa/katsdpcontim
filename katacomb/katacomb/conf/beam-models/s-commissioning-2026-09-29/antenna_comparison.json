@@ -1,0 +1,42 @@
+[
+  {
+    "MHz": 2450,
+    "MKplus_halfpower_radius_deg": 0.29269595954803684,
+    "MK_halfpower_radius_deg": 0.3390734738397969,
+    "MKE_halfpower_radius_deg": 0.29258662295594673,
+    "power_rms_MKplus_vs_MK": 0.07197295845310536,
+    "power_rms_MKplus_vs_MKE": 0.0037780788007798385
+  },
+  {
+    "MHz": 2550,
+    "MKplus_halfpower_radius_deg": 0.2787557842508878,
+    "MK_halfpower_radius_deg": 0.31961134876543296,
+    "MKE_halfpower_radius_deg": 0.27584115039611684,
+    "power_rms_MKplus_vs_MK": 0.06489510759295446,
+    "power_rms_MKplus_vs_MKE": 0.011342448285626118
+  },
+  {
+    "MHz": 2700,
+    "MKplus_halfpower_radius_deg": 0.2638416853668068,
+    "MK_halfpower_radius_deg": 0.29883955436037524,
+    "MKE_halfpower_radius_deg": 0.25946856797433615,
+    "power_rms_MKplus_vs_MK": 0.059883388412734835,
+    "power_rms_MKplus_vs_MKE": 0.012632854954655982
+  },
+  {
+    "MHz": 2800,
+    "MKplus_halfpower_radius_deg": 0.2536672336932056,
+    "MK_halfpower_radius_deg": 0.2892281825247931,
+    "MKE_halfpower_radius_deg": 0.25049280629171955,
+    "power_rms_MKplus_vs_MK": 0.06308043577535195,
+    "power_rms_MKplus_vs_MKE": 0.009969035813510187
+  },
+  {
+    "MHz": 3000,
+    "MKplus_halfpower_radius_deg": 0.2359439534162949,
+    "MK_halfpower_radius_deg": 0.2697973363114988,
+    "MKE_halfpower_radius_deg": 0.23425839552496178,
+    "power_rms_MKplus_vs_MK": 0.0652987119524277,
+    "power_rms_MKplus_vs_MKE": 0.007396003063567097
+  }
+]

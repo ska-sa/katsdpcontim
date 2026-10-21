@@ -1,0 +1,80 @@
+{
+  "katbeam_commit": "f46f11ef7ec361e1d656178d4842fb6450022654",
+  "input_sha256": {
+    "MK+S0_sym.fits": "894a39f632fc16291e45f6020b8e609c361a9341e516aae577e4d972cbf596ab",
+    "MK+S4_sym.fits": "b027a4ba001c6f7a75e9ed31f5eec574f05e86d2abfa6b377069b1f3f913d443",
+    "beam_mavg_S04.fits": "8b5ad38fdf9c8dc148afdd278be7373caad3356855aa143adc4ca41beb21a2cc"
+  },
+  "frequency_Hz": {
+    "first": 1763671875.0,
+    "last": 3486328125.0,
+    "step": 13671875.0,
+    "planes": 127
+  },
+  "spatial_grid": {
+    "shape": [
+      128,
+      128
+    ],
+    "step_deg": 0.03125,
+    "l_range_deg": [
+      -2.0,
+      1.96875
+    ],
+    "m_range_deg": [
+      -2.0,
+      1.96875
+    ]
+  },
+  "interpolated_gap": {
+    "input_edges_Hz": [
+      2621582031.25,
+      2633544921.875
+    ],
+    "output_indices_zero_based": [
+      63
+    ],
+    "output_frequencies_Hz": [
+      2625000000.0
+    ]
+  },
+  "katbeam_max_complex_absolute_error": {
+    "VV": 2.9191860269801172e-08,
+    "HH": 2.983955203674331e-08,
+    "VH": 3.332000937312528e-09,
+    "HV": 4.16500117164066e-09
+  },
+  "join_diagnostics": {
+    "VV": {
+      "rms_complex_difference_r_le_1deg": 0.02670084091529423,
+      "max_complex_difference_r_le_1deg": 0.071110201413599
+    },
+    "HH": {
+      "rms_complex_difference_r_le_1deg": 0.021417248732103714,
+      "max_complex_difference_r_le_1deg": 0.05068713231937877
+    },
+    "VH": {
+      "rms_complex_difference_r_le_1deg": 0.01716853554997137,
+      "max_complex_difference_r_le_1deg": 0.04677264143887921
+    },
+    "HV": {
+      "rms_complex_difference_r_le_1deg": 0.028938211365790154,
+      "max_complex_difference_r_le_1deg": 0.0587318040226751
+    }
+  },
+  "checks": [
+    "all values finite",
+    "no spatial or spectral extrapolation",
+    "katbeam comparisons: all 127 planes, four Jones terms, 257 asymmetric points",
+    "unity central co-polar response and zero central cross-polar response",
+    "native and LM pixels identical",
+    "split files exactly reconstruct LM pixels",
+    "FITS checksums and datasums pass"
+  ],
+  "limitations": [
+    "SSN labels interpreted as L/M exactly as katbeam reader does; not a general WCS transform",
+    "gap interpolated without overlapping measurements",
+    "possible producer-mentioned HV phase correction not applied",
+    "antenna class not inferred from MK+ filename; no extension assignment made"
+  ]
+}
