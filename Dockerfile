@@ -28,7 +28,7 @@ ARG OBIT_REPO=https://github.com/richarms/Obit.git
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 # Pin the portable source branch by immutable commit when updating Obit.
-ARG OBIT_REF=ffd721705cbb2fed2e2f166fb01f4f94c8313d43
+ARG OBIT_REF=2f879587546f4049327b535fd5c2f79de96149df
 # Production target: AVX2 CPUs and Pascal compute-capability 6.1 GPUs.
 # Do not use -march=native or detect the build machine's GPU.
 ARG OBIT_CC=gcc-8
