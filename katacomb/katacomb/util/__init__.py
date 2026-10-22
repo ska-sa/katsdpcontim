@@ -675,7 +675,7 @@ def _get_band_mask(telstate_l0):
                                           telstate=telstate_cbf)
             return band_mask_model
         except (requests.ConnectionError, katsdpmodels.models.ModelError) as exc:
-            logger.warning('Failed to load band_mask model:', exc)
+            log.warning('Failed to load band_mask model: %s', exc)
             return None
 
 
@@ -696,6 +696,7 @@ def get_static_mask(telstate_l0, channel_freqs, length=100.0):
     bandwidth = telstate_l0['bandwidth']
     channel_width = bandwidth / telstate_l0['n_chans']
 
+    static_mask = np.zeros(len(channel_freqs), dtype=bool)
     if band_mask is not None:
         center = telstate_l0['center_freq']
         band_spw = katsdpmodels.band_mask.SpectralWindow(bandwidth * u.Hz, center * u.Hz)
