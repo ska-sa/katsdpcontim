@@ -15,7 +15,9 @@ from katacomb.util import (recursive_merge,
                            setup_selection_and_parameters,
                            setup_configuration,
                            post_process_args,
-                           get_parameter_file)
+                           get_parameter_file,
+                           parse_python_assigns,
+                           log_exception)
 
 log = logging.getLogger('katacomb')
 
@@ -51,6 +53,16 @@ def create_parser():
     parser.add_argument("--average",
                         action='store_true',
                         help="Switch on BL dependent averaging and channel averaging")
+    parser.add_argument("--splat",
+                        action='store_true',
+                        help="Switch on Obit Splat task for auto-correlations and averaging")
+    parser.add_argument("-sp",
+                        "--splat-args",
+                        default="",
+                        type=log_exception(log)(parse_python_assigns),
+                        help="Splat task parameter assignment statement. "
+                             "Should only contain python assignment statements to python literals. "
+                             "Default: None")
     parser.add_argument("--log-level",
                         type=str,
                         default="INFO",
@@ -77,6 +89,24 @@ def main():
     uvblavg_args = get_and_merge_args('uvblavg', uvblavg_parm_file, args.uvblavg)
     uvblavg_args = recursive_merge(uvblavg_args, uvblavg_defaults)
 
+    # Configure Splat parameters if requested
+    if args.splat or args.splat_args:
+        splat_args = {
+            'corrType': 2,
+            'avgFreq': 1,
+            'chAvg': 8,
+            'keepLin': True,
+            'doCalib': -1,
+            'doBand': -1,
+            'flagVer': 0,
+        }
+        if uvblavg_defaults.get('avgFreq') == 1 and uvblavg_defaults.get('chAvg'):
+            splat_args['chAvg'] = uvblavg_defaults['chAvg']
+        if args.splat_args:
+            splat_args.update(args.splat_args)
+    else:
+        splat_args = None
+
     # No FITS disk needed for this script
     config = setup_configuration(args, aipsdisks=args.aipsdisk, fitsdisks=[])
     setup_aips_disks()
@@ -90,7 +120,8 @@ def main():
     pipeline = pipeline_factory('continuum_export', katdata,
                                 katdal_select=kat_select,
                                 uvblavg_params=uvblavg_args,
-                                merge_scans=not args.average,
+                                splat_params=splat_args,
+                                merge_scans=not args.average if splat_args is None else True,
                                 nvispio=args.nvispio,
                                 out_path=out_file)
     pipeline.execute()
