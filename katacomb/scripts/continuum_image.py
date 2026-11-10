@@ -59,6 +59,12 @@ def create_parser():
                              "'clean' => Output CLEAN files. "
                              "'mfimage' => Output MFImage files. "
                              "Default: %(default)s")
+    parser.add_argument("--time_step",
+                        default=None,
+                        type=int,
+                        help="Size of time chunks to read vis,"
+                             "weights & flags from katdata"
+                             "Default: 20 for <=4k and 4 for >4k chans")
     parser.add_argument("--log-level",
                         type=str,
                         default="INFO",
@@ -82,6 +88,7 @@ def main():
     (uvblavg_defaults,
      mfimage_defaults,
      kat_select) = setup_selection_and_parameters(katdata, args)
+    time_step = kat_select.pop('time_step')
 
     # Merge parameters for Obit from parameter files with command line parameters
     uvblavg_parm_file = get_parameter_file(katdata, args.uvblavg_config)
@@ -111,6 +118,7 @@ def main():
                                 mfimage_params=mfimage_args,
                                 nvispio=args.nvispio,
                                 clobber=args.clobber,
+                                time_step=time_step,
                                 prtlv=args.prtlv,
                                 reuse=bool(args.reuse))
 

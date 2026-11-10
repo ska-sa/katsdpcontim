@@ -715,6 +715,7 @@ def get_static_mask(telstate_l0, channel_freqs, length=100.0):
     bandwidth = telstate_l0['bandwidth']
     channel_width = bandwidth / telstate_l0['n_chans']
 
+    static_mask = np.zeros(len(channel_freqs), dtype=bool)
     if band_mask is not None:
         center = telstate_l0['center_freq']
         band_spw = katsdpmodels.band_mask.SpectralWindow(bandwidth * u.Hz, center * u.Hz)
@@ -784,6 +785,8 @@ def setup_selection_and_parameters(katdata, args):
 
     if getattr(args, 'nif', None):
         kat_select['nif'] = args.nif
+    if getattr(args, 'time_step', None):
+        kat_select['time_step'] = args.time_step
     # Get defaults from katdal object
     uvblavg_defaults, mfimage_defaults, select_defaults = infer_defaults_from_katdal(katdata)
     # Command line katdal selection overrides command line options
@@ -858,6 +861,9 @@ def infer_defaults_from_katdal(katds):
     if katds.spectral_windows[katds.spw].bandwidth < 200.e6:
         # Narrow
         katdal_select['nif'] = 2
+    katdal_select['time_step'] = 20
+    if len(katds.freqs) > 4096:
+        katdal_select['time_step'] = 4
     return uvblavg_params, mfimage_params, katdal_select
 
 
