@@ -698,8 +698,8 @@ class KatdalPipelineImplementation(PipelineImplementation):
 @register_workmode('continuum_export')
 class KatdalExportPipeline(KatdalPipelineImplementation):
 
-    def __init__(self, katdata, uvblavg_params={}, katdal_select={},
-                 nvispio=1024, merge_scans=False, out_path=None, time_step=20):
+    def __init__(self, katdata, uvblavg_params={}, splat_params=None,
+                 katdal_select={}, nvispio=1024, merge_scans=False, out_path=None, time_step=20):
         """Initialise a pipeline for UV export from katdal to AIPS UV.
 
         Parameters
@@ -708,6 +708,9 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
             katdal Dataset object
         uvblavg_params : dict
             Dictionary of UV baseline averaging task parameters
+        splat_params : dict or None
+            Dictionary of Splat task parameters for frequency/time averaging.
+            If provided, Splat is used to average the data.
         katdal_select : dict
             Dictionary of katdal selection statements.
         nvispio : integer
@@ -723,6 +726,7 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         super(KatdalExportPipeline, self).__init__(katdata)
         self.katdal_select = katdal_select
         self.uvblavg_params = uvblavg_params
+        self.splat_params = splat_params
         self.nvispio = nvispio
         self.merge_scans = merge_scans
         self.out_path = out_path
@@ -738,6 +742,31 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
             log.exception('Exception executing continuum pipeline')
         self._cleanup()
 
+    def _run_splat(self, in_path, out_path):
+        """Run Obit task Splat on in_path writing to out_path."""
+        splat_kwargs = {}
+        splat_kwargs.update(in_path.task_input_kwargs())
+        splat_kwargs.update(out_path.task_output_kwargs())
+
+        splat_defaults = {
+            'corrType': 2,
+            'avgFreq': 1,
+            'chAvg': 8,
+            'keepLin': True,
+            'doCalib': -1,
+            'doBand': -1,
+            'flagVer': 0,
+        }
+        if isinstance(self.splat_params, dict):
+            splat_defaults.update(self.splat_params)
+        splat_kwargs.update(splat_defaults)
+
+        log.info("Running Splat '%s' to '%s' with args %s",
+                 in_path, out_path, pretty(splat_kwargs))
+        splat = task_factory("Splat", **splat_kwargs)
+        with log_obit_err(log):
+            splat.go()
+
     def execute_implementation(self):
         # Get the default out path if required
         if self.out_path is None:
@@ -749,10 +778,35 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         # Make sure our desired output file doesn't already exist
         if path_exists(self.out_path):
             raise FileExistsError(f"Desired output path {self.out_path} already exists.")
-        log.info('Exporting visibility data to %s', self.out_path)
+
         self._select_and_infer_files()
-        nvis = self._export_and_merge_scans(self.out_path)
-        log.info('Exported %d visibilities to %s', nvis, self.out_path)
+
+        if self.splat_params is not None:
+            raw_template = self.out_path.copy(aclass='raw')
+            raw_path = self.out_path.copy(aclass='raw', seq=next_seq_nr(raw_template))
+            self.cleanup_uv_files.append(raw_path)
+
+            prev_merge_scans = self.merge_scans
+            self.merge_scans = True
+            try:
+                log.info('Exporting raw visibility data to %s', raw_path)
+                nvis = self._export_and_merge_scans(raw_path)
+                log.info('Exported %d raw visibilities to %s', nvis, raw_path)
+
+                self._run_splat(raw_path, self.out_path)
+            finally:
+                self.merge_scans = prev_merge_scans
+                if path_exists(raw_path):
+                    with uv_factory(aips_path=raw_path, mode='w') as uvf:
+                        log.info("Zapping '%s'", uvf.aips_path)
+                        uvf.Zap()
+                    if raw_path in self.cleanup_uv_files:
+                        self.cleanup_uv_files.remove(raw_path)
+        else:
+            log.info('Exporting visibility data to %s', self.out_path)
+            nvis = self._export_and_merge_scans(self.out_path)
+            log.info('Exported %d visibilities to %s', nvis, self.out_path)
+
         uv = uv_factory(aips_path=self.out_path)
         uv.log_header()
 
