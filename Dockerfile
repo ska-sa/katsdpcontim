@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:production-tag28102026 AS build
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build AS build
 
 # Switch to root for package install
 USER root
@@ -133,7 +133,7 @@ RUN cd $KATHOME/src/katsdpcontim/katacomb && \
 
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:production-tag28102026
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
