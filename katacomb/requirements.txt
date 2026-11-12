@@ -2,7 +2,7 @@
 
 AegeanTools == 2.2.0   # for MeerKAT-continuum-validation
 asteval == 0.9.29      # for MeerKAT-continuum-validation
-astropy ==5.2.2
+astropy ==5.3.1
 attrs
 cerberus == 1.3.4
 dask

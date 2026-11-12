@@ -1,6 +1,6 @@
 ARG KATSDPDOCKERBASE_REGISTRY=harbor.sdp.kat.ac.za/dpp
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:uvpipjammy as build
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-build:production-tag28102026 AS build
 
 # Switch to root for package install
 USER root
@@ -18,7 +18,7 @@ ENV PACKAGES \
     libcurl4-openssl-dev \
     libfftw3-dev \
     libglib2.0-dev \
-    libgsl-dev \ 
+    libgsl-dev \
     liblapacke-dev \
     libmotif-dev \
     libncurses-dev \
@@ -31,8 +31,7 @@ ENV PACKAGES \
     swig \
     wget \
     zlib1g-dev \
-    # Obit seems not to optimize well with the default gcc-9 in focal
-    # so use gcc-8 instead.
+    # gcc-10 used instead of gcc-8 (focal) for jammy compatibility
     gcc-10 \
     g++-10
 
@@ -40,14 +39,15 @@ ENV PACKAGES \
 RUN apt-get update && \
     apt-get install -y $PACKAGES
 
-# Make gcc-8 the default gcc.
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10
+# Make gcc-10 the default gcc
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 \
+    --slave /usr/bin/g++ g++ /usr/bin/g++-10
 
-# Get CUDA samples- Obit needs some headers from there.
+# Get CUDA samples - Obit needs some headers from there.
 # As of CUDA 11.6 the samples are no longer available in the toolkit
 # so retrieve them from NVIDIA's github repo instead. The headers are
-# placed in /usr/local/cuda/samples/inc which is where the GPU Obit
-# build modified by 'obit.patch' looks for them.
+# placed in /usr/local/cuda/samples/common/inc which is where the GPU
+# Obit build modified by 'obit.patch' looks for them.
 WORKDIR /root
 RUN CUDA_SAMPLES_VER="11.4.1" && \
     CUDA_SAMPLES_URL="https://github.com/NVIDIA/cuda-samples/archive/refs/tags/v${CUDA_SAMPLES_VER}.tar.gz" && \
@@ -62,15 +62,20 @@ ENV KATHOME=/home/kat
 # Now downgrade to kat
 USER kat
 
-ENV OBIT_REPO https://github.com/bill-cotton/Obit
+ENV OBIT_REPO=https://github.com/bill-cotton/Obit
 ENV OBIT_BASE_PATH=/home/kat/Obit
 ENV OBIT=/home/kat/Obit/ObitSystem/Obit
 
+
+# Pin Obit to a specific commit to ensure reproducible builds.
+# Newer commits break test_cc_export and test_gains_export tests.
+# Old working commit: c4e72dad762d1b29031d1e890747d965d1cc087a (used in focaluvpip)
+# TODO: Investigate if newer Obit commits fix the test failures and update accordingly.
 WORKDIR $KATHOME
-RUN git clone -n --depth=1 --filter=tree:0 $OBIT_REPO && \
+RUN git clone -n --filter=tree:0 $OBIT_REPO && \
     cd $OBIT_BASE_PATH && \
     git sparse-checkout set --no-cone ObitSystem && \
-    git checkout
+    git checkout c4e72dad762d1b29031d1e890747d965d1cc087a
 
 WORKDIR $OBIT_BASE_PATH
 
@@ -90,28 +95,28 @@ RUN cd ObitSystem/Obit && \
 # Add python package requirements
 COPY --chown=kat:kat katacomb/requirements.txt /tmp/requirements.txt
 
-# Install required python packages
-ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+# Activate the base virtualenv (ve3) inherited from the base image.
+# uv is available via PATH_PYTHON3 which includes ~/.local/bin from base image.
+#ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+ENV PATH="/home/kat/.local/bin:$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
 
+# Compile and install required python packages into ve3
 RUN uv pip compile /tmp/requirements.txt \
     -o /tmp/install/requirements.lock && \
     uv pip install --no-deps -r /tmp/install/requirements.lock && \
     uv pip check
 
-# Install validation package
-ENV VALIDATION_REPO https://github.com/ska-sa/MeerKAT-continuum-validation.git
+# Install validation package — pin to uvpipjammy branch which fixes
+# pandas 2.0 incompatibility (Series[:, None] removed, breaking matplotlib)
+ENV VALIDATION_REPO=https://github.com/ska-sa/MeerKAT-continuum-validation.git
 ENV VALIDATION_BASE_PATH=/home/kat/valid
 
-# Retrieve validation package
 RUN mkdir -p $VALIDATION_BASE_PATH && \
     git clone --branch uvpipjammy $VALIDATION_REPO ${VALIDATION_BASE_PATH}
-ENV VALIDATION_BASE_PATH=/home/kat/valid
-
 
 # Install katacomb
 COPY --chown=kat:kat . $KATHOME/src/katsdpcontim
 WORKDIR $KATHOME/src/katsdpcontim/katacomb
-
 
 # Legacy Python compatibility layer for Obit + katacomb
 # Must be pinned to avoid setuptools>=81 breaking pkg_resources
@@ -128,7 +133,7 @@ RUN cd $KATHOME/src/katsdpcontim/katacomb && \
 
 #######################################################################
 
-FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:uvpipjammy
+FROM $KATSDPDOCKERBASE_REGISTRY/docker-base-gpu-runtime:production-tag28102026
 LABEL maintainer="sdpdev+katsdpcontim@ska.ac.za"
 
 # Switch to root for package install
@@ -139,8 +144,8 @@ ENV PACKAGES \
     libcurl4 \
     libfftw3-3 \
     libglib2.0-0 \
-    libgsl0-dev \
-    libncurses5 \
+    libgsl27 \
+    libncurses6 \
     libreadline8 \
     libxm4 \
     libxmlrpc-core-c3 \
@@ -162,42 +167,54 @@ VOLUME ["/scratch"]
 # Now downgrade to kat
 USER kat
 
-# Install system packages
+# Install Python virtualenv from build stage
+COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
+
+# Activate the virtualenv and make uv available
+#ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+ENV PATH="/home/kat/.local/bin:$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+
+# Install validation package from build stage
+COPY --from=build --chown=kat:kat /home/kat/valid /home/kat/valid
+
+# Install Obit from build stage
 COPY --from=build --chown=kat:kat /home/kat/Obit /home/kat/Obit
 
-# Install Python ve
-COPY --from=build --chown=kat:kat /home/kat/ve3 /home/kat/ve3
-ENV PATH="$PATH_PYTHON3" VIRTUAL_ENV="$VIRTUAL_ENV_PYTHON3"
+COPY --from=build --chown=kat:kat /home/kat/.local /home/kat/.local
 
-# Install validation package
-COPY --from=build --chown=kat:kat /home/kat/valid /home/kat/valid
-ENV PYTHONPATH=/home/kat/valid:$PYTHONPATH
-
-# Set up Obit environment
+# Set up Obit environment.
+# OBIT_BASE_PATH must be set before PYTHONPATH references it.
+# The egg directory is added first so _Obit.so is found correctly —
+# on jammy the Obit build places _Obit inside an egg subdirectory
+# rather than directly in the python directory as in focal.
 ENV OBIT_BASE_PATH=/home/kat/Obit
-ENV OBIT="$OBIT_BASE_PATH"/ObitSystem/Obit \
+ENV OBIT="$OBIT_BASE_PATH/ObitSystem/Obit" \
     OBITINSTALL="$OBIT_BASE_PATH" \
-    OBIT_EXEC="$OBIT" \
-    OBITSD="$OBIT_BASE_PATH"/ObitSystem/ObitSD
-ENV PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/bin:"$PATH"
-ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH"/ObitSystem/Obit/lib:${LD_LIBRARY_PATH}
-ENV PYTHONPATH=$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:$OBIT_BASE_PATH/ObitSystem/Obit/python:$OBIT_BASE_PATH/ObitSystem/ObitSD/python:${PYTHONPATH}
+    OBIT_EXEC="$OBIT_BASE_PATH/ObitSystem/Obit" \
+    OBITSD="$OBIT_BASE_PATH/ObitSystem/ObitSD"
+ENV PATH="$OBIT_BASE_PATH/ObitSystem/Obit/bin:$PATH"
+ENV LD_LIBRARY_PATH="$OBIT_BASE_PATH/ObitSystem/Obit/lib"
 
-# Set the work directory to /home/kat
-#WORKDIR /home/kat
+# Set PYTHONPATH in one instruction so all components are defined.
+# Egg directory must come first so _Obit.so is importable.
+ENV PYTHONPATH="$OBIT_BASE_PATH/ObitSystem/Obit/python/Obit-1.0-py3.10-linux-x86_64.egg:\
+$OBIT_BASE_PATH/ObitSystem/ObitTalk/python:\
+$OBIT_BASE_PATH/ObitSystem/Obit/python:\
+$OBIT_BASE_PATH/ObitSystem/ObitSD/python:\
+/home/kat/valid"
+
 ENV HOME=/home/kat
 WORKDIR /home/kat
-# Legacy Python compatibility layer for Obit + katacomb
-# Must be pinned to avoid setuptools>=81 breaking pkg_resources
 
+# Configure Obit/AIPS disks
 RUN cfg_aips_disks.py
 
 # Execute test cases
 # The test_continuum_pipeline classes are run separately
-# since Obit cannot handle multiple pipeline runs (>24) 
+# since Obit cannot handle multiple pipeline runs (>24)
 # in the same python thread.
-#RUN /home/kat/ve3/bin/python -m pip install "pytest==7.4.4"
 RUN uv pip install --python /home/kat/ve3/bin/python "pytest>=8"
+
 RUN pytest -s --pyargs katacomb.tests.test_utils \
                        katacomb.tests.test_qa \
                        katacomb.tests.test_aips_facades \
@@ -205,7 +222,7 @@ RUN pytest -s --pyargs katacomb.tests.test_utils \
                        katacomb.tests.test_uv_export \
                        --basetemp=/tmp/pytest
 RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOnlinePipeline \
-      --basetemp=/tmp/pytest
+       --basetemp=/tmp/pytest
 RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestOfflinePipeline \
        --basetemp=/tmp/pytest
 RUN pytest -s --pyargs katacomb.tests.test_continuum_pipeline::TestUVExportPipeline \
