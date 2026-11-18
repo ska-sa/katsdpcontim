@@ -111,6 +111,7 @@ RUN uv pip compile /tmp/requirements.txt \
 ENV VALIDATION_REPO=https://github.com/ska-sa/MeerKAT-continuum-validation.git
 ENV VALIDATION_BASE_PATH=/home/kat/valid
 
+
 RUN mkdir -p $VALIDATION_BASE_PATH && \
     git clone --branch uvpipjammy $VALIDATION_REPO ${VALIDATION_BASE_PATH}
 
@@ -213,7 +214,6 @@ RUN cfg_aips_disks.py
 # The test_continuum_pipeline classes are run separately
 # since Obit cannot handle multiple pipeline runs (>24)
 # in the same python thread.
-RUN uv pip install --python /home/kat/ve3/bin/python "pytest>=8"
 
 RUN pytest -s --pyargs katacomb.tests.test_utils \
                        katacomb.tests.test_qa \
