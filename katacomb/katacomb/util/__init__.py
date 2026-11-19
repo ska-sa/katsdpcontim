@@ -95,7 +95,8 @@ def log_obit_err(logger, istask=True):
     else:
         logger.write = parse_message
     # The go() method inside ObitTask needs sys.stdout.isatty
-    logger.isatty = sys.stdout.isatty
+    #logger.isatty = sys.stdout.isatty
+    logger.isatty = getattr(sys.stdout, "isatty", lambda: False)
     sys.stdout = logger
     yield
     sys.stdout = original
