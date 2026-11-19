@@ -16,6 +16,7 @@ from katacomb import (AIPSPath,
                       obit_context,
                       uv_factory,
                       uv_export)
+from katacomb.aips_path import path_exists
 
 from katacomb.tests.test_aips_path import file_cleaner
 from katacomb.util import parse_python_assigns
@@ -36,6 +37,107 @@ class TestUVExport(unittest.TestCase):
         :class:`katacomb.pipeline_factory` method works.
         """
         self._test_export_implementation("continuum_export")
+
+    def test_splat_export(self):
+        """
+        Test frequency averaging of auto-correlations via the
+        Splat task in the continuum_export pipeline.
+        """
+        nchan = 16
+        ch_avg = 2
+
+        spws = [{
+            'centre_freq': .856e9 + .856e9 / 2.,
+            'num_chans': nchan,
+            'channel_width': .856e9 / nchan,
+            'sideband': 1,
+            'band': 'L',
+        }]
+
+        targets = [katpoint.Target("Flosshilde, radec, 0.0, -30.0")]
+        # Slew for 1 dump then track for 5: this ensures the first track scan is scan 1,
+        # testing that the intermediate merged raw file does not clash with scan 1 (.raw.UV.1)
+        scans = [('slew', 1, targets[0]), ('track', 5, targets[0])]
+
+        ds = MockDataSet(timestamps=DEFAULT_TIMESTAMPS,
+                         subarrays=DEFAULT_SUBARRAYS,
+                         spws=spws,
+                         dumps=scans)
+
+        select = {
+            'scans': 'track',
+            'corrprods': 'auto',
+            'pol': 'HH,VV',
+            'channels': slice(0, nchan),
+        }
+
+        splat_params = {
+            'corrType': 2,
+            'avgFreq': 1,
+            'chAvg': ch_avg,
+            'keepLin': True,
+            'doCalib': -1,
+            'doBand': -1,
+            'flagVer': 0,
+        }
+
+        out_file = AIPSPath('splattest', 1, 'delavg', 1)
+        raw_file = out_file.copy(aclass='mrgraw', seq=1)
+
+        # Ensure files are cleaned up prior to running
+        with obit_context(), file_cleaner([out_file, raw_file]):
+            pass
+
+        try:
+            pipeline = pipeline_factory('continuum_export', ds,
+                                        katdal_select=select,
+                                        splat_params=splat_params,
+                                        merge_scans=True,
+                                        nvispio=1024,
+                                        out_path=out_file)
+            pipeline.execute()
+
+            # Verify that final output file was created and intermediate raw file was zapped
+            with obit_context():
+                self.assertTrue(path_exists(out_file))
+                self.assertFalse(path_exists(raw_file))
+
+                # Inspect the averaged output UV file
+                with uv_factory(aips_path=out_file, mode="r", nvispio=1024) as uvf:
+                    uv_desc = uvf.Desc.Dict
+                    freq_idx = [ct.strip() for ct in uv_desc['ctype']].index('FREQ')
+                    out_nchans = uv_desc['inaxes'][freq_idx]
+
+                    # Output channels must be reduced by ch_avg factor
+                    self.assertEqual(out_nchans, nchan // ch_avg)
+
+                    # Total visibilities must be non-zero and match the NX table
+                    nvis = uv_desc['nvis']
+                    self.assertGreater(nvis, 0)
+                    self.assertEqual(nvis, uvf.nvis_from_NX())
+
+                    # Read first batch and ensure valid data was written
+                    uvf.Read(firstVis=1)
+                    buf = uvf.np_visbuf
+                    self.assertTrue(np.any(buf != 0))
+
+                    # Since corrType=2 (auto-correlations only), verify u=v=w=0
+                    ilocu = uv_desc['ilocu']
+                    ilocv = uv_desc['ilocv']
+                    ilocw = uv_desc['ilocw']
+                    lrec = uv_desc['lrec']
+                    num_vis = uv_desc['numVisBuff']
+
+                    u_vals = buf[ilocu:lrec * num_vis:lrec]
+                    v_vals = buf[ilocv:lrec * num_vis:lrec]
+                    w_vals = buf[ilocw:lrec * num_vis:lrec]
+
+                    self.assertTrue(np.all(u_vals == 0.0))
+                    self.assertTrue(np.all(v_vals == 0.0))
+                    self.assertTrue(np.all(w_vals == 0.0))
+        finally:
+            with obit_context(), file_cleaner([out_file, raw_file]):
+                pass
 
     def test_multiple_ifs(self):
         """
