@@ -782,8 +782,11 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
         self._select_and_infer_files()
 
         if self.splat_params is not None:
-            raw_template = self.out_path.copy(aclass='raw')
-            raw_path = self.out_path.copy(aclass='raw', seq=next_seq_nr(raw_template))
+            # Use 'mrgraw' (or 'rawmrg' if out_path already uses 'mrgraw') as the intermediate
+            # class to avoid name/class collisions with per-scan files which always use aclass='raw'.
+            raw_aclass = 'rawmrg' if self.out_path.aclass == 'mrgraw' else 'mrgraw'
+            raw_template = self.out_path.copy(aclass=raw_aclass)
+            raw_path = self.out_path.copy(aclass=raw_aclass, seq=next_seq_nr(raw_template))
             self.cleanup_uv_files.append(raw_path)
 
             prev_merge_scans = self.merge_scans
