@@ -100,7 +100,7 @@ def main():
     if args.splat or args.splat_args:
         splat_args = {
             'corrType': 2,
-            'avgFreq': 1,
+            'avgFreq': 4,
             'chAvg': 8,
             'keepLin': True,
             'doCalib': -1,

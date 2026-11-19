@@ -750,7 +750,7 @@ class KatdalExportPipeline(KatdalPipelineImplementation):
 
         splat_defaults = {
             'corrType': 2,
-            'avgFreq': 1,
+            'avgFreq': 4,
             'chAvg': 8,
             'keepLin': True,
             'doCalib': -1,
