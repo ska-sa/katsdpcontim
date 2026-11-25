@@ -98,7 +98,7 @@ def DEFAULT_WEIGHTS(dataset):
     # Dump space is linear space between scaled dump indices
     start, stop = dataset.dumps[[0, -1]] / 1000.0
     return np.linspace(start, stop,
-                       num=np.product(dataset.shape),
+                       num=np.prod(dataset.shape),
                        endpoint=True,
                        dtype=np.float32).reshape(dataset.shape)
 

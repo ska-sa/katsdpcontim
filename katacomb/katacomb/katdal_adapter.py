@@ -1166,7 +1166,7 @@ def time_chunked_scans(kat_adapter, time_step=4):
 
     out_vis_size = kat_adapter.uv_vis.dtype.itemsize
     out_vis_shape = (time_step, nbl, nchan, nstokes, 3)
-    vis_size_estimate = np.product(out_vis_shape, dtype=np.int64)*out_vis_size
+    vis_size_estimate = np.prod(out_vis_shape, dtype=np.int64)*out_vis_size
 
     EIGHT_GB = 8*1024**3
 
